@@ -1,0 +1,351 @@
+/* Reset and base styles */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  min-height: 100vh;
+}
+
+.app {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  color: #333;
+}
+
+/* Header */
+.app-header {
+  background: rgba(255, 255, 255, 0.95);
+  padding: 1rem;
+  text-align: center;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+}
+
+.app-header h1 {
+  font-size: 2.5rem;
+  margin-bottom: 0.5rem;
+  background: linear-gradient(45deg, #ffd700, #ffb347);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.app-header p {
+  font-size: 1.1rem;
+  color: #666;
+}
+
+/* Main game container */
+.game-container {
+  flex: 1;
+  display: grid;
+  grid-template-columns: 2fr 1fr;
+  gap: 2rem;
+  padding: 2rem;
+  max-width: 1400px;
+  margin: 0 auto;
+  width: 100%;
+}
+
+/* Left panel */
+.left-panel {
+  background: rgba(255, 255, 255, 0.95);
+  border-radius: 15px;
+  padding: 2rem;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+}
+
+/* Game stats */
+.game-stats {
+  text-align: center;
+}
+
+.money-display {
+  font-size: 3rem;
+  font-weight: bold;
+  color: #2d5016;
+  margin-bottom: 1rem;
+  text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 1rem;
+}
+
+.stat-item {
+  background: #f8f9fa;
+  padding: 1rem;
+  border-radius: 8px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  border: 2px solid #e9ecef;
+}
+
+.stat-label {
+  font-size: 0.9rem;
+  color: #666;
+  margin-bottom: 0.5rem;
+}
+
+.stat-value {
+  font-size: 1.5rem;
+  font-weight: bold;
+  color: #2d5016;
+}
+
+/* Money button */
+.click-area {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  flex: 1;
+}
+
+.money-button-container {
+  perspective: 1000px;
+}
+
+.money-button {
+  background: linear-gradient(145deg, #28a745, #20c997);
+  border: none;
+  border-radius: 20px;
+  padding: 3rem 2rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: 0 10px 30px rgba(40, 167, 69, 0.3);
+  transform-style: preserve-3d;
+  min-width: 300px;
+  min-height: 200px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1rem;
+}
+
+.money-button:hover {
+  transform: translateY(-5px) rotateX(5deg);
+  box-shadow: 0 15px 40px rgba(40, 167, 69, 0.4);
+  background: linear-gradient(145deg, #20c997, #28a745);
+}
+
+.money-button:active {
+  transform: translateY(-2px) scale(0.98);
+  box-shadow: 0 8px 25px rgba(40, 167, 69, 0.3);
+}
+
+.money-icon {
+  font-size: 4rem;
+  animation: bounce 2s infinite;
+}
+
+.money-text {
+  color: white;
+  font-size: 1.5rem;
+  font-weight: bold;
+  text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+}
+
+.money-amount {
+  color: #ffd700;
+  font-size: 1.2rem;
+  font-weight: bold;
+  text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.5);
+}
+
+@keyframes bounce {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-10px); }
+}
+
+/* Action buttons */
+.action-buttons {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.rebirth-button {
+  background: linear-gradient(145deg, #8e44ad, #9b59b6);
+  border: none;
+  border-radius: 12px;
+  padding: 1.5rem;
+  color: white;
+  font-size: 1.2rem;
+  font-weight: bold;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 0 6px 20px rgba(142, 68, 173, 0.3);
+}
+
+.rebirth-button:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 10px 30px rgba(142, 68, 173, 0.4);
+  background: linear-gradient(145deg, #9b59b6, #8e44ad);
+}
+
+.rebirth-info {
+  font-size: 1rem;
+  margin-top: 0.5rem;
+  opacity: 0.9;
+}
+
+.cheat-button {
+  background: linear-gradient(145deg, #fd7e14, #e67e22);
+  border: none;
+  border-radius: 12px;
+  padding: 1rem;
+  color: white;
+  font-size: 1rem;
+  font-weight: bold;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 15px rgba(253, 126, 20, 0.3);
+}
+
+.cheat-button:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(253, 126, 20, 0.4);
+}
+
+/* Right panel */
+.right-panel {
+  background: rgba(255, 255, 255, 0.95);
+  border-radius: 15px;
+  padding: 2rem;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+}
+
+/* Upgrades panel */
+.upgrades-panel h2 {
+  text-align: center;
+  margin-bottom: 2rem;
+  font-size: 2rem;
+  color: #333;
+  border-bottom: 3px solid #ffd700;
+  padding-bottom: 1rem;
+}
+
+.upgrades-list {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.upgrade-button {
+  border: none;
+  border-radius: 12px;
+  padding: 1.5rem;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  font-size: 1rem;
+  font-weight: bold;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  text-align: center;
+}
+
+.upgrade-button.affordable {
+  background: linear-gradient(145deg, #28a745, #20c997);
+  color: white;
+}
+
+.upgrade-button.affordable:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 8px 25px rgba(40, 167, 69, 0.3);
+  background: linear-gradient(145deg, #20c997, #28a745);
+}
+
+.upgrade-button.expensive {
+  background: linear-gradient(145deg, #dc3545, #c82333);
+  color: white;
+}
+
+.upgrade-button.expensive:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 6px 20px rgba(220, 53, 69, 0.3);
+}
+
+.upgrade-button.maxed {
+  background: linear-gradient(145deg, #6c757d, #5a6268);
+  color: #adb5bd;
+  cursor: not-allowed;
+  text-decoration: line-through;
+}
+
+.upgrade-name {
+  font-size: 1.1rem;
+}
+
+.upgrade-info {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 0.9rem;
+}
+
+.upgrade-price {
+  font-weight: bold;
+}
+
+.upgrade-count {
+  opacity: 0.8;
+}
+
+.maxed-text {
+  color: #ffd700;
+  font-weight: bold;
+}
+
+/* Footer */
+.app-footer {
+  background: rgba(255, 255, 255, 0.95);
+  padding: 1rem;
+  text-align: center;
+  color: #666;
+  border-top: 1px solid #eee;
+}
+
+/* Responsive design */
+@media (max-width: 768px) {
+  .game-container {
+    grid-template-columns: 1fr;
+    padding: 1rem;
+    gap: 1rem;
+  }
+  
+  .money-display {
+    font-size: 2rem;
+  }
+  
+  .stats-grid {
+    grid-template-columns: 1fr;
+  }
+  
+  .money-button {
+    min-width: 250px;
+    min-height: 150px;
+    padding: 2rem 1rem;
+  }
+  
+  .money-icon {
+    font-size: 3rem;
+  }
+  
+  .money-text {
+    font-size: 1.2rem;
+  }
+}
