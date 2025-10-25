@@ -1,8 +1,10 @@
 import type { GameState } from '../types';
+import { UPGRADES, formatNumberGerman } from '../types';
 
 interface UpgradeButtonProps {
   name: string;
   price: number;
+  priceText: string;
   amount: number;
   maxAmount: number;
   canAfford: boolean;
@@ -12,7 +14,8 @@ interface UpgradeButtonProps {
 
 const UpgradeButton = ({ 
   name, 
-  price, 
+  price,
+  priceText, 
   amount, 
   maxAmount, 
   canAfford, 
@@ -21,6 +24,7 @@ const UpgradeButton = ({
 }: UpgradeButtonProps) => {
   const getButtonClass = () => {
     if (isMaxed) return 'upgrade-button maxed';
+    if (isNaN(price)) return 'upgrade-button locked';
     if (canAfford) return 'upgrade-button affordable';
     return 'upgrade-button expensive';
   };
@@ -29,7 +33,7 @@ const UpgradeButton = ({
     <button
       className={getButtonClass()}
       onClick={onClick}
-      disabled={isMaxed}
+      disabled={isMaxed || isNaN(price)}
       type="button"
     >
       <div className="upgrade-name">{name}</div>
@@ -38,7 +42,7 @@ const UpgradeButton = ({
           <span className="maxed-text">MAXED ({amount}/{maxAmount})</span>
         ) : (
           <>
-            <span className="upgrade-price">{price.toLocaleString()}€</span>
+            <span className="upgrade-price">{priceText}</span>
             <span className="upgrade-count">({amount}/{maxAmount})</span>
           </>
         )}
@@ -53,29 +57,65 @@ interface UpgradesPanelProps {
 }
 
 const UpgradesPanel = ({ gameState, buyUpgrade }: UpgradesPanelProps) => {
-  const upgrades = [
-    { name: '+1€ per Click', index: 0 },
-    { name: '+1€ per Tick', index: 1 },
-    { name: '+10€ per Click', index: 2 },
-    { name: '+10€ per Tick', index: 3 },
-  ];
-
   return (
-    <div className="upgrades-panel">
-      <h2>Upgrades</h2>
-      <div className="upgrades-list">
-        {upgrades.map(({ name, index }) => (
-          <UpgradeButton
-            key={index}
-            name={name}
-            price={gameState.upgradePrices[index]}
-            amount={gameState.upgradeAmounts[index]}
-            maxAmount={gameState.maxUpgradeAmounts[index]}
-            canAfford={gameState.money >= gameState.upgradePrices[index]}
-            isMaxed={gameState.upgradeAmounts[index] >= gameState.maxUpgradeAmounts[index]}
-            onClick={() => buyUpgrade(index)}
-          />
-        ))}
+    <div className="upgrades-panel" style={{
+      background: 'rgba(34, 197, 94, 0.1)',
+      borderRadius: '12px',
+      padding: '20px',
+      border: '1px solid rgba(34, 197, 94, 0.3)'
+    }}>
+      <h2 style={{
+        color: '#22c55e',
+        fontSize: '20px',
+        fontWeight: 'bold',
+        textShadow: '0 0 10px rgba(34, 197, 94, 0.5)',
+        marginBottom: '20px',
+        textAlign: 'center',
+        borderBottom: '2px solid rgba(34, 197, 94, 0.3)',
+        paddingBottom: '10px'
+      }}>💰 Upgrades</h2>
+      <div className="upgrades-list" style={{
+        display: 'flex',
+        flexDirection: 'column',
+        gap: '12px'
+      }}>
+        {UPGRADES.map((upgrade, index) => {
+          // Dynamische Namen für Unlock-Upgrades basierend auf Gems
+          let displayName = upgrade.name;
+          let displayPrice = gameState.upgradePrices[index];
+          let canAfford = gameState.money >= gameState.upgradePrices[index];
+          let isDisabled = false;
+          let priceText = `${formatNumberGerman(displayPrice)}€`;
+          
+          if (upgrade.type === 'Unlock') {
+            if (gameState.gems === 0 && gameState.upgradeAmounts[index] === 0) {
+              // Nur verstecken wenn noch nicht gekauft UND keine Gems vorhanden
+              displayName = '???';
+              displayPrice = NaN;
+              canAfford = false;
+              isDisabled = true;
+              priceText = '???';
+            } else {
+              // Multi-Währungs-Prüfung für freigeschaltete Unlock-Upgrades
+              canAfford = gameState.money >= 1000 && gameState.rebirthPoints >= 1 && gameState.gems >= 1;
+              priceText = '1K€ + 1 RP + 1 💎';
+            }
+          }
+          
+          return (
+            <UpgradeButton
+              key={upgrade.id}
+              name={displayName}
+              price={displayPrice}
+              priceText={priceText}
+              amount={gameState.upgradeAmounts[index]}
+              maxAmount={gameState.maxUpgradeAmounts[index]}
+              canAfford={canAfford && !isDisabled}
+              isMaxed={gameState.upgradeAmounts[index] >= gameState.maxUpgradeAmounts[index]}
+              onClick={() => !isDisabled && buyUpgrade(index)}
+            />
+          );
+        })}
       </div>
     </div>
   );

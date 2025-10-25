@@ -16,13 +16,30 @@ export const loadGameState = (): GameState => {
     const saved = localStorage.getItem(SAVE_KEY);
     if (saved) {
       const parsed = JSON.parse(saved);
-      // Ensure compatibility with older saves
+      
+      // Erweitere Arrays statt sie zu ersetzen, um Fortschritt zu bewahren
+      const extendArray = (savedArray: any[], defaultArray: any[]) => {
+        if (!Array.isArray(savedArray)) return defaultArray;
+        const result = [...defaultArray];
+        for (let i = 0; i < savedArray.length && i < result.length; i++) {
+          result[i] = savedArray[i];
+        }
+        return result;
+      };
+      
       return {
         ...INITIAL_GAME_STATE,
         ...parsed,
-        upgradePrices: parsed.upgradePrices?.length === 4 ? parsed.upgradePrices : [10, 100, 1000, 2500],
-        upgradeAmounts: parsed.upgradeAmounts?.length === 4 ? parsed.upgradeAmounts : [0, 0, 0, 0],
-        maxUpgradeAmounts: parsed.maxUpgradeAmounts?.length === 4 ? parsed.maxUpgradeAmounts : [10, 10, 10, 10],
+        upgradePrices: extendArray(parsed.upgradePrices, INITIAL_GAME_STATE.upgradePrices),
+        upgradeAmounts: extendArray(parsed.upgradeAmounts, INITIAL_GAME_STATE.upgradeAmounts),
+        maxUpgradeAmounts: extendArray(parsed.maxUpgradeAmounts, INITIAL_GAME_STATE.maxUpgradeAmounts),
+        rebirth_upgradePrices: extendArray(parsed.rebirth_upgradePrices, INITIAL_GAME_STATE.rebirth_upgradePrices),
+        rebirth_upgradeAmounts: extendArray(parsed.rebirth_upgradeAmounts, INITIAL_GAME_STATE.rebirth_upgradeAmounts),
+        rebirth_maxUpgradeAmounts: extendArray(parsed.rebirth_maxUpgradeAmounts, INITIAL_GAME_STATE.rebirth_maxUpgradeAmounts),
+        clicksInRebirth: typeof parsed.clicksInRebirth === 'number' ? parsed.clicksInRebirth : INITIAL_GAME_STATE.clicksInRebirth,
+        clicksTotal: typeof parsed.clicksTotal === 'number' ? parsed.clicksTotal : INITIAL_GAME_STATE.clicksTotal,
+        runes: extendArray(parsed.runes, INITIAL_GAME_STATE.runes),
+        gems: typeof parsed.gems === 'number' ? parsed.gems : 0,
       };
     }
   } catch (error) {
