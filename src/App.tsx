@@ -61,10 +61,11 @@ function App() {
 
   return (
     <div className="app" style={{
-      minHeight: '100vh',
+      height: '100vh',
       background: 'linear-gradient(135deg, #0f172a 0%, #1e293b 25%, #334155 50%, #475569 75%, #64748b 100%)',
       color: 'white',
-      position: 'relative'
+      position: 'relative',
+      overflow: 'hidden'
     }}>
       {/* Flash overlay for rebirth effect */}
       {isFlashing && (
@@ -85,50 +86,52 @@ function App() {
         backdropFilter: 'blur(10px)',
         border: '1px solid rgba(100, 116, 139, 0.3)',
         borderRadius: '0 0 16px 16px',
-        padding: '24px',
+        padding: '12px',
         textAlign: 'center',
-        marginBottom: '20px',
+        marginBottom: '0',
         boxShadow: '0 4px 20px rgba(15, 23, 42, 0.4)'
       }}>
         <h1 style={{
           color: '#22c55e',
-          fontSize: '32px',
+          fontSize: '24px',
           fontWeight: 'bold',
           textShadow: '0 0 20px rgba(34, 197, 94, 0.6)',
-          margin: '0 0 8px 0'
+          margin: '0 0 4px 0'
         }}>💰 Money Clicker</h1>
         <p style={{
           color: '#94a3b8',
-          fontSize: '16px',
+          fontSize: '14px',
           margin: '0'
         }}>Click to earn money, buy upgrades, and grow your fortune!</p>
       </header>
 
       <main className="game-container" style={{ 
         display: 'flex', 
-        gap: '24px', 
+        gap: '12px', 
         maxWidth: bothUnlocksOwned ? '1400px' : '1000px', 
         margin: '0 auto', 
         transition: 'max-width 0.3s ease',
-        padding: '20px',
+        padding: '12px',
         background: 'rgba(15, 23, 42, 0.3)',
         borderRadius: '20px',
         backdropFilter: 'blur(10px)',
         border: '1px solid rgba(100, 116, 139, 0.2)',
-        boxShadow: '0 8px 32px rgba(0, 0, 0, 0.3)'
+        boxShadow: '0 8px 32px rgba(0, 0, 0, 0.3)',
+        flex: 1,
+        overflow: 'hidden'
       }}>
         {/* Gem Panel - Permanent, wenn beide Unlocks gekauft */}
         {bothUnlocksOwned && (
           <div className="gem-panel" style={{
             minWidth: '320px',
-            height: 'calc(100vh - 120px)',
+            height: '100%',
             display: 'flex',
             flexDirection: 'column',
             background: 'linear-gradient(135deg, #3165f3ff 0%, #153ca7ff 30%, #000000ff 100%)',
             border: '3px solid',
             borderImage: 'linear-gradient(135deg, #1d4ed8, #3b82f6, #60a5fa) 1',
             borderRadius: '16px',
-            padding: '24px',
+            padding: '16px',
             boxShadow: '0 0 30px rgba(59, 130, 246, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.1)',
             color: 'white',
             position: 'relative',
@@ -153,7 +156,7 @@ function App() {
               fontWeight: 'bold',
               textShadow: '0 0 10px rgba(96, 165, 250, 0.5)',
               position: 'relative'
-            }}>💎 Runen System</h2>
+            }}>💎 Runes</h2>
             
             {/* Gems Display */}
             <div style={{ 
@@ -172,7 +175,7 @@ function App() {
               }}>
                 💎 {gameState.gems}
               </div>
-              <div style={{ fontSize: '12px', color: '#3b82f6', marginTop: '4px' }}>Verfügbare Gems</div>
+              <div style={{ fontSize: '12px', color: '#3b82f6', marginTop: '4px' }}>Gems you own</div>
             </div>
 
             {/* Buy Pack Button */}
@@ -212,7 +215,7 @@ function App() {
                   }
                 }}
               >
-                ✨ Basic Runen-Pack ✨<br/>
+                ✨ Basic Rune-Pack ✨<br/>
                 <span style={{ fontSize: '14px', opacity: 0.9 }}>💎 5 Gems</span>
               </button>
             </div>
@@ -228,7 +231,7 @@ function App() {
                 borderBottom: '2px solid rgba(59, 130, 246, 0.3)',
                 paddingBottom: '8px'
               }}>
-                🎲 Runen Sammlung
+                🎲 Rune Collection
               </div>
               <div style={{ 
                 flex: 1, 
@@ -242,10 +245,10 @@ function App() {
                   const individualBonuses = [];
                   
                   if (rune.moneyBonus && runeAmount > 0) {
-                    individualBonuses.push(`💰 +${formatNumberGerman((rune.moneyBonus * runeAmount) * 100, 2)}% Geld`);
+                    individualBonuses.push(`💰 +${formatNumberGerman((rune.moneyBonus * runeAmount) * 100, 2)}% Money`);
                   }
                   if (rune.rpBonus && runeAmount > 0) {
-                    individualBonuses.push(`🔄 +${formatNumberGerman((rune.rpBonus * runeAmount) * 100, 2)}% RP`);
+                    individualBonuses.push(`🔄 +${formatNumberGerman((rune.rpBonus * runeAmount) * 100, 2)}% Rebirth Points`);
                   }
                   if (rune.gemBonus && runeAmount > 0) {
                     individualBonuses.push(`💎 +${formatNumberGerman((rune.gemBonus * runeAmount) * 100, 3)}% Gem Chance`);
@@ -301,7 +304,7 @@ function App() {
                         fontSize: '12px', 
                         color: runeAmount > 0 ? '#e5e7eb' : '#9ca3af'
                       }}>
-                        Besitz: {runeAmount}x
+                        Amount: {runeAmount}x
                       </div>
                     </div>
                     <div style={{ 
@@ -339,7 +342,7 @@ function App() {
                           textAlign: 'center',
                           textShadow: `0 0 8px ${rune.color}`
                         }}>
-                          ✨ Aktive Boni ✨
+                          ✨ Activ Bonus ✨
                         </div>
                         {individualBonuses.map((bonus, bonusIndex) => (
                           <div key={bonusIndex} style={{
@@ -397,7 +400,7 @@ function App() {
                   alignItems: 'center',
                   gap: '8px'
                 }}>
-                  ⚡ Aktive Boni
+                  ⚡ Activ Bonus
                 </div>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
                   {runeBonuses.totalMoneyBonus > 0 && (
@@ -412,7 +415,7 @@ function App() {
                       border: '1px solid rgba(16, 185, 129, 0.2)'
                     }}>
                       <span>💰</span>
-                      <span>+{formatNumberGerman(runeBonuses.totalMoneyBonus * 100, 2)}% Geld</span>
+                      <span>+{formatNumberGerman(runeBonuses.totalMoneyBonus * 100, 2)}% Money</span>
                     </div>
                   )}
                   {runeBonuses.totalRpBonus > 0 && (
@@ -427,7 +430,7 @@ function App() {
                       border: '1px solid rgba(59, 130, 246, 0.2)'
                     }}>
                       <span>🔄</span>
-                      <span>+{formatNumberGerman(runeBonuses.totalRpBonus * 100, 2)}% RP</span>
+                      <span>+{formatNumberGerman(runeBonuses.totalRpBonus * 100, 2)}% Rebirth Points</span>
                     </div>
                   )}
                   {runeBonuses.totalGemBonus > 0 && (
@@ -454,9 +457,13 @@ function App() {
         <div className="left-panel" style={{
           background: 'rgba(15, 23, 42, 0.4)',
           borderRadius: '16px',
-          padding: '20px',
+          padding: '12px',
           border: '1px solid rgba(100, 116, 139, 0.3)',
-          boxShadow: '0 4px 16px rgba(0, 0, 0, 0.2)'
+          boxShadow: '0 4px 16px rgba(0, 0, 0, 0.2)',
+          overflow: 'hidden',
+          display: 'flex',
+          flexDirection: 'column',
+          minHeight: 0
         }}>
           <GameStats 
             gameState={gameState} 
@@ -497,10 +504,14 @@ function App() {
         <div className="right-Upgrade-panel" style={{
           background: 'rgba(15, 23, 42, 0.4)',
           borderRadius: '16px',
-          padding: '20px',
+          padding: '12px',
           border: '1px solid rgba(100, 116, 139, 0.3)',
           boxShadow: '0 4px 16px rgba(0, 0, 0, 0.2)',
-          minWidth: '350px'
+          minWidth: '350px',
+          overflow: 'hidden',
+          display: 'flex',
+          flexDirection: 'column',
+          minHeight: 0
         }}>
           {activePanel === 'upgrades' ? (
             <UpgradesPanel 
@@ -619,12 +630,12 @@ function App() {
         backdropFilter: 'blur(10px)',
         border: '1px solid rgba(100, 116, 139, 0.3)',
         borderRadius: '16px 16px 0 0',
-        padding: '16px',
+        padding: '8px',
         textAlign: 'center',
-        marginTop: '20px',
+        marginTop: '0',
         color: '#94a3b8'
       }}>
-        <p style={{ margin: '0' }}>React Money Clicker v0.9 | Your progress is automatically saved!</p>
+        <p style={{ margin: '0', fontSize: '12px' }}>React Money Clicker v0.9 | Your progress is automatically saved!</p>
       </footer>
       
       {/* Tooltip Animation CSS */}

@@ -85,7 +85,7 @@ const UpgradesPanel = ({ gameState, buyUpgrade }: UpgradesPanelProps) => {
           let displayPrice = gameState.upgradePrices[index];
           let canAfford = gameState.money >= gameState.upgradePrices[index];
           let isDisabled = false;
-          let priceText = `${formatNumberGerman(displayPrice)}€`;
+          let priceText = `${formatNumberGerman(displayPrice)}$`;
           
           if (upgrade.type === 'Unlock') {
             if (gameState.gems === 0 && gameState.upgradeAmounts[index] === 0) {
@@ -98,7 +98,7 @@ const UpgradesPanel = ({ gameState, buyUpgrade }: UpgradesPanelProps) => {
             } else {
               // Multi-Währungs-Prüfung für freigeschaltete Unlock-Upgrades
               canAfford = gameState.money >= 1000 && gameState.rebirthPoints >= 1 && gameState.gems >= 1;
-              priceText = '1K€ + 1 RP + 1 💎';
+              priceText = '1000$ + 1 Rebirth Point + 1 💎';
             }
           }
           

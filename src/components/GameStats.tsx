@@ -64,7 +64,7 @@ const GameStats = ({ gameState }: GameStatsProps) => {
         textShadow: '0 0 20px rgba(34, 197, 94, 0.6)',
         textAlign: 'center',
         marginBottom: '20px'
-      }}>💰 {formatNumberGerman(gameState.money)}€</h1>
+      }}>💰 {formatNumberGerman(gameState.money)}$</h1>
       <div className="stats-grid" style={{
         display: 'grid',
         gridTemplateColumns: '1fr 1fr',
@@ -79,7 +79,7 @@ const GameStats = ({ gameState }: GameStatsProps) => {
           <span className="stat-label" style={{ color: '#94a3b8', fontSize: '14px' }}>Per Click:</span>
           <span className="stat-value" style={{ color: '#22c55e', fontWeight: 'bold', fontSize: '16px' }}>{formatNumberGerman(perClickTotal)}€
             {(hasRebirthMultiplier || runeBonuses.totalMoneyBonus > 0) && (
-              <span style={{ fontSize: '0.9em', color: '#64748b' }}> ({formatNumberGerman(gameState.moneyPerClick * (hasRebirthMultiplier ? 1 : multiplier))}€)</span>
+              <span style={{ fontSize: '0.9em', color: '#64748b' }}> ({formatNumberGerman(gameState.moneyPerClick * (hasRebirthMultiplier ? 1 : multiplier))}$)</span>
             )}
           </span>
         </div>
@@ -90,9 +90,9 @@ const GameStats = ({ gameState }: GameStatsProps) => {
           padding: '12px'
         }}>
           <span className="stat-label" style={{ color: '#94a3b8', fontSize: '14px' }}>Per Tick:</span>
-          <span className="stat-value" style={{ color: '#22c55e', fontWeight: 'bold', fontSize: '16px' }}>{formatNumberGerman(perTickTotal)}€
+          <span className="stat-value" style={{ color: '#22c55e', fontWeight: 'bold', fontSize: '16px' }}>{formatNumberGerman(perTickTotal)}$
             {(hasRebirthMultiplier || runeBonuses.totalMoneyBonus > 0) && (
-              <span style={{ fontSize: '0.9em', color: '#64748b' }}> ({formatNumberGerman(gameState.moneyPerTick * (hasRebirthMultiplier ? 1 : multiplier))}€)</span>
+              <span style={{ fontSize: '0.9em', color: '#64748b' }}> ({formatNumberGerman(gameState.moneyPerTick * (hasRebirthMultiplier ? 1 : multiplier))}$)</span>
             )}
           </span>
         </div>
