@@ -44,11 +44,11 @@ export const INITIAL_GAME_STATE: GameState = {
   moneyPerClick: 1,
   moneyPerTick: 0,
   upgradePrices: [10, 100, 1000, 2500, 1000],
-  rebirth_upgradePrices: [1, 5, 15, 1],
+  rebirth_upgradePrices: [1, 5, 15, 1, 20],
   upgradeAmounts: [0, 0, 0, 0, 0],
-  rebirth_upgradeAmounts: [0, 0, 0, 0],
+  rebirth_upgradeAmounts: [0, 0, 0, 0, 0],
   maxUpgradeAmounts: [10, 10, 10, 10, 1],
-  rebirth_maxUpgradeAmounts: [1, 1, 1, 1],
+  rebirth_maxUpgradeAmounts: [5, 5, 1, 1, 1],
   clicksInRebirth: 0,
   clicksTotal: 0,
   runes: [0, 0, 0, 0, 0, 0], // Start with 0 of each rune type
@@ -110,12 +110,12 @@ export const UPGRADES: Upgrade[] = [
 export const REBIRTHUPGRADES: Upgrade[] = [
   {
     id: 0,
-    name: 'Money Income x Total Clicks^0.01',
-    description: 'Multiplies all money gains based on total clicks',
+    name: 'Money Income * Total Clicks^(0,01*Level)',
+    description: 'Multiplies all money gains based on total clicks. Each level increases the power',
     price: 1,
     amount: 0,
-    maxAmount: 1,
-    effect: 0.01, // Der Exponent für die Berechnung von clicksTotal^0.01
+    maxAmount: 5,
+    effect: 0.01, // Der Basis-Exponent für die Berechnung
     type: 'Multiplier',
   },
   {
@@ -124,7 +124,7 @@ export const REBIRTHUPGRADES: Upgrade[] = [
     description: 'Adds 1 click to your total every tick (does not give money)',
     price: 5,
     amount: 0,
-    maxAmount: 1,
+    maxAmount: 5,
     effect: 1,
     type: 'auto',
   },
@@ -147,6 +147,16 @@ export const REBIRTHUPGRADES: Upgrade[] = [
     maxAmount: 1,
     effect: 1,
     type: 'Unlock'
+  },
+  {
+    id: 4,
+    name: 'Boost your Money based of Rebirth Points',
+    description: 'Ever Rebirth Point boosts youre Income by a tenth',
+    price: 20,
+    amount: 0,
+    maxAmount: 1,
+    effect: 10,
+    type: 'Multiplier'
   },
 ];
 

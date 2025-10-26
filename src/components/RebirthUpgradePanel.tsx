@@ -12,6 +12,7 @@ interface RebirthUpgradeButtonProps {
   onClick: () => void;
   bonus?: number;
   upgradeId?: number;
+  upgradeType?: string;
 }
 
 const RebirthUpgradeButton = ({ 
@@ -24,7 +25,8 @@ const RebirthUpgradeButton = ({
   isMaxed,
   onClick,
   bonus,
-  upgradeId
+  upgradeId,
+  upgradeType
 }: RebirthUpgradeButtonProps) => {
   const getButtonClass = () => {
     if (isMaxed) return 'rebirth-upgrade-button maxed';
@@ -47,14 +49,16 @@ const RebirthUpgradeButton = ({
                 <span className="maxed-text">MAXED ({amount}/{maxAmount})</span>
             ) : (
                 <>
-                    <span className="Rebirth-Upgrade-price">Price: {priceText}</span>
-                    <span className="Rebirth-Upgrade-count">Amount: {amount}</span>
+                    <span className="rebirth-upgrade-price">
+                      {upgradeType === 'Unlock' && !isNaN(price) ? priceText : `${priceText} Rebirth Points`}
+                    </span>
+                    <span className="rebirth-upgrade-count">({amount}/{maxAmount})</span>
                 </>
             )}  
         </div>
         {bonus !== undefined && (
           <span style={{ position: 'absolute', right: '1rem', bottom: '0.7rem', fontSize: '0.95em', color: '#ffd700', fontWeight: 600 }}>
-            {upgradeId === 1 ? `+${formatNumberGerman(bonus)} Clicks/Tick` : upgradeId === 2 ? `${formatNumberGerman(bonus, 1)}% chance` : `Bonus: x${formatNumberGerman(bonus, 3)}`}
+            {upgradeId === 1 ? `+${formatNumberGerman(bonus)} Clicks/Tick` : upgradeId === 2 ? `${formatNumberGerman(bonus, 1)}% chance` : upgradeId === 4 ? `x${formatNumberGerman(bonus, 2)} Money` : `Bonus: x${formatNumberGerman(bonus, 3)}`}
           </span>
         )}
     </button>
@@ -88,8 +92,15 @@ const RebirthPanel = ({ gameState, buyRebirthUpgrade }: RebirthPanelProps) => {
             {REBIRTHUPGRADES.map((upgrade, index: number) => {
               let bonus: number | undefined = undefined;
               
-              // Dynamische Namen für Unlock-Upgrades basierend auf Gems
+              // Dynamische Namen für Upgrade 0 basierend auf Level
               let displayName = upgrade.name;
+              if (upgrade.id === 0 && gameState.rebirth_upgradeAmounts[0] > 0) {
+                const currentLevel = gameState.rebirth_upgradeAmounts[0];
+                const currentExponent = 0.01 + (currentLevel - 1) * 0.01;
+                displayName = `Money Income x Total Clicks^${currentExponent.toFixed(2)}`;
+              }
+              
+              // Dynamische Namen für Unlock-Upgrades basierend auf Gems
               let displayPrice = gameState.rebirth_upgradePrices[index];
               let canAfford = gameState.rebirthPoints >= gameState.rebirth_upgradePrices[index];
               let isDisabled = false;
@@ -112,14 +123,19 @@ const RebirthPanel = ({ gameState, buyRebirthUpgrade }: RebirthPanelProps) => {
               
               // Berechne Bonus für jedes Upgrade
               if (upgrade.id === 0 && gameState.rebirth_upgradeAmounts[0] > 0) {
-                // Money Multiplier basierend auf Total Clicks
-                bonus = Math.pow(gameState.clicksTotal, 0.01);
+                // Money Multiplier basierend auf Total Clicks mit korrekt skaliertem Exponent
+                const currentLevel = gameState.rebirth_upgradeAmounts[0];
+                const currentExponent = 0.01 + (currentLevel - 1) * 0.01;
+                bonus = Math.pow(gameState.clicksTotal, currentExponent);
               } else if (upgrade.id === 1 && gameState.rebirth_upgradeAmounts[1] > 0) {
                 // Zeige Clicks per Second für das Auto-Click Upgrade
                 bonus = gameState.rebirth_upgradeAmounts[1];
               } else if (upgrade.id === 2 && gameState.rebirth_upgradeAmounts[2] > 0) {
                 // Zeige Gem-Chance in Prozent
                 bonus = REBIRTHUPGRADES[2].effect * 100; // 0.005 * 100 = 0.5
+              } else if (upgrade.id === 4 && gameState.rebirth_upgradeAmounts[4] > 0) {
+                // Zeige Rebirth Point Multiplikator
+                bonus = 1 + 0.1 * gameState.rebirthPoints;
               }
               
               return (
@@ -135,6 +151,7 @@ const RebirthPanel = ({ gameState, buyRebirthUpgrade }: RebirthPanelProps) => {
                   onClick={() => !isDisabled && buyRebirthUpgrade(index)}
                   bonus={bonus}
                   upgradeId={upgrade.id}
+                  upgradeType={upgrade.type}
                 />
               );
             })}

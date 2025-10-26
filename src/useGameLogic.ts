@@ -18,8 +18,11 @@ export const useGameLogic = () => {
         setGameState(prev => {
           let multiplier = 1;
           if (prev.rebirth_upgradeAmounts[0] > 0) {
+            // Berechne den Exponent: 0.01 + (upgradeAmount - 1) * 0.01
+            // Level 1: 0.01, Level 2: 0.02, Level 3: 0.03, Level 4: 0.04, Level 5: 0.05
+            const exponent = 0.01 + (prev.rebirth_upgradeAmounts[0] - 1) * 0.01;
             // +1, weil der Bonus immer mit dem nächsten Klick steigt
-            multiplier = Math.pow(prev.clicksTotal + 1, REBIRTHUPGRADES[0].effect);
+            multiplier = Math.pow(prev.clicksTotal + 1, exponent);
           }
           
           // Calculate rune money bonus at runtime
@@ -35,7 +38,12 @@ export const useGameLogic = () => {
           let newMoney = prev.money;
           if (prev.moneyPerTick > 0) {
             const runeMultiplier = 1 + totalMoneyBonus;
-            newMoney += prev.moneyPerTick * multiplier * runeMultiplier;
+            let rebirthPointMultiplier = 1;
+            // Effekt des letzten Rebirth-Upgrades: Einkommen mit (1 + 0.1 * rebirthPoints) multiplizieren
+            if (prev.rebirth_upgradeAmounts[4] > 0) {
+              rebirthPointMultiplier = 1 + 0.1 * prev.rebirthPoints;
+            }
+            newMoney += prev.moneyPerTick * multiplier * runeMultiplier * rebirthPointMultiplier;
           }
           // Rebirth-Upgrade: +1 Klick pro Tick (aber kein Geld)
           let newClicksTotal = prev.clicksTotal;
@@ -62,7 +70,10 @@ export const useGameLogic = () => {
       const newClicksTotal = prev.clicksTotal + 1;
       let multiplier = 1;
       if (prev.rebirth_upgradeAmounts[0] > 0) {
-        multiplier = Math.pow(newClicksTotal, REBIRTHUPGRADES[0].effect);
+        // Berechne den Exponent: 0.01 + (upgradeAmount - 1) * 0.01
+        // Level 1: 0.01, Level 2: 0.02, Level 3: 0.03, Level 4: 0.04, Level 5: 0.05
+        const exponent = 0.01 + (prev.rebirth_upgradeAmounts[0] - 1) * 0.01;
+        multiplier = Math.pow(newClicksTotal, exponent);
       }
       
       // Calculate rune bonuses at runtime
@@ -88,9 +99,14 @@ export const useGameLogic = () => {
       
       const runeMoneyMultiplier = 1 + totalMoneyBonus;
       
+      let rebirthPointMultiplier = 1;
+      // Effekt des letzten Rebirth-Upgrades: Einkommen mit (1 + 0.1 * rebirthPoints) multiplizieren
+      if (prev.rebirth_upgradeAmounts[4] > 0) {
+        rebirthPointMultiplier = 1 + 0.1 * prev.rebirthPoints;
+      }
       return {
         ...prev,
-        money: prev.money + (prev.moneyPerClick * multiplier * runeMoneyMultiplier),
+        money: prev.money + (prev.moneyPerClick * multiplier * runeMoneyMultiplier * rebirthPointMultiplier),
         gems: newGems,
         clicksInRebirth: prev.clicksInRebirth + 1,
         clicksTotal: newClicksTotal,
@@ -194,6 +210,24 @@ export const useGameLogic = () => {
         }
         return prev;
       }
+
+      // Spezielle Logik für das 5. Rebirth-Upgrade (Index 4) - Multiplier-Upgrade
+      if (upgradeIndex === 4) {
+        if (prev.rebirthPoints >= rebirth_currentPrice && rebirth_currentAmount < rebirth_maxAmount) {
+          const rebirth_newUpgradePrices = [...prev.rebirth_upgradePrices];
+          const rebirth_newUpgradeAmounts = [...prev.rebirth_upgradeAmounts];
+
+          rebirth_newUpgradeAmounts[upgradeIndex] = rebirth_currentAmount + 1;
+
+          return {
+            ...prev,
+            rebirthPoints: prev.rebirthPoints - rebirth_currentPrice,
+            rebirth_upgradePrices: rebirth_newUpgradePrices,
+            rebirth_upgradeAmounts: rebirth_newUpgradeAmounts,
+          };
+        }
+        return prev;
+      }
       
       // Normale Rebirth-Upgrade-Logik
       if (prev.rebirthPoints >= rebirth_currentPrice && rebirth_currentAmount < rebirth_maxAmount) {
@@ -291,6 +325,13 @@ export const useGameLogic = () => {
     }));
   }, []);
 
+  const devAddClick = useCallback(() => {
+    setGameState(prev => ({
+      ...prev,
+      clicksTotal: prev.clicksTotal + 100,
+    }))
+  }, []);
+
   const devAddRune = useCallback((runeIndex: number) => {
     setGameState(prev => {
       const newRunes = [...prev.runes];
@@ -346,6 +387,7 @@ export const useGameLogic = () => {
     devAddMoney,
     devAddRebirthPoint,
     devAddGem,
+    devAddClick,
     devAddRune,
     openRunePack,
   };
