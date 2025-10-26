@@ -124,7 +124,7 @@ function App() {
             height: 'calc(100vh - 120px)',
             display: 'flex',
             flexDirection: 'column',
-            background: 'linear-gradient(135deg, #0c1222 0%, #1e3a8a 30%, #3b82f6 100%)',
+            background: 'linear-gradient(135deg, #3165f3ff 0%, #153ca7ff 30%, #000000ff 100%)',
             border: '3px solid',
             borderImage: 'linear-gradient(135deg, #1d4ed8, #3b82f6, #60a5fa) 1',
             borderRadius: '16px',
@@ -172,7 +172,7 @@ function App() {
               }}>
                 💎 {gameState.gems}
               </div>
-              <div style={{ fontSize: '12px', color: '#93c5fd', marginTop: '4px' }}>Verfügbare Gems</div>
+              <div style={{ fontSize: '12px', color: '#3b82f6', marginTop: '4px' }}>Verfügbare Gems</div>
             </div>
 
             {/* Buy Pack Button */}
@@ -306,7 +306,7 @@ function App() {
                     </div>
                     <div style={{ 
                       fontSize: '12px', 
-                      color: '#93c5fd',
+                      color: '#3b82f6',
                       textAlign: 'right',
                       zIndex: 1
                     }}>
@@ -417,14 +417,14 @@ function App() {
                   )}
                   {runeBonuses.totalRpBonus > 0 && (
                     <div style={{ 
-                      color: '#60a5fa',
+                      color: '#3B82F6',
                       display: 'flex',
                       alignItems: 'center',
                       gap: '8px',
                       padding: '8px',
-                      background: 'rgba(96, 165, 250, 0.1)',
+                      background: 'rgba(59, 130, 246, 0.1)',
                       borderRadius: '6px',
-                      border: '1px solid rgba(96, 165, 250, 0.2)'
+                      border: '1px solid rgba(59, 130, 246, 0.2)'
                     }}>
                       <span>🔄</span>
                       <span>+{formatNumberGerman(runeBonuses.totalRpBonus * 100, 2)}% RP</span>
