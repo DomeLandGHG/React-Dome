@@ -57,8 +57,8 @@ export const INITIAL_GAME_STATE: GameState = {
 export const UPGRADES: Upgrade[] = [
   {
     id: 0,
-    name: '+1€ per Click',
-    description: 'Increases money per click by 1€',
+    name: '+1$ per Click',
+    description: 'Increases money per click by 1$',
     price: 10,
     amount: 0,
     maxAmount: 10,
@@ -67,8 +67,8 @@ export const UPGRADES: Upgrade[] = [
   },
   {
     id: 1,
-    name: '+1€ per Tick',
-    description: 'Automatically generates 1€ per tick',
+    name: '+1$ per Tick',
+    description: 'Automatically generates 1$ per tick',
     price: 100,
     amount: 0,
     maxAmount: 10,
@@ -77,8 +77,8 @@ export const UPGRADES: Upgrade[] = [
   },
   {
     id: 2,
-    name: '+10€ per Click',
-    description: 'Increases money per click by 10€',
+    name: '+10$ per Click',
+    description: 'Increases money per click by 10$',
     price: 1000,
     amount: 0,
     maxAmount: 10,
@@ -87,8 +87,8 @@ export const UPGRADES: Upgrade[] = [
   },
   {
     id: 3,
-    name: '+10€ per Tick',
-    description: 'Increases money per tick by 10€',
+    name: '+10$ per Tick',
+    description: 'Increases money per tick by 10$',
     price: 2500,
     amount: 0,
     maxAmount: 10,
@@ -110,7 +110,7 @@ export const UPGRADES: Upgrade[] = [
 export const REBIRTHUPGRADES: Upgrade[] = [
   {
     id: 0,
-    name: 'Money x Total Clicks^0.01',
+    name: 'Money Income x Total Clicks^0.01',
     description: 'Multiplies all money gains based on total clicks',
     price: 1,
     amount: 0,
@@ -120,7 +120,7 @@ export const REBIRTHUPGRADES: Upgrade[] = [
   },
   {
     id: 1,
-    name: '+1 Click per Tick',
+    name: '+1 Total Click per Tick',
     description: 'Adds 1 click to your total every tick (does not give money)',
     price: 5,
     amount: 0,
@@ -161,7 +161,7 @@ export const formatNumberGerman = (num: number, decimalPlaces?: number): string 
 export const RUNES: Rune[] = [
   {
     id: 0,
-    name: 'Gewöhnliche Rune',
+    name: 'Common Rune',
     rarity: 'Common',
     color: '#9CA3AF', // Gray
     dropRate: 500, // 50%
@@ -169,7 +169,7 @@ export const RUNES: Rune[] = [
   },
   {
     id: 1,
-    name: 'Ungewöhnliche Rune',
+    name: 'Uncommon Rune',
     rarity: 'Uncommon',
     color: '#10B981', // Green
     dropRate: 300, // 30%
@@ -177,7 +177,7 @@ export const RUNES: Rune[] = [
   },
   {
     id: 2,
-    name: 'Seltene Rune',
+    name: 'Rare Rune',
     rarity: 'Rare',
     color: '#3B82F6', // Blue
     dropRate: 140, // 14%
@@ -186,7 +186,7 @@ export const RUNES: Rune[] = [
   },
   {
     id: 3,
-    name: 'Epische Rune',
+    name: 'Epic Rune',
     rarity: 'Epic',
     color: '#8B5CF6', // Purple
     dropRate: 50, // 5%
@@ -195,7 +195,7 @@ export const RUNES: Rune[] = [
   },
   {
     id: 4,
-    name: 'Legendäre Rune',
+    name: 'Legendary Rune',
     rarity: 'Legendary',
     color: '#F59E0B', // Orange
     dropRate: 9, // 0.9%
@@ -205,7 +205,7 @@ export const RUNES: Rune[] = [
   },
   {
     id: 5,
-    name: 'Mythische Rune',
+    name: 'Mythic Rune',
     rarity: 'Mythic',
     color: '#EF4444', // Red
     dropRate: 1, // 0.1%

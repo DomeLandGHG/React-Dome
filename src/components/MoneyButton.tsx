@@ -98,7 +98,7 @@ const MoneyButton = ({ onClick, gameState, onGemDrop }: MoneyButtonProps) => {
       id: Date.now() + Math.random(),
       x: buttonCenterX + (Math.random() - 0.5) * 200, // Spread around button
       y: buttonCenterY + (Math.random() - 0.5) * 50, // Spread around button
-      amount: `+${formatNumberGerman(totalMoneyPerClick)}€`
+      amount: `+${formatNumberGerman(totalMoneyPerClick)}$`
     };
     
     setFloatingMoneys(prev => [...prev, newFloatingMoney]);
@@ -145,7 +145,7 @@ const MoneyButton = ({ onClick, gameState, onGemDrop }: MoneyButtonProps) => {
       >
         <div className="money-icon" style={{ fontSize: '32px', marginBottom: '8px' }}>💰</div>
         <div className="money-text" style={{ fontSize: '16px', marginBottom: '8px' }}>CLICK FOR MONEY!</div>
-        <div className="money-amount" style={{ fontSize: '20px', color: '#dcfce7' }}>+{formatNumberGerman(totalMoneyPerClick)}€</div>
+        <div className="money-amount" style={{ fontSize: '20px', color: '#dcfce7' }}>+{formatNumberGerman(totalMoneyPerClick)}$</div>
       </button>
       
       {/* Floating Money Animations */}

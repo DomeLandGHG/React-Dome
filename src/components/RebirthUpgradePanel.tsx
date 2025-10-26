@@ -54,7 +54,7 @@ const RebirthUpgradeButton = ({
         </div>
         {bonus !== undefined && (
           <span style={{ position: 'absolute', right: '1rem', bottom: '0.7rem', fontSize: '0.95em', color: '#ffd700', fontWeight: 600 }}>
-            {upgradeId === 1 ? `+${formatNumberGerman(bonus)} clicks/sec` : upgradeId === 2 ? `${formatNumberGerman(bonus, 1)}% chance` : `Bonus: x${formatNumberGerman(bonus, 3)}`}
+            {upgradeId === 1 ? `+${formatNumberGerman(bonus)} Clicks/Tick` : upgradeId === 2 ? `${formatNumberGerman(bonus, 1)}% chance` : `Bonus: x${formatNumberGerman(bonus, 3)}`}
           </span>
         )}
     </button>
@@ -106,7 +106,7 @@ const RebirthPanel = ({ gameState, buyRebirthUpgrade }: RebirthPanelProps) => {
                 } else {
                   // Multi-Währungs-Prüfung für freigeschaltete Unlock-Upgrades
                   canAfford = gameState.money >= 1000 && gameState.rebirthPoints >= 1 && gameState.gems >= 1;
-                  priceText = '1K€ + 1 RP + 1 💎';
+                  priceText = '1000$ + 1 Rebirth Point + 1 💎';
                 }
               }
               
