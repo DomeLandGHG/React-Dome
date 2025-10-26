@@ -124,7 +124,7 @@ function App() {
             height: 'calc(100vh - 120px)',
             display: 'flex',
             flexDirection: 'column',
-            background: 'linear-gradient(135deg, #0c1222 0%, #1e3a8a 30%, #3b82f6 100%)',
+            background: 'linear-gradient(135deg, #3165f3ff 0%, #153ca7ff 30%, #000000ff 100%)',
             border: '3px solid',
             borderImage: 'linear-gradient(135deg, #1d4ed8, #3b82f6, #60a5fa) 1',
             borderRadius: '16px',
