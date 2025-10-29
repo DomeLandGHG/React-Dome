@@ -44,11 +44,11 @@ export const INITIAL_GAME_STATE: GameState = {
   moneyPerClick: 1,
   moneyPerTick: 0,
   upgradePrices: [10, 100, 1000, 2500, 1000],
-  rebirth_upgradePrices: [1, 5, 15, 1],
+  rebirth_upgradePrices: [1, 5, 15, 1, 5],
   upgradeAmounts: [0, 0, 0, 0, 0],
-  rebirth_upgradeAmounts: [0, 0, 0, 0],
+  rebirth_upgradeAmounts: [0, 0, 0, 0, 0],
   maxUpgradeAmounts: [10, 10, 10, 10, 1],
-  rebirth_maxUpgradeAmounts: [1, 1, 1, 1],
+  rebirth_maxUpgradeAmounts: [1, 1, 1, 1, 10],
   clicksInRebirth: 0,
   clicksTotal: 0,
   runes: [0, 0, 0, 0, 0, 0], // Start with 0 of each rune type
@@ -145,6 +145,16 @@ export const REBIRTHUPGRADES: Upgrade[] = [
     price: 1,
     amount: 0,
     maxAmount: 1,
+    effect: 1,
+    type: 'Unlock'
+  },
+	 {
+    id: 4,
+    name: 'increase your first upgrade's max',
+    description: 'your first upgrades max is increased',
+    price: 5,
+    amount: 0,
+    maxAmount: 10,
     effect: 1,
     type: 'Unlock'
   },
