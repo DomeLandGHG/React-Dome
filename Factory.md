@@ -5,4 +5,5 @@ These buildings automate things, such as automate upgrade buying.
 
 ## Factory GUI
 
-If you have the factory open, it will hide everything else. It will use the full fullscreen 
+If you have the factory open, it will hide everything else. It will use the full fullscreen,
+its main color will be red, it should have hotbar
