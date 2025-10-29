@@ -148,16 +148,6 @@ export const REBIRTHUPGRADES: Upgrade[] = [
     effect: 1,
     type: 'Unlock'
   },
-	 {
-    id: 4,
-    name: 'increase your first upgrade's max',
-    description: 'your first upgrades max is increased',
-    price: 5,
-    amount: 0,
-    maxAmount: 10,
-    effect: 1,
-    type: 'Unlock'
-  },
 ];
 
 // German number formatting function
