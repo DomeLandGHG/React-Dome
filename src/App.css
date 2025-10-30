@@ -718,6 +718,16 @@ html, body {
     display: flex;
     justify-content: center;
     padding: 1rem 0;
+    position: relative; /* Für absolute positioning der Effekte */
+  }
+  
+  /* Mobile Money Button Container - verbesserte Positionierung */
+  .mobile-layout .money-button-container {
+    position: relative !important;
+    display: flex !important;
+    justify-content: center !important;
+    margin-bottom: 20px !important;
+    z-index: 1 !important;
   }
   
   /* Desktop Dev Panel verstecken auf Mobile */
