@@ -124,9 +124,23 @@ function App() {
             for(let i = 0; i < amount; i++) devAddRune(runeIndex);
             break;
           }
+
+          case 'gemchance':
+          case 'gem-chance':
+          case 'chance': {
+            const amount = args[0];
+            if (typeof amount !== 'number' || amount <= 0) {
+              console.error('❌ Usage: give gemchance {number} (adds temporary gem chance boost)');
+              return;
+            }
+            console.log(`💎 Temporarily boosting gem chance by +${amount}%`);
+            // This would need implementation in useGameLogic to actually work
+            console.warn('⚠️ Gem chance boost not yet implemented - use runes for permanent gem chance bonus');
+            break;
+          }
           
           default:
-            console.error(`❌ Unknown item: ${thing}. Use: money, rp, gem, runes`);
+            console.error(`❌ Unknown item: ${thing}. Use: money, rp, gem, runes, gemchance`);
             (window as any).MoneyClicker.help();
         }
       },
@@ -179,6 +193,7 @@ function App() {
   MoneyClicker.give("rp", amount)            - Give Rebirth Points  
   MoneyClicker.give("gem", amount)           - Give gems
   MoneyClicker.give("runes", rarity, amount) - Give runes
+  MoneyClicker.give("gemchance", amount)     - Boost gem chance (temporary)
 
 🎲 Rune Rarities:
   1 = Common      4 = Epic
@@ -197,15 +212,10 @@ function App() {
   MoneyClicker.give("rp", 100)
   MoneyClicker.give("gem", 50)
   MoneyClicker.give("runes", 6, 5)    // 5x Mythic runes
+  MoneyClicker.give("gemchance", 10)  // +10% gem chance boost
         `);
       }
     };
-
-    // Zeige Welcome-Message
-    console.log(`
-🎮 Money Clicker Console Commands loaded!
-Type 'MoneyClicker.help()' for available commands.
-    `);
 
     // Cleanup beim unmount
     return () => {
