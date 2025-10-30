@@ -10,12 +10,14 @@ import SwitchButton from './components/Panel-switchButton';
 import UpgradesPanel from './components/UpgradesPanel';
 import RebirthPanel from './components/RebirthUpgradePanel';
 import ActionButtons from './components/ActionButtons';
+import MobileTabNavigation from './components/MobileTabNavigation';
 import { RUNES, type Rune, formatNumberGerman } from './types';
 import './App.css';
 
 function App() {
   const { gameState, clickMoney, buyUpgrade, buyRebirthUpgrade, performRebirth, resetGame, cheatMoney, devAddMoney, devAddRebirthPoint, devAddGem, devAddClick, devAddRune, openRunePack } = useGameLogic();
   const [activePanel, setActivePanel] = useState<'upgrades' | 'rebirth'>('upgrades');
+  const [mobileActiveTab, setMobileActiveTab] = useState<'stats' | 'upgrades' | 'rebirth' | 'gems' | 'dev'>('stats');
   const [isFlashing, setIsFlashing] = useState(false);
   const [hoveredRune, setHoveredRune] = useState<number | null>(null);
   
@@ -81,9 +83,11 @@ function App() {
       </header>
 
       <main className="game-container">
-        {/* Gem Panel - Permanent, wenn beide Unlocks gekauft */}
-        {bothUnlocksOwned && (
-          <div className="gem-panel" style={{
+        {/* Desktop Layout */}
+        <div className="desktop-layout">
+          {/* Gem Panel - Permanent, wenn beide Unlocks gekauft */}
+          {bothUnlocksOwned && (
+            <div className="gem-panel" style={{
             minWidth: '320px',
             height: '100%',
             display: 'flex',
@@ -96,7 +100,8 @@ function App() {
             boxShadow: '0 0 30px rgba(59, 130, 246, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.1)',
             color: 'white',
             position: 'relative',
-            overflow: 'hidden'
+            overflowY: 'auto',
+            WebkitOverflowScrolling: 'touch'
           }}>
             {/* Background Pattern */}
             <div style={{
@@ -415,7 +420,7 @@ function App() {
           </div>
         )}
 
-        <div className="left-panel">
+          <div className="left-panel">
           <GameStats 
             gameState={gameState} 
           />
@@ -469,6 +474,373 @@ function App() {
               buyUpgrade={buyUpgrade} 
             />
           )}
+        </div>
+        </div>
+
+        {/* Mobile Layout */}
+        <div className="mobile-layout">
+          <MobileTabNavigation
+            activeTab={mobileActiveTab}
+            onTabChange={setMobileActiveTab}
+            hasGems={bothUnlocksOwned}
+            hasRebirth={isRebirthUnlocked}
+            showDev={import.meta.env.DEV}
+          />
+
+          <div className="mobile-tab-content">
+            {mobileActiveTab === 'stats' && (
+              <div className="mobile-stats-tab">
+                <GameStats 
+                  gameState={gameState} 
+                />
+                
+                <div className="mobile-click-area">
+                  <MoneyButton 
+                    onClick={clickMoney} 
+                    gameState={gameState}
+                    onGemDrop={() => {
+                      console.log('💎 Gem obtained!');
+                    }}
+                  />
+                </div>
+
+                <ActionButtons
+                  money={gameState.money}
+                  onRebirth={handleRebirth}
+                  onReset={resetGame}
+                  onCheat={cheatMoney}
+                  moneyPerClick={gameState.moneyPerClick}
+                  gameState={gameState}
+                />
+              </div>
+            )}
+
+            {mobileActiveTab === 'upgrades' && (
+              <UpgradesPanel 
+                gameState={gameState} 
+                buyUpgrade={buyUpgrade} 
+              />
+            )}
+
+            {mobileActiveTab === 'rebirth' && isRebirthUnlocked && (
+              <RebirthPanel
+                gameState={gameState}
+                buyRebirthUpgrade={buyRebirthUpgrade}
+              />
+            )}
+
+            {mobileActiveTab === 'gems' && bothUnlocksOwned && (
+              <div className="mobile-gem-panel">
+                {/* Gem Panel Content für Mobile */}
+                <h2 style={{ 
+                  color: '#60a5fa', 
+                  textAlign: 'center', 
+                  marginBottom: '24px',
+                  fontSize: '20px',
+                  fontWeight: 'bold',
+                  textShadow: '0 0 10px rgba(96, 165, 250, 0.5)'
+                }}>💎 Runes</h2>
+                
+                {/* Gems Display */}
+                <div style={{ 
+                  marginBottom: '24px', 
+                  textAlign: 'center',
+                  background: 'rgba(59, 130, 246, 0.1)',
+                  borderRadius: '12px',
+                  padding: '16px',
+                  border: '1px solid rgba(59, 130, 246, 0.3)'
+                }}>
+                  <div style={{ 
+                    fontSize: '24px', 
+                    fontWeight: 'bold',
+                    color: '#60a5fa',
+                    textShadow: '0 0 8px rgba(96, 165, 250, 0.6)'
+                  }}>
+                    💎 {gameState.gems}
+                  </div>
+                  <div style={{ fontSize: '12px', color: '#3b82f6', marginTop: '4px' }}>Gems you own</div>
+                </div>
+
+                {/* Buy Pack Button */}
+                <div style={{ marginBottom: '24px' }}>
+                  <button
+                    onClick={openRunePack}
+                    disabled={gameState.gems < 5}
+                    style={{
+                      width: '100%',
+                      padding: '16px',
+                      fontSize: '16px',
+                      fontWeight: 'bold',
+                      background: gameState.gems >= 5 
+                        ? 'linear-gradient(135deg, #1d4ed8 0%, #3b82f6 50%, #60a5fa 100%)'
+                        : 'linear-gradient(135deg, #374151, #4b5563)',
+                      color: 'white',
+                      border: 'none',
+                      borderRadius: '12px',
+                      cursor: gameState.gems >= 5 ? 'pointer' : 'not-allowed',
+                      transition: 'all 0.3s ease',
+                      opacity: gameState.gems >= 5 ? 1 : 0.6
+                    }}
+                  >
+                    ✨ Basic Rune-Pack ✨<br/>
+                    <span style={{ fontSize: '14px', opacity: 0.9 }}>💎 5 Gems</span>
+                  </button>
+                </div>
+
+                {/* Mobile Rune Collection */}
+                <div style={{
+                  display: 'flex', 
+                  flexDirection: 'column', 
+                  gap: '12px',
+                  paddingBottom: '20px'
+                }}>
+                  <div style={{ 
+                    color: '#60a5fa', 
+                    fontWeight: 'bold', 
+                    marginBottom: '8px',
+                    fontSize: '16px',
+                    textShadow: '0 0 8px rgba(96, 165, 250, 0.4)',
+                    borderBottom: '2px solid rgba(59, 130, 246, 0.3)',
+                    paddingBottom: '8px'
+                  }}>
+                    🎲 Rune Collection
+                  </div>
+                  {RUNES.map((rune: Rune, index: number) => {
+                    const runeAmount = gameState.runes[index];
+                    return (
+                      <div 
+                        key={rune.id} 
+                        style={{ 
+                          display: 'flex', 
+                          justifyContent: 'space-between',
+                          alignItems: 'center',
+                          padding: '12px',
+                          background: runeAmount > 0 
+                            ? `linear-gradient(135deg, ${rune.color}20, ${rune.color}10)` 
+                            : 'rgba(255,255,255,0.05)',
+                          borderRadius: '8px',
+                          border: runeAmount > 0 
+                            ? `1px solid ${rune.color}60` 
+                            : '1px solid rgba(255,255,255,0.1)',
+                          opacity: runeAmount > 0 ? 1 : 0.6
+                        }}
+                      >
+                        <div>
+                          <div style={{ 
+                            color: rune.color, 
+                            fontWeight: 'bold',
+                            fontSize: '14px',
+                            marginBottom: '2px'
+                          }}>
+                            {rune.name}
+                          </div>
+                          <div style={{ 
+                            fontSize: '11px', 
+                            color: '#94a3b8',
+                            lineHeight: 1.3
+                          }}>
+                            {rune.rarity} Rune
+                          </div>
+                        </div>
+                        <div style={{ 
+                          fontWeight: 'bold', 
+                          color: '#60a5fa',
+                          fontSize: '16px'
+                        }}>
+                          {runeAmount}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+                
+                {/* Active Bonuses für Mobile */}
+                {(runeBonuses.totalMoneyBonus > 0 || runeBonuses.totalRpBonus > 0 || runeBonuses.totalGemBonus > 0) && (
+                  <div style={{ 
+                    background: 'rgba(59, 130, 246, 0.1)',
+                    borderRadius: '12px',
+                    padding: '16px',
+                    border: '1px solid rgba(59, 130, 246, 0.3)',
+                    marginTop: '16px'
+                  }}>
+                    <div style={{ 
+                      color: '#60a5fa', 
+                      fontWeight: 'bold', 
+                      marginBottom: '12px',
+                      fontSize: '16px',
+                      textShadow: '0 0 8px rgba(96, 165, 250, 0.4)',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '8px'
+                    }}>
+                      ⚡ Active Bonus
+                    </div>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                      {runeBonuses.totalMoneyBonus > 0 && (
+                        <div style={{ 
+                          color: '#10B981',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '8px',
+                          padding: '8px',
+                          background: 'rgba(16, 185, 129, 0.1)',
+                          borderRadius: '6px',
+                          border: '1px solid rgba(16, 185, 129, 0.2)'
+                        }}>
+                          <span>💰</span>
+                          <span>+{formatNumberGerman(runeBonuses.totalMoneyBonus * 100, 2)}% Money</span>
+                        </div>
+                      )}
+                      {runeBonuses.totalRpBonus > 0 && (
+                        <div style={{ 
+                          color: '#3B82F6',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '8px',
+                          padding: '8px',
+                          background: 'rgba(59, 130, 246, 0.1)',
+                          borderRadius: '6px',
+                          border: '1px solid rgba(59, 130, 246, 0.2)'
+                        }}>
+                          <span>🔄</span>
+                          <span>+{formatNumberGerman(runeBonuses.totalRpBonus * 100, 2)}% Rebirth Points</span>
+                        </div>
+                      )}
+                      {runeBonuses.totalGemBonus > 0 && (
+                        <div style={{ 
+                          color: '#F59E0B',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '8px',
+                          padding: '8px',
+                          background: 'rgba(245, 158, 11, 0.1)',
+                          borderRadius: '6px',
+                          border: '1px solid rgba(245, 158, 11, 0.2)'
+                        }}>
+                          <span>💎</span>
+                          <span>+{formatNumberGerman(runeBonuses.totalGemBonus * 100, 3)}% Gem Chance</span>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {mobileActiveTab === 'dev' && import.meta.env.DEV && (
+              <div className="mobile-dev-panel">
+                <h2 style={{ 
+                  color: '#ff6b6b', 
+                  textAlign: 'center', 
+                  marginBottom: '24px',
+                  fontSize: '20px',
+                  fontWeight: 'bold'
+                }}>🔧 Dev Tools</h2>
+                
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                  <button 
+                    onClick={devAddMoney}
+                    style={{
+                      padding: '12px 16px',
+                      backgroundColor: '#4caf50',
+                      color: 'white',
+                      border: 'none',
+                      borderRadius: '8px',
+                      cursor: 'pointer',
+                      fontSize: '16px',
+                      fontWeight: 'bold'
+                    }}
+                  >
+                    💰 +100K Money
+                  </button>
+                  <button 
+                    onClick={devAddRebirthPoint}
+                    style={{
+                      padding: '12px 16px',
+                      backgroundColor: '#2196f3',
+                      color: 'white',
+                      border: 'none',
+                      borderRadius: '8px',
+                      cursor: 'pointer',
+                      fontSize: '16px',
+                      fontWeight: 'bold'
+                    }}
+                  >
+                    🔄 +10 Rebirth Points
+                  </button>
+                  <button 
+                    onClick={devAddGem}
+                    style={{
+                      padding: '12px 16px',
+                      backgroundColor: '#9c27b0',
+                      color: 'white',
+                      border: 'none',
+                      borderRadius: '8px',
+                      cursor: 'pointer',
+                      fontSize: '16px',
+                      fontWeight: 'bold'
+                    }}
+                  >
+                    💎 +10 Gems
+                  </button>
+                  <button
+                    onClick={devAddClick}
+                    style={{
+                      padding: '12px 16px',
+                      backgroundColor: '#504f4fff',
+                      color: 'white',
+                      border: 'none',
+                      borderRadius: '8px',
+                      cursor: 'pointer',
+                      fontSize: '16px',
+                      fontWeight: 'bold'
+                    }}
+                  >
+                    👆 +100 Clicks
+                  </button>
+                  
+                  {/* Rune Buttons */}
+                  <div style={{ 
+                    borderTop: '2px solid rgba(255, 255, 255, 0.3)', 
+                    marginTop: '16px', 
+                    paddingTop: '16px'
+                  }}>
+                    <h3 style={{ 
+                      fontSize: '16px',
+                      color: '#60a5fa',
+                      fontWeight: 'bold',
+                      marginBottom: '12px',
+                      textAlign: 'center'
+                    }}>
+                      🎲 Add Runes
+                    </h3>
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
+                      {RUNES.map((rune, index) => (
+                        <button 
+                          key={rune.id}
+                          onClick={() => devAddRune(index)}
+                          style={{
+                            padding: '8px 12px',
+                            backgroundColor: rune.color,
+                            color: 'white',
+                            border: 'none',
+                            borderRadius: '6px',
+                            cursor: 'pointer',
+                            fontSize: '12px',
+                            fontWeight: 'bold',
+                            textShadow: '0 1px 2px rgba(0,0,0,0.5)'
+                          }}
+                          title={`Add 1x ${rune.name}`}
+                        >
+                          +{rune.name.split(' ')[0]}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
         </div>
       </main>
 

@@ -78,16 +78,34 @@ const RebirthPanel = ({ gameState, buyRebirthUpgrade }: RebirthPanelProps) => {
           padding: '20px',
           border: '1px solid rgba(147, 51, 234, 0.3)'
         }}>
-          <h2 style={{
-            color: '#9333ea',
-            fontSize: '20px',
-            fontWeight: 'bold',
-            textShadow: '0 0 10px rgba(147, 51, 234, 0.5)',
-            marginBottom: '20px',
+          <div style={{
             textAlign: 'center',
-            borderBottom: '2px solid rgba(147, 51, 234, 0.3)',
-            paddingBottom: '10px'
-          }}>🔄 Rebirth Upgrades</h2>
+            marginBottom: '20px'
+          }}>
+            <h2 style={{
+              color: '#9333ea',
+              fontSize: '20px',
+              fontWeight: 'bold',
+              textShadow: '0 0 10px rgba(147, 51, 234, 0.5)',
+              marginBottom: '10px'
+            }}>🔄 Rebirth Upgrades</h2>
+            <div style={{
+              background: 'rgba(147, 51, 234, 0.1)',
+              borderRadius: '8px',
+              padding: '12px',
+              border: '1px solid rgba(147, 51, 234, 0.3)'
+            }}>
+              <div style={{
+                color: '#a855f7',
+                fontSize: '18px',
+                fontWeight: 'bold',
+                textShadow: '0 0 8px rgba(168, 85, 247, 0.6)'
+              }}>
+                🔄 {formatNumberGerman(gameState.rebirthPoints)} RP
+              </div>
+              <div style={{ fontSize: '12px', color: '#9333ea', marginTop: '4px' }}>Rebirth Points</div>
+            </div>
+          </div>
           <div className="rebirth-upgrade-list">
             {REBIRTHUPGRADES.map((upgrade, index: number) => {
               let bonus: number | undefined = undefined;
