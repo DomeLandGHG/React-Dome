@@ -60,13 +60,7 @@ function App() {
   };
 
   return (
-    <div className="app" style={{
-      height: '100vh',
-      background: 'linear-gradient(135deg, #0f172a 0%, #1e293b 25%, #334155 50%, #475569 75%, #64748b 100%)',
-      color: 'white',
-      position: 'relative',
-      overflow: 'hidden'
-    }}>
+    <div className="app">
       {/* Flash overlay for rebirth effect */}
       {isFlashing && (
         <div style={{
@@ -81,45 +75,12 @@ function App() {
           animation: 'rebirthFlash 0.8s ease-out forwards'
         }} />
       )}
-      <header className="app-header" style={{
-        background: 'rgba(15, 23, 42, 0.9)',
-        backdropFilter: 'blur(10px)',
-        border: '1px solid rgba(100, 116, 139, 0.3)',
-        borderRadius: '0 0 16px 16px',
-        padding: '12px',
-        textAlign: 'center',
-        marginBottom: '0',
-        boxShadow: '0 4px 20px rgba(15, 23, 42, 0.4)'
-      }}>
-        <h1 style={{
-          color: '#22c55e',
-          fontSize: '24px',
-          fontWeight: 'bold',
-          textShadow: '0 0 20px rgba(34, 197, 94, 0.6)',
-          margin: '0 0 4px 0'
-        }}>💰 Money Clicker</h1>
-        <p style={{
-          color: '#94a3b8',
-          fontSize: '14px',
-          margin: '0'
-        }}>Click to earn money, buy upgrades, and grow your fortune!</p>
+      <header className="app-header">
+        <h1>💰 Money Clicker</h1>
+        <p>Click to earn money, buy upgrades, and grow your fortune!</p>
       </header>
 
-      <main className="game-container" style={{ 
-        display: 'flex', 
-        gap: '12px', 
-        maxWidth: bothUnlocksOwned ? '1400px' : '1000px', 
-        margin: '0 auto', 
-        transition: 'max-width 0.3s ease',
-        padding: '12px',
-        background: 'rgba(15, 23, 42, 0.3)',
-        borderRadius: '20px',
-        backdropFilter: 'blur(10px)',
-        border: '1px solid rgba(100, 116, 139, 0.2)',
-        boxShadow: '0 8px 32px rgba(0, 0, 0, 0.3)',
-        flex: 1,
-        overflow: 'hidden'
-      }}>
+      <main className="game-container">
         {/* Gem Panel - Permanent, wenn beide Unlocks gekauft */}
         {bothUnlocksOwned && (
           <div className="gem-panel" style={{
@@ -454,17 +415,7 @@ function App() {
           </div>
         )}
 
-        <div className="left-panel" style={{
-          background: 'rgba(15, 23, 42, 0.4)',
-          borderRadius: '16px',
-          padding: '12px',
-          border: '1px solid rgba(100, 116, 139, 0.3)',
-          boxShadow: '0 4px 16px rgba(0, 0, 0, 0.2)',
-          overflow: 'hidden',
-          display: 'flex',
-          flexDirection: 'column',
-          minHeight: 0
-        }}>
+        <div className="left-panel">
           <GameStats 
             gameState={gameState} 
           />
@@ -501,18 +452,7 @@ function App() {
           />
         </div>
 
-        <div className="right-Upgrade-panel" style={{
-          background: 'rgba(15, 23, 42, 0.4)',
-          borderRadius: '16px',
-          padding: '12px',
-          border: '1px solid rgba(100, 116, 139, 0.3)',
-          boxShadow: '0 4px 16px rgba(0, 0, 0, 0.2)',
-          minWidth: '350px',
-          overflow: 'hidden',
-          display: 'flex',
-          flexDirection: 'column',
-          minHeight: 0
-        }}>
+        <div className="right-Upgrade-panel">
           {activePanel === 'upgrades' ? (
             <UpgradesPanel 
               gameState={gameState} 
@@ -639,17 +579,8 @@ function App() {
         </div>
       )}
 
-      <footer className="app-footer" style={{
-        background: 'rgba(15, 23, 42, 0.9)',
-        backdropFilter: 'blur(10px)',
-        border: '1px solid rgba(100, 116, 139, 0.3)',
-        borderRadius: '16px 16px 0 0',
-        padding: '8px',
-        textAlign: 'center',
-        marginTop: '0',
-        color: '#94a3b8'
-      }}>
-        <p style={{ margin: '0', fontSize: '12px' }}>React Money Clicker v0.9 | Your progress is automatically saved!</p>
+      <footer className="app-footer">
+        <p>React Money Clicker v0.9 | Your progress is automatically saved!</p>
       </footer>
       
       {/* Tooltip Animation CSS */}
