@@ -64,16 +64,34 @@ const UpgradesPanel = ({ gameState, buyUpgrade }: UpgradesPanelProps) => {
       padding: '20px',
       border: '1px solid rgba(34, 197, 94, 0.3)'
     }}>
-      <h2 style={{
-        color: '#22c55e',
-        fontSize: '20px',
-        fontWeight: 'bold',
-        textShadow: '0 0 10px rgba(34, 197, 94, 0.5)',
-        marginBottom: '20px',
+      <div style={{
         textAlign: 'center',
-        borderBottom: '2px solid rgba(34, 197, 94, 0.3)',
-        paddingBottom: '10px'
-      }}>💰 Upgrades</h2>
+        marginBottom: '20px'
+      }}>
+        <h2 style={{
+          color: '#22c55e',
+          fontSize: '20px',
+          fontWeight: 'bold',
+          textShadow: '0 0 10px rgba(34, 197, 94, 0.5)',
+          marginBottom: '10px'
+        }}>⬆️ Upgrades</h2>
+        <div style={{
+          background: 'rgba(34, 197, 94, 0.1)',
+          borderRadius: '8px',
+          padding: '12px',
+          border: '1px solid rgba(34, 197, 94, 0.3)'
+        }}>
+          <div style={{
+            color: '#ffd700',
+            fontSize: '18px',
+            fontWeight: 'bold',
+            textShadow: '0 0 8px rgba(255, 215, 0, 0.6)'
+          }}>
+            💰 {formatNumberGerman(gameState.money)}€
+          </div>
+          <div style={{ fontSize: '12px', color: '#22c55e', marginTop: '4px' }}>Available Money</div>
+        </div>
+      </div>
       <div className="upgrades-list" style={{
         display: 'flex',
         flexDirection: 'column',
