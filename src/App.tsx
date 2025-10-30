@@ -61,6 +61,158 @@ function App() {
     setTimeout(() => setIsFlashing(false), 800);
   };
 
+  // Console Commands für Developer/Cheat Funktionen
+  React.useEffect(() => {
+    // Füge Console-Befehle zum globalen Window-Objekt hinzu
+    (window as any).MoneyClicker = {
+      // Hauptbefehl: give
+      give: (thing: string, ...args: any[]) => {
+        const thingLower = thing.toLowerCase();
+        
+        switch(thingLower) {
+          case 'money': {
+            const amount = args[0];
+            if (typeof amount !== 'number' || amount <= 0) {
+              console.error('❌ Usage: give money {number}');
+              return;
+            }
+            console.log(`💰 Giving ${amount} money`);
+            for(let i = 0; i < amount; i++) devAddMoney();
+            break;
+          }
+          
+          case 'rp': {
+            const amount = args[0];
+            if (typeof amount !== 'number' || amount <= 0) {
+              console.error('❌ Usage: give rp {number}');
+              return;
+            }
+            console.log(`🔄 Giving ${amount} Rebirth Points`);
+            for(let i = 0; i < amount; i++) devAddRebirthPoint();
+            break;
+          }
+          
+          case 'gem':
+          case 'gems': {
+            const amount = args[0];
+            if (typeof amount !== 'number' || amount <= 0) {
+              console.error('❌ Usage: give gem {number}');
+              return;
+            }
+            console.log(`💎 Giving ${amount} gems`);
+            for(let i = 0; i < amount; i++) devAddGem();
+            break;
+          }
+          
+          case 'runes': {
+            const rarity = args[0];
+            const amount = args[1] || 1;
+            
+            if (typeof rarity !== 'number' || rarity < 1 || rarity > 6) {
+              console.error('❌ Usage: give runes {rarity} {number} (rarity: 1=Common, 2=Uncommon, 3=Rare, 4=Epic, 5=Legendary, 6=Mythic)');
+              return;
+            }
+            
+            if (typeof amount !== 'number' || amount <= 0) {
+              console.error('❌ Usage: give runes {rarity} {number}');
+              return;
+            }
+            
+            const runeIndex = rarity - 1; // Convert 1-6 to 0-5
+            const rarityNames = ['Common', 'Uncommon', 'Rare', 'Epic', 'Legendary', 'Mythic'];
+            console.log(`🎲 Giving ${amount}x ${rarityNames[runeIndex]} runes`);
+            for(let i = 0; i < amount; i++) devAddRune(runeIndex);
+            break;
+          }
+          
+          default:
+            console.error(`❌ Unknown item: ${thing}. Use: money, rp, gem, runes`);
+            (window as any).MoneyClicker.help();
+        }
+      },
+      
+      // Legacy-Befehle (für Rückwärtskompatibilität)
+      addMoney: (amount: number) => {
+        console.warn('⚠️ Deprecated: Use "give money {amount}" instead');
+        (window as any).MoneyClicker.give('money', amount);
+      },
+      addRP: (amount: number) => {
+        console.warn('⚠️ Deprecated: Use "give rp {amount}" instead');
+        (window as any).MoneyClicker.give('rp', amount);
+      },
+      addGems: (amount: number) => {
+        console.warn('⚠️ Deprecated: Use "give gem {amount}" instead');
+        (window as any).MoneyClicker.give('gem', amount);
+      },
+      addRune: (runeIndex: number, amount: number = 1) => {
+        console.warn('⚠️ Deprecated: Use "give runes {rarity} {amount}" instead');
+        (window as any).MoneyClicker.give('runes', runeIndex + 1, amount);
+      },
+      
+      // Click-Befehle
+      addClicks: (amount: number) => {
+        console.log(`👆 Adding ${amount} total clicks`);
+        for(let i = 0; i < amount; i++) devAddClick();
+      },
+      
+      // Spiel-Befehle
+      rebirth: () => {
+        console.log('🔄 Performing rebirth');
+        performRebirth();
+      },
+      reset: () => {
+        console.log('🔥 Resetting game');
+        resetGame();
+      },
+      
+      // Info-Befehle
+      gameState: () => {
+        console.log('📊 Current game state:', gameState);
+        return gameState;
+      },
+      help: () => {
+        console.log(`
+🎮 Money Clicker Console Commands:
+
+🎯 MAIN COMMAND (give):
+  MoneyClicker.give("money", amount)         - Give money
+  MoneyClicker.give("rp", amount)            - Give Rebirth Points  
+  MoneyClicker.give("gem", amount)           - Give gems
+  MoneyClicker.give("runes", rarity, amount) - Give runes
+
+🎲 Rune Rarities:
+  1 = Common      4 = Epic
+  2 = Uncommon    5 = Legendary  
+  3 = Rare        6 = Mythic
+
+👆 Other Commands:
+  MoneyClicker.addClicks(amount)    - Add total clicks
+  MoneyClicker.rebirth()            - Perform rebirth
+  MoneyClicker.reset()              - Reset entire game
+  MoneyClicker.gameState()          - Show current game state
+  MoneyClicker.help()               - Show this help
+
+📝 Examples:
+  MoneyClicker.give("money", 1000000)
+  MoneyClicker.give("rp", 100)
+  MoneyClicker.give("gem", 50)
+  MoneyClicker.give("runes", 6, 5)    // 5x Mythic runes
+        `);
+      }
+    };
+
+    // Zeige Welcome-Message
+    console.log(`
+🎮 Money Clicker Console Commands loaded!
+Type 'MoneyClicker.help()' for available commands.
+    `);
+
+    // Cleanup beim unmount
+    return () => {
+      delete (window as any).MoneyClicker;
+    };
+  }, [gameState, devAddMoney, devAddRebirthPoint, devAddGem, devAddClick, devAddRune, performRebirth, resetGame]);
+
   return (
     <div className="app">
       {/* Flash overlay for rebirth effect */}
