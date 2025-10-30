@@ -24,12 +24,17 @@ interface MoneyButtonProps {
 const MoneyButton = ({ onClick, gameState, onGemDrop }: MoneyButtonProps) => {
   const [floatingMoneys, setFloatingMoneys] = useState<FloatingMoney[]>([]);
   const [floatingGems, setFloatingGems] = useState<FloatingGem[]>([]);
-  // Multiplier für Rebirth-Upgrade 0 (same calculation as in GameStats)
-  const hasRebirthMultiplier = gameState.rebirth_upgradeAmounts && gameState.rebirth_upgradeAmounts[0] > 0;
-  const multiplier = hasRebirthMultiplier ? Math.pow(gameState.clicksTotal, 0.01) : 1;
   
-  // Calculate rune bonuses
-  const calculateRuneBonuses = () => {
+  // Calculate exact money per click value like in GameStats
+  const calculateActualMoneyPerClick = () => {
+    // Rebirth Upgrade 0 multiplier (Total Clicks multiplier)
+    let clickMultiplier = 1;
+    if (gameState.rebirth_upgradeAmounts[0] > 0) {
+      const exponent = 0.01 + (gameState.rebirth_upgradeAmounts[0] - 1) * 0.01;
+      clickMultiplier = Math.pow(gameState.clicksTotal + 1, exponent); // +1 for next click
+    }
+
+    // Rune bonuses
     let totalMoneyBonus = 0;
     gameState.runes.forEach((amount, index) => {
       const rune = RUNES[index];
@@ -37,12 +42,19 @@ const MoneyButton = ({ onClick, gameState, onGemDrop }: MoneyButtonProps) => {
         totalMoneyBonus += (rune.moneyBonus || 0) * amount;
       }
     });
-    return totalMoneyBonus;
+    const runeMultiplier = 1 + totalMoneyBonus;
+
+    // Rebirth Upgrade 4 multiplier (Rebirth Points money boost)
+    let rebirthPointMultiplier = 1;
+    if (gameState.rebirth_upgradeAmounts[4] > 0) {
+      rebirthPointMultiplier = 1 + 0.1 * gameState.rebirthPoints;
+    }
+
+    // Calculate final value
+    return gameState.moneyPerClick * clickMultiplier * runeMultiplier * rebirthPointMultiplier;
   };
 
-  const runeMoneyBonus = calculateRuneBonuses();
-  const runeMultiplier = 1 + runeMoneyBonus;
-  const totalMoneyPerClick = gameState.moneyPerClick * multiplier * runeMultiplier;
+  const totalMoneyPerClick = calculateActualMoneyPerClick();
 
   // Track previous gems to detect new gem drops
   const [prevGems, setPrevGems] = useState(gameState.gems);

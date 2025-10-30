@@ -14,7 +14,7 @@ import { RUNES, type Rune, formatNumberGerman } from './types';
 import './App.css';
 
 function App() {
-  const { gameState, clickMoney, buyUpgrade, buyRebirthUpgrade, performRebirth, resetGame, cheatMoney, devAddMoney, devAddRebirthPoint, devAddGem, devAddRune, openRunePack } = useGameLogic();
+  const { gameState, clickMoney, buyUpgrade, buyRebirthUpgrade, performRebirth, resetGame, cheatMoney, devAddMoney, devAddRebirthPoint, devAddGem, devAddClick, devAddRune, openRunePack } = useGameLogic();
   const [activePanel, setActivePanel] = useState<'upgrades' | 'rebirth'>('upgrades');
   const [isFlashing, setIsFlashing] = useState(false);
   const [hoveredRune, setHoveredRune] = useState<number | null>(null);
@@ -588,6 +588,20 @@ function App() {
               }}
             >
               +10 Gem
+            </button>
+            <button
+              onClick={devAddClick}
+              style={{
+                padding: '6px 12px',
+                backgroundColor: '#504f4fff',
+                color: 'white',
+                border: 'none',
+                borderRadius: '4px',
+                cursor: 'pointer',
+                fontSize:'12px'
+              }}
+            >
+              +100 Clicks
             </button>
             
             {/* Rune Buttons */}

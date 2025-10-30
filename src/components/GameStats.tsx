@@ -6,12 +6,16 @@ interface GameStatsProps {
 }
 
 const GameStats = ({ gameState }: GameStatsProps) => {
-  // Multiplier für Rebirth-Upgrade 0
-  const hasRebirthMultiplier = gameState.rebirth_upgradeAmounts && gameState.rebirth_upgradeAmounts[0] > 0;
-  const multiplier = hasRebirthMultiplier ? Math.pow(gameState.clicksTotal, 0.01) : 1;
+  // Calculate all multipliers exactly like in the game logic
+  const calculateActualValues = () => {
+    // Rebirth Upgrade 0 multiplier (Total Clicks multiplier)
+    let clickMultiplier = 1;
+    if (gameState.rebirth_upgradeAmounts[0] > 0) {
+      const exponent = 0.01 + (gameState.rebirth_upgradeAmounts[0] - 1) * 0.01;
+      clickMultiplier = Math.pow(gameState.clicksTotal + 1, exponent); // +1 for next click
+    }
 
-  // Calculate rune bonuses
-  const calculateRuneBonuses = () => {
+    // Rune bonuses
     let totalMoneyBonus = 0;
     let totalRpBonus = 0;
     let totalGemBonus = 0;
@@ -25,14 +29,31 @@ const GameStats = ({ gameState }: GameStatsProps) => {
       }
     });
 
-    return { totalMoneyBonus, totalRpBonus, totalGemBonus };
+    const runeMultiplier = 1 + totalMoneyBonus;
+
+    // Rebirth Upgrade 4 multiplier (Rebirth Points money boost)
+    let rebirthPointMultiplier = 1;
+    if (gameState.rebirth_upgradeAmounts[4] > 0) {
+      rebirthPointMultiplier = 1 + 0.1 * gameState.rebirthPoints;
+    }
+
+    // Calculate final values
+    const perClickTotal = gameState.moneyPerClick * clickMultiplier * runeMultiplier * rebirthPointMultiplier;
+    const perTickTotal = gameState.moneyPerTick * clickMultiplier * runeMultiplier * rebirthPointMultiplier;
+
+    return { 
+      perClickTotal, 
+      perTickTotal, 
+      totalMoneyBonus, 
+      totalRpBonus, 
+      totalGemBonus,
+      clickMultiplier,
+      runeMultiplier,
+      rebirthPointMultiplier
+    };
   };
 
-  const runeBonuses = calculateRuneBonuses();
-  const runeMoneyMultiplier = 1 + runeBonuses.totalMoneyBonus;
-
-  const perClickTotal = (gameState.moneyPerClick * multiplier * runeMoneyMultiplier);
-  const perTickTotal = (gameState.moneyPerTick * multiplier * runeMoneyMultiplier);
+  const values = calculateActualValues();
   
   // Zeige Gems nur wenn das dritte Rebirth-Upgrade gekauft wurde
   const showGems = gameState.rebirth_upgradeAmounts && gameState.rebirth_upgradeAmounts[2] > 0;
@@ -41,7 +62,7 @@ const GameStats = ({ gameState }: GameStatsProps) => {
   const calculateGemChance = () => {
     if (!showGems) return 0;
     const baseGemChance = 0.005; // 0.5% base chance
-    const bonusGemChance = runeBonuses.totalGemBonus;
+    const bonusGemChance = values.totalGemBonus;
     return baseGemChance + bonusGemChance;
   };
   
@@ -77,9 +98,9 @@ const GameStats = ({ gameState }: GameStatsProps) => {
           padding: '12px'
         }}>
           <span className="stat-label" style={{ color: '#94a3b8', fontSize: '14px' }}>Per Click:</span>
-          <span className="stat-value" style={{ color: '#22c55e', fontWeight: 'bold', fontSize: '16px' }}>{formatNumberGerman(perClickTotal)}€
-            {(hasRebirthMultiplier || runeBonuses.totalMoneyBonus > 0) && (
-              <span style={{ fontSize: '0.9em', color: '#64748b' }}> ({formatNumberGerman(gameState.moneyPerClick * (hasRebirthMultiplier ? 1 : multiplier))}$)</span>
+          <span className="stat-value" style={{ color: '#22c55e', fontWeight: 'bold', fontSize: '16px' }}>{formatNumberGerman(values.perClickTotal)}€
+            {(values.clickMultiplier > 1 || values.runeMultiplier > 1 || values.rebirthPointMultiplier > 1) && (
+              <span style={{ fontSize: '0.9em', color: '#64748b' }}> ({formatNumberGerman(gameState.moneyPerClick)}€)</span>
             )}
           </span>
         </div>
@@ -90,9 +111,9 @@ const GameStats = ({ gameState }: GameStatsProps) => {
           padding: '12px'
         }}>
           <span className="stat-label" style={{ color: '#94a3b8', fontSize: '14px' }}>Per Tick:</span>
-          <span className="stat-value" style={{ color: '#22c55e', fontWeight: 'bold', fontSize: '16px' }}>{formatNumberGerman(perTickTotal)}$
-            {(hasRebirthMultiplier || runeBonuses.totalMoneyBonus > 0) && (
-              <span style={{ fontSize: '0.9em', color: '#64748b' }}> ({formatNumberGerman(gameState.moneyPerTick * (hasRebirthMultiplier ? 1 : multiplier))}$)</span>
+          <span className="stat-value" style={{ color: '#22c55e', fontWeight: 'bold', fontSize: '16px' }}>{formatNumberGerman(values.perTickTotal)}€
+            {(values.clickMultiplier > 1 || values.runeMultiplier > 1 || values.rebirthPointMultiplier > 1) && (
+              <span style={{ fontSize: '0.9em', color: '#64748b' }}> ({formatNumberGerman(gameState.moneyPerTick)}€)</span>
             )}
           </span>
         </div>
@@ -128,7 +149,7 @@ const GameStats = ({ gameState }: GameStatsProps) => {
             <span className="stat-label" style={{ color: '#94a3b8', fontSize: '14px' }}>💎 Chance:</span>
             <span className="stat-value" style={{ color: '#f59e0b', fontWeight: 'bold', fontSize: '16px' }}>
               {formatNumberGerman(gemChance * 100, 2)}%
-              {runeBonuses.totalGemBonus > 0 && (
+              {values.totalGemBonus > 0 && (
                 <span style={{ fontSize: '0.9em', color: '#64748b' }}> (0,5%)</span>
               )}
             </span>
