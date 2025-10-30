@@ -127,7 +127,7 @@ const GameStats = ({ gameState }: GameStatsProps) => {
             padding: '12px'
           }}>
             <span className="stat-label" style={{ color: '#94a3b8', fontSize: '14px' }}>Rebirth Points:</span>
-            <span className="stat-value" style={{ color: '#9333ea', fontWeight: 'bold', fontSize: '16px' }}>{Math.floor(gameState.rebirthPoints)}</span>
+            <span className="stat-value" style={{ color: '#9333ea', fontWeight: 'bold', fontSize: '16px' }}>{formatNumberGerman(Math.floor(gameState.rebirthPoints))}</span>
           </div>
         )}
         {showGems && (

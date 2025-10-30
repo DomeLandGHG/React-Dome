@@ -751,7 +751,7 @@ function App() {
                       fontWeight: 'bold'
                     }}
                   >
-                    💰 +100K Money
+                    💰 +Money
                   </button>
                   <button 
                     onClick={devAddRebirthPoint}

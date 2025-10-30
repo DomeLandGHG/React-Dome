@@ -311,7 +311,7 @@ export const useGameLogic = () => {
   const devAddMoney = useCallback(() => {
     setGameState(prev => ({
       ...prev,
-      money: prev.money + 100000,
+      money: prev.money + 10000000000000,
     }));
   }, []);
 
