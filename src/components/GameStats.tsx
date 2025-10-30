@@ -100,9 +100,9 @@ const GameStats = ({ gameState }: GameStatsProps) => {
           padding: '12px'
         }}>
           <span className="stat-label" style={{ color: '#94a3b8', fontSize: '14px' }}>Per Click:</span>
-          <span className="stat-value" style={{ color: '#22c55e', fontWeight: 'bold', fontSize: '16px' }}>{formatNumberGerman(values.perClickTotal)}€
+          <span className="stat-value" style={{ color: '#22c55e', fontWeight: 'bold', fontSize: '16px' }}>{formatNumberGerman(values.perClickTotal)}$
             {(values.clickMultiplier > 1 || values.runeMultiplier > 1 || values.rebirthPointMultiplier > 1) && (
-              <span style={{ fontSize: '0.9em', color: '#64748b' }}> ({formatNumberGerman(gameState.moneyPerClick)}€)</span>
+              <span style={{ fontSize: '0.9em', color: '#64748b' }}> ({formatNumberGerman(gameState.moneyPerClick)}$)</span>
             )}
           </span>
         </div>
@@ -113,9 +113,9 @@ const GameStats = ({ gameState }: GameStatsProps) => {
           padding: '12px'
         }}>
           <span className="stat-label" style={{ color: '#94a3b8', fontSize: '14px' }}>Per Tick:</span>
-          <span className="stat-value" style={{ color: '#22c55e', fontWeight: 'bold', fontSize: '16px' }}>{formatNumberGerman(values.perTickTotal)}€
+          <span className="stat-value" style={{ color: '#22c55e', fontWeight: 'bold', fontSize: '16px' }}>{formatNumberGerman(values.perTickTotal)}$
             {(values.clickMultiplier > 1 || values.runeMultiplier > 1 || values.rebirthPointMultiplier > 1) && (
-              <span style={{ fontSize: '0.9em', color: '#64748b' }}> ({formatNumberGerman(gameState.moneyPerTick)}€)</span>
+              <span style={{ fontSize: '0.9em', color: '#64748b' }}> ({formatNumberGerman(gameState.moneyPerTick)}$)</span>
             )}
           </span>
         </div>

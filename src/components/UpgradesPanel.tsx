@@ -87,7 +87,7 @@ const UpgradesPanel = ({ gameState, buyUpgrade }: UpgradesPanelProps) => {
             fontWeight: 'bold',
             textShadow: '0 0 8px rgba(255, 215, 0, 0.6)'
           }}>
-            💰 {formatNumberGerman(gameState.money)}€
+            💰 {formatNumberGerman(gameState.money)}$
           </div>
           <div style={{ fontSize: '12px', color: '#22c55e', marginTop: '4px' }}>Available Money</div>
         </div>

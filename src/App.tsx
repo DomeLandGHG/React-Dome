@@ -15,7 +15,7 @@ import { RUNES, type Rune, formatNumberGerman } from './types';
 import './App.css';
 
 function App() {
-  const { gameState, clickMoney, buyUpgrade, buyRebirthUpgrade, performRebirth, resetGame, cheatMoney, devAddMoney, devAddRebirthPoint, devAddGem, devAddClick, devAddRune, openRunePack } = useGameLogic();
+  const { gameState, clickMoney, buyUpgrade, buyRebirthUpgrade, performRebirth, resetGame, cheatMoney, devAddMoney, devAddRebirthPoint, devAddGem, devAddClick, devAddRune, openRunePack, mergeRunes } = useGameLogic();
   const [activePanel, setActivePanel] = useState<'upgrades' | 'rebirth'>('upgrades');
   const [mobileActiveTab, setMobileActiveTab] = useState<'stats' | 'upgrades' | 'rebirth' | 'gems' | 'dev'>('stats');
   const [isFlashing, setIsFlashing] = useState(false);
@@ -272,6 +272,36 @@ function App() {
                       }}>
                         Amount: {runeAmount}x
                       </div>
+                      {/* Merge Button - nur anzeigen wenn genug Runen vorhanden und nicht höchste Stufe */}
+                      {runeAmount >= 3 && index < 5 && (
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            mergeRunes(index);
+                          }}
+                          style={{
+                            marginTop: '4px',
+                            padding: '4px 8px',
+                            fontSize: '10px',
+                            background: `linear-gradient(135deg, ${rune.color}40, ${rune.color}20)`,
+                            border: `1px solid ${rune.color}`,
+                            borderRadius: '4px',
+                            color: 'white',
+                            cursor: 'pointer',
+                            transition: 'all 0.2s ease'
+                          }}
+                          onMouseEnter={(e) => {
+                            e.currentTarget.style.transform = 'scale(1.05)';
+                            e.currentTarget.style.background = `linear-gradient(135deg, ${rune.color}60, ${rune.color}40)`;
+                          }}
+                          onMouseLeave={(e) => {
+                            e.currentTarget.style.transform = 'scale(1)';
+                            e.currentTarget.style.background = `linear-gradient(135deg, ${rune.color}40, ${rune.color}20)`;
+                          }}
+                        >
+                          🔄 Merge 3→1
+                        </button>
+                      )}
                     </div>
                     <div style={{ 
                       fontSize: '12px', 
@@ -643,11 +673,39 @@ function App() {
                           </div>
                         </div>
                         <div style={{ 
-                          fontWeight: 'bold', 
-                          color: '#60a5fa',
-                          fontSize: '16px'
+                          display: 'flex',
+                          flexDirection: 'column',
+                          alignItems: 'flex-end',
+                          gap: '4px'
                         }}>
-                          {runeAmount}
+                          <div style={{ 
+                            fontWeight: 'bold', 
+                            color: '#60a5fa',
+                            fontSize: '16px'
+                          }}>
+                            {runeAmount}
+                          </div>
+                          {/* Mobile Merge Button */}
+                          {runeAmount >= 3 && index < 5 && (
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                mergeRunes(index);
+                              }}
+                              style={{
+                                padding: '3px 6px',
+                                fontSize: '9px',
+                                background: `linear-gradient(135deg, ${rune.color}40, ${rune.color}20)`,
+                                border: `1px solid ${rune.color}`,
+                                borderRadius: '4px',
+                                color: 'white',
+                                cursor: 'pointer',
+                                transition: 'all 0.2s ease'
+                              }}
+                            >
+                              🔄 3→1
+                            </button>
+                          )}
                         </div>
                       </div>
                     );
