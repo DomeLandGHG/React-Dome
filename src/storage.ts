@@ -26,16 +26,23 @@ export const loadGameState = (): GameState => {
         }
         return result;
       };
+
+      // Spezielle Behandlung für maxUpgradeAmounts - immer die neuesten Werte verwenden
+      const updateMaxAmounts = (savedAmounts: any[], newMax: any[]) => {
+        if (!Array.isArray(savedAmounts)) return newMax;
+        // Verwende immer die neuesten max Werte, aber behalte gespeicherte Amounts bei
+        return newMax;
+      };
       
       return {
         ...INITIAL_GAME_STATE,
         ...parsed,
         upgradePrices: extendArray(parsed.upgradePrices, INITIAL_GAME_STATE.upgradePrices),
         upgradeAmounts: extendArray(parsed.upgradeAmounts, INITIAL_GAME_STATE.upgradeAmounts),
-        maxUpgradeAmounts: extendArray(parsed.maxUpgradeAmounts, INITIAL_GAME_STATE.maxUpgradeAmounts),
+        maxUpgradeAmounts: updateMaxAmounts(parsed.maxUpgradeAmounts, INITIAL_GAME_STATE.maxUpgradeAmounts),
         rebirth_upgradePrices: extendArray(parsed.rebirth_upgradePrices, INITIAL_GAME_STATE.rebirth_upgradePrices),
         rebirth_upgradeAmounts: extendArray(parsed.rebirth_upgradeAmounts, INITIAL_GAME_STATE.rebirth_upgradeAmounts),
-        rebirth_maxUpgradeAmounts: extendArray(parsed.rebirth_maxUpgradeAmounts, INITIAL_GAME_STATE.rebirth_maxUpgradeAmounts),
+        rebirth_maxUpgradeAmounts: updateMaxAmounts(parsed.rebirth_maxUpgradeAmounts, INITIAL_GAME_STATE.rebirth_maxUpgradeAmounts),
         clicksInRebirth: typeof parsed.clicksInRebirth === 'number' ? parsed.clicksInRebirth : INITIAL_GAME_STATE.clicksInRebirth,
         clicksTotal: typeof parsed.clicksTotal === 'number' ? parsed.clicksTotal : INITIAL_GAME_STATE.clicksTotal,
         runes: extendArray(parsed.runes, INITIAL_GAME_STATE.runes),
