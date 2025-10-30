@@ -1010,7 +1010,7 @@ function App() {
       )}
 
       <footer className="app-footer">
-        <p>React Money Clicker v0.0.3 | Your progress is automatically saved!</p>
+        <p>React Money Clicker v0.0.4 | Your progress is automatically saved!</p>
       </footer>
       
       {/* Tooltip Animation CSS */}
