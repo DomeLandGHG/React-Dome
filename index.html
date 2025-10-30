@@ -3,13 +3,37 @@
   <head>
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="/React-Dome/money.svg" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="theme-color" content="#0f172a" />
+    <meta name="msapplication-navbutton-color" content="#0f172a" />
+    <meta name="apple-mobile-web-app-title" content="Money Clicker" />
     <title>Money Clicker</title>
-    <script type="module" crossorigin src="/React-Dome/assets/index-DefYZ3PX.js"></script>
-    <link rel="stylesheet" crossorigin href="/React-Dome/assets/index-r0D_pqwj.css">
+    <style>
+      /* Critical mobile styles */
+      html, body {
+        height: 100%;
+        margin: 0;
+        padding: 0;
+        overflow-x: hidden;
+        -webkit-overflow-scrolling: touch;
+        -webkit-text-size-adjust: 100%;
+        -webkit-font-smoothing: antialiased;
+      }
+      #root {
+        height: 100%;
+        display: flex;
+        flex-direction: column;
+      }
+      /* Prevent zoom on input focus on iOS */
+      input, select, textarea {
+        font-size: 16px;
+      }
+    </style>
+    <script type="module" crossorigin src="/React-Dome/assets/index-BSk4B88u.js"></script>
+    <link rel="stylesheet" crossorigin href="/React-Dome/assets/index-CO3Eeqr8.css">
   </head>
   <body>
     <div id="root"></div>
