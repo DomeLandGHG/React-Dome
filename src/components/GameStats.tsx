@@ -1,5 +1,5 @@
 import type { GameState } from '../types';
-import { RUNES, formatNumberGerman } from '../types';
+import { RUNES, REBIRTHUPGRADES, formatNumberGerman } from '../types';
 
 interface GameStatsProps {
   gameState: GameState;
@@ -34,7 +34,9 @@ const GameStats = ({ gameState }: GameStatsProps) => {
     // Rebirth Upgrade 4 multiplier (Rebirth Points money boost)
     let rebirthPointMultiplier = 1;
     if (gameState.rebirth_upgradeAmounts[4] > 0) {
-      rebirthPointMultiplier = 1 + 0.1 * gameState.rebirthPoints;
+      const effectValue = REBIRTHUPGRADES[4].effect; // 0.05
+      const bonus = Math.log(gameState.rebirthPoints + 1) * effectValue; // log(RP + 1) * 0.05 als Decimal
+      rebirthPointMultiplier = 1 + bonus;
     }
 
     // Calculate final values

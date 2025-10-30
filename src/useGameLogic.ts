@@ -39,9 +39,11 @@ export const useGameLogic = () => {
           if (prev.moneyPerTick > 0) {
             const runeMultiplier = 1 + totalMoneyBonus;
             let rebirthPointMultiplier = 1;
-            // Effekt des letzten Rebirth-Upgrades: Einkommen mit (1 + 0.1 * rebirthPoints) multiplizieren
+            // Effekt des letzten Rebirth-Upgrades: Einkommen mit log(rebirthPoints + 1) * effect% multiplizieren
             if (prev.rebirth_upgradeAmounts[4] > 0) {
-              rebirthPointMultiplier = 1 + 0.1 * prev.rebirthPoints;
+              const effectValue = REBIRTHUPGRADES[4].effect; // 0.02
+              const bonus = Math.log(prev.rebirthPoints + 1) * effectValue; // log(RP + 1) * 0.02 als Decimal
+              rebirthPointMultiplier = 1 + bonus;
             }
             newMoney += prev.moneyPerTick * multiplier * runeMultiplier * rebirthPointMultiplier;
           }
@@ -100,9 +102,11 @@ export const useGameLogic = () => {
       const runeMoneyMultiplier = 1 + totalMoneyBonus;
       
       let rebirthPointMultiplier = 1;
-      // Effekt des letzten Rebirth-Upgrades: Einkommen mit (1 + 0.1 * rebirthPoints) multiplizieren
+      // Effekt des letzten Rebirth-Upgrades: Einkommen mit log(rebirthPoints + 1) * effect% multiplizieren
       if (prev.rebirth_upgradeAmounts[4] > 0) {
-        rebirthPointMultiplier = 1 + 0.1 * prev.rebirthPoints;
+        const effectValue = REBIRTHUPGRADES[4].effect; // 0.02
+        const bonus = Math.log(prev.rebirthPoints + 1) * effectValue; // log(RP + 1) * 0.02 als Decimal
+        rebirthPointMultiplier = 1 + bonus;
       }
       return {
         ...prev,

@@ -44,11 +44,11 @@ export const INITIAL_GAME_STATE: GameState = {
   moneyPerClick: 1,
   moneyPerTick: 0,
   upgradePrices: [10, 100, 1000, 2500, 1000],
-  rebirth_upgradePrices: [1, 5, 15, 1, 5],
+  rebirth_upgradePrices: [1, 5, 15, 1, 20],
   upgradeAmounts: [0, 0, 0, 0, 0],
   rebirth_upgradeAmounts: [0, 0, 0, 0, 0],
   maxUpgradeAmounts: [10, 10, 10, 10, 1],
-  rebirth_maxUpgradeAmounts: [1, 1, 1, 1, 10],
+  rebirth_maxUpgradeAmounts: [5, 5, 1, 1, 1],
   clicksInRebirth: 0,
   clicksTotal: 0,
   runes: [0, 0, 0, 0, 0, 0], // Start with 0 of each rune type
@@ -110,8 +110,8 @@ export const UPGRADES: Upgrade[] = [
 export const REBIRTHUPGRADES: Upgrade[] = [
   {
     id: 0,
-    name: 'Money Income * Total Clicks^(0,01*Level)',
-    description: 'Multiplies all money gains based on total clicks. Each level increases the power',
+    name: 'Click Multiplier',
+    description: 'Multiplies all money gains based on your total clicks. Each level increases the power',
     price: 1,
     amount: 0,
     maxAmount: 5,
@@ -120,8 +120,8 @@ export const REBIRTHUPGRADES: Upgrade[] = [
   },
   {
     id: 1,
-    name: '+1 Total Click per Tick',
-    description: 'Adds 1 click to your total every tick (does not give money)',
+    name: 'Auto Clicker',
+    description: 'Automatically adds 1 click to your total every tick (gives no money)',
     price: 5,
     amount: 0,
     maxAmount: 5,
@@ -131,7 +131,7 @@ export const REBIRTHUPGRADES: Upgrade[] = [
   {
     id: 2,
     name: 'Unlock Gems',
-    description: '0.5% chance to get a gem per click',
+    description: '0.5% chance to find a gem per click',
     price: 15,
     amount: 0,
     maxAmount: 1,
@@ -140,7 +140,7 @@ export const REBIRTHUPGRADES: Upgrade[] = [
   },
   {
     id: 3,
-    name: 'Unlock Gem Powers',
+    name: 'Gem Powers',
     description: 'Unlocks gem-powered enhancements',
     price: 1,
     amount: 0,
@@ -150,12 +150,12 @@ export const REBIRTHUPGRADES: Upgrade[] = [
   },
   {
     id: 4,
-    name: 'Boost your Money based of Rebirth Points',
-    description: 'Ever Rebirth Point boosts youre Income by a tenth',
-    price: 20,
+    name: 'Rebirth Bonus',
+    description: 'Boosts your income by log(Rebirth Points + 1) × 5%',
+    price: 25,
     amount: 0,
     maxAmount: 1,
-    effect: 10,
+    effect: 0.05, // Moderater Multiplikator für die Logarithmus-Berechnung
     type: 'Multiplier'
   },
 ];
