@@ -67,16 +67,28 @@ const MoneyButton = ({ onClick, gameState, onGemDrop }: MoneyButtonProps) => {
       const button = container?.querySelector('.money-button');
       
       if (container && button) {
-        const containerRect = container.getBoundingClientRect();
-        const buttonRect = button.getBoundingClientRect();
+        const isMobile = window.innerWidth <= 767;
         
-        const buttonCenterX = buttonRect.left - containerRect.left + buttonRect.width / 2;
-        const buttonCenterY = buttonRect.top - containerRect.top + buttonRect.height / 2;
+        let buttonCenterX: number;
+        let buttonCenterY: number;
+        
+        if (isMobile) {
+          // Mobile: Use simpler relative positioning
+          const buttonRect = button.getBoundingClientRect();
+          buttonCenterX = buttonRect.width / 2;
+          buttonCenterY = buttonRect.height / 2;
+        } else {
+          // Desktop: Use container-relative positioning
+          const containerRect = container.getBoundingClientRect();
+          const buttonRect = button.getBoundingClientRect();
+          buttonCenterX = buttonRect.left - containerRect.left + buttonRect.width / 2;
+          buttonCenterY = buttonRect.top - containerRect.top + buttonRect.height / 2;
+        }
         
         const newFloatingGem: FloatingGem = {
           id: Date.now() + Math.random(),
-          x: buttonCenterX + (Math.random() - 0.5) * 100,
-          y: buttonCenterY + (Math.random() - 0.5) * 30,
+          x: buttonCenterX + (Math.random() - 0.5) * (isMobile ? 80 : 100),
+          y: buttonCenterY + (Math.random() - 0.5) * (isMobile ? 20 : 30),
         };
         
         setFloatingGems(prev => [...prev, newFloatingGem]);
@@ -98,18 +110,34 @@ const MoneyButton = ({ onClick, gameState, onGemDrop }: MoneyButtonProps) => {
     onClick();
     
     // Create floating money animation
-    const rect = e.currentTarget.getBoundingClientRect();
-    const container = document.querySelector('.money-button-container');
-    const containerRect = container?.getBoundingClientRect();
+    const button = e.currentTarget;
+    const container = button.closest('.money-button-container');
     
-    // Calculate position relative to container, not viewport
-    const buttonCenterX = rect.left - (containerRect?.left || 0) + rect.width / 2;
-    const buttonCenterY = rect.top - (containerRect?.top || 0) + rect.height / 2;
+    if (!container) return;
+    
+    // For mobile devices, use simpler relative positioning
+    const isMobile = window.innerWidth <= 767;
+    
+    let buttonCenterX: number;
+    let buttonCenterY: number;
+    
+    if (isMobile) {
+      // Mobile: Use button's own dimensions for simpler calculation
+      const buttonRect = button.getBoundingClientRect();
+      buttonCenterX = buttonRect.width / 2;
+      buttonCenterY = buttonRect.height / 2;
+    } else {
+      // Desktop: Use the existing method
+      const rect = button.getBoundingClientRect();
+      const containerRect = container.getBoundingClientRect();
+      buttonCenterX = rect.left - containerRect.left + rect.width / 2;
+      buttonCenterY = rect.top - containerRect.top + rect.height / 2;
+    }
     
     const newFloatingMoney: FloatingMoney = {
       id: Date.now() + Math.random(),
-      x: buttonCenterX + (Math.random() - 0.5) * 200, // Spread around button
-      y: buttonCenterY + (Math.random() - 0.5) * 50, // Spread around button
+      x: buttonCenterX + (Math.random() - 0.5) * (isMobile ? 120 : 200), // Smaller spread on mobile
+      y: buttonCenterY + (Math.random() - 0.5) * (isMobile ? 30 : 50), // Smaller spread on mobile
       amount: `+${formatNumberGerman(totalMoneyPerClick)}$`
     };
     

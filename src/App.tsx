@@ -494,7 +494,7 @@ function App() {
                   gameState={gameState} 
                 />
                 
-                <div className="mobile-click-area">
+                <div className="mobile-click-area" style={{ position: 'relative', zIndex: 1 }}>
                   <MoneyButton 
                     onClick={clickMoney} 
                     gameState={gameState}
