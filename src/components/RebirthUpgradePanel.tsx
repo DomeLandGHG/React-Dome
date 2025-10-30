@@ -152,8 +152,10 @@ const RebirthPanel = ({ gameState, buyRebirthUpgrade }: RebirthPanelProps) => {
                 // Zeige Gem-Chance in Prozent
                 bonus = REBIRTHUPGRADES[2].effect * 100; // 0.005 * 100 = 0.5
               } else if (upgrade.id === 4 && gameState.rebirth_upgradeAmounts[4] > 0) {
-                // Zeige Rebirth Point Multiplikator
-                bonus = 1 + 0.1 * gameState.rebirthPoints;
+                // Zeige Rebirth Point Multiplikator mit logarithmischer Berechnung
+                const effectValue = REBIRTHUPGRADES[4].effect; // 0.05
+                const bonus_calc = Math.log(gameState.rebirthPoints + 1) * effectValue;
+                bonus = 1 + bonus_calc;
               }
               
               return (

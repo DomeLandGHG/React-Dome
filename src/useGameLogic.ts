@@ -39,9 +39,11 @@ export const useGameLogic = () => {
           if (prev.moneyPerTick > 0) {
             const runeMultiplier = 1 + totalMoneyBonus;
             let rebirthPointMultiplier = 1;
-            // Effekt des letzten Rebirth-Upgrades: Einkommen mit (1 + 0.1 * rebirthPoints) multiplizieren
+            // Effekt des letzten Rebirth-Upgrades: Einkommen mit log(rebirthPoints + 1) * effect% multiplizieren
             if (prev.rebirth_upgradeAmounts[4] > 0) {
-              rebirthPointMultiplier = 1 + 0.1 * prev.rebirthPoints;
+              const effectValue = REBIRTHUPGRADES[4].effect; // 0.02
+              const bonus = Math.log(prev.rebirthPoints + 1) * effectValue; // log(RP + 1) * 0.02 als Decimal
+              rebirthPointMultiplier = 1 + bonus;
             }
             newMoney += prev.moneyPerTick * multiplier * runeMultiplier * rebirthPointMultiplier;
           }
@@ -100,9 +102,11 @@ export const useGameLogic = () => {
       const runeMoneyMultiplier = 1 + totalMoneyBonus;
       
       let rebirthPointMultiplier = 1;
-      // Effekt des letzten Rebirth-Upgrades: Einkommen mit (1 + 0.1 * rebirthPoints) multiplizieren
+      // Effekt des letzten Rebirth-Upgrades: Einkommen mit log(rebirthPoints + 1) * effect% multiplizieren
       if (prev.rebirth_upgradeAmounts[4] > 0) {
-        rebirthPointMultiplier = 1 + 0.1 * prev.rebirthPoints;
+        const effectValue = REBIRTHUPGRADES[4].effect; // 0.02
+        const bonus = Math.log(prev.rebirthPoints + 1) * effectValue; // log(RP + 1) * 0.02 als Decimal
+        rebirthPointMultiplier = 1 + bonus;
       }
       return {
         ...prev,
@@ -160,13 +164,13 @@ export const useGameLogic = () => {
         let newMoneyPerTick = prev.moneyPerTick;
 
         // Apply upgrade effects
-        if (upgradeIndex === 0) { // +1€ per click
+        if (upgradeIndex === 0) { // +1$ per click
           newMoneyPerClick += 1;
-        } else if (upgradeIndex === 1) { // +1€ per tick
+        } else if (upgradeIndex === 1) { // +1$ per tick
           newMoneyPerTick += 1;
-        } else if (upgradeIndex === 2) { // +10€ per click
+        } else if (upgradeIndex === 2) { // +10$  per click
           newMoneyPerClick += 10;
-        } else if (upgradeIndex === 3) { // +10€ per tick
+        } else if (upgradeIndex === 3) { // +10$ per tick
           newMoneyPerTick += 10;
         }
         // Upgrade 4 ist ein Unlock-Upgrade - keine direkten Effekte nötig
@@ -307,7 +311,7 @@ export const useGameLogic = () => {
   const devAddMoney = useCallback(() => {
     setGameState(prev => ({
       ...prev,
-      money: prev.money + 100000,
+      money: prev.money + 10000000000000,
     }));
   }, []);
 
@@ -339,6 +343,25 @@ export const useGameLogic = () => {
       return {
         ...prev,
         runes: newRunes,
+      };
+    });
+  }, []);
+
+  const mergeRunes = useCallback((runeIndex: number) => {
+    setGameState(prev => {
+      // Prüfe ob genug Runen vorhanden sind (mindestens 3)
+      if (prev.runes[runeIndex] < 3) return prev;
+      
+      // Prüfe ob eine höhere Stufe existiert (max ist Mythic = Index 5)
+      if (runeIndex >= 5) return prev;
+      
+      const newRunes = [...prev.runes];
+      newRunes[runeIndex] -= 3; // Entferne 3 Runen der aktuellen Stufe
+      newRunes[runeIndex + 1] += 1; // Füge 1 Rune der nächsten Stufe hinzu
+      
+      return {
+        ...prev,
+        runes: newRunes
       };
     });
   }, []);
@@ -390,5 +413,6 @@ export const useGameLogic = () => {
     devAddClick,
     devAddRune,
     openRunePack,
+    mergeRunes,
   };
 };

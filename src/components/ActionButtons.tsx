@@ -63,7 +63,7 @@ const ActionButtons = ({ money, onRebirth, onReset, gameState /* onCheat, moneyP
         >
           <div style={{ fontSize: '18px', marginBottom: '4px' }}>🔄 REBIRTH</div>
           <div className="rebirth-info" style={{ fontSize: '14px', color: '#e9d5ff' }}>
-            Get {totalRebirthPoints} Rebirth Points
+            Get {formatNumberGerman(totalRebirthPoints)} Rebirth Points
             {runeRpBonus > 0 && (
               <span style={{ fontSize: '0.9em', color: '#c4b5fd', display: 'block' }}>
                 (+{formatNumberGerman(runeRpBonus * 100)}% from runes)
