@@ -11,11 +11,11 @@ import UpgradesPanel from './components/UpgradesPanel';
 import RebirthPanel from './components/RebirthUpgradePanel';
 import ActionButtons from './components/ActionButtons';
 import MobileTabNavigation from './components/MobileTabNavigation';
-import { RUNES, type Rune, formatNumberGerman } from './types';
+import { RUNES_1, type Rune, formatNumberGerman } from './types';
 import './App.css';
 
 function App() {
-  const { gameState, clickMoney, buyUpgrade, buyRebirthUpgrade, performRebirth, resetGame, cheatMoney, devAddMoney, devAddRebirthPoint, devAddGem, devAddClick, devAddRune, openRunePack, mergeRunes } = useGameLogic();
+  const { gameState, clickMoney, buyUpgrade, buyRebirthUpgrade, performRebirth, resetGame, cheatMoney, devAddMoney, devAddMoneyDirect, devAddRebirthPoint, devAddGem, devAddClick, devAddRune, openRunePack, mergeRunes } = useGameLogic();
   const [activePanel, setActivePanel] = useState<'upgrades' | 'rebirth'>('upgrades');
   const [mobileActiveTab, setMobileActiveTab] = useState<'stats' | 'upgrades' | 'rebirth' | 'gems' | 'dev'>('stats');
   const [isFlashing, setIsFlashing] = useState(false);
@@ -41,7 +41,7 @@ function App() {
     let totalGemBonus = 0;
 
     gameState.runes.forEach((amount, index) => {
-      const rune = RUNES[index];
+      const rune = RUNES_1[index];
       if (amount > 0) {
         totalMoneyBonus += (rune.moneyBonus || 0) * amount;
         totalRpBonus += (rune.rpBonus || 0) * amount;
@@ -77,7 +77,7 @@ function App() {
               return;
             }
             console.log(`💰 Giving ${amount} money`);
-            for(let i = 0; i < amount; i++) devAddMoney();
+            devAddMoneyDirect(amount);
             break;
           }
           
@@ -221,7 +221,7 @@ function App() {
     return () => {
       delete (window as any).MoneyClicker;
     };
-  }, [gameState, devAddMoney, devAddRebirthPoint, devAddGem, devAddClick, devAddRune, performRebirth, resetGame]);
+  }, [gameState, devAddMoney, devAddMoneyDirect, devAddRebirthPoint, devAddGem, devAddClick, devAddRune, performRebirth, resetGame]);
 
   return (
     <div className="app">
@@ -368,7 +368,7 @@ function App() {
                 gap: '8px',
                 paddingRight: '8px'
               }}>
-                {RUNES.map((rune: Rune, index: number) => {
+                {RUNES_1.map((rune: Rune, index: number) => {
                   const runeAmount = gameState.runes[index];
                   const individualBonuses = [];
                   
@@ -797,7 +797,7 @@ function App() {
                   }}>
                     🎲 Rune Collection
                   </div>
-                  {RUNES.map((rune: Rune, index: number) => {
+                  {RUNES_1.map((rune: Rune, index: number) => {
                     const runeAmount = gameState.runes[index];
                     return (
                       <div 
@@ -971,7 +971,7 @@ function App() {
                       fontWeight: 'bold'
                     }}
                   >
-                    💰 +Money
+                    💰 +100K Money
                   </button>
                   <button 
                     onClick={devAddRebirthPoint}
@@ -1035,7 +1035,7 @@ function App() {
                       🎲 Add Runes
                     </h3>
                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
-                      {RUNES.map((rune, index) => (
+                      {RUNES_1.map((rune, index) => (
                         <button 
                           key={rune.id}
                           onClick={() => devAddRune(index)}
@@ -1147,7 +1147,7 @@ function App() {
             }}>
               🎲 Add Runes:
             </div>
-            {RUNES.map((rune, index) => (
+            {RUNES_1.map((rune, index) => (
               <button 
                 key={rune.id}
                 onClick={() => devAddRune(index)}

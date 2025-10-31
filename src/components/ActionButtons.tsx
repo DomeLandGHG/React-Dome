@@ -1,5 +1,5 @@
 import type { GameState } from '../types';
-import { RUNES, formatNumberGerman } from '../types';
+import { RUNES_1, formatNumberGerman } from '../types';
 
 interface ActionButtonsProps {
   money: number;
@@ -18,7 +18,7 @@ const ActionButtons = ({ money, onRebirth, onReset, gameState /* onCheat, moneyP
   const calculateRuneRpBonus = () => {
     let totalRpBonus = 0;
     gameState.runes.forEach((amount, index) => {
-      const rune = RUNES[index];
+      const rune = RUNES_1[index];
       if (amount > 0) {
         totalRpBonus += (rune.rpBonus || 0) * amount;
       }

@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import type { GameState } from './types';
-import { INITIAL_GAME_STATE, REBIRTHUPGRADES, UPGRADES, RUNES } from './types';
+import { INITIAL_GAME_STATE, REBIRTHUPGRADES, UPGRADES, RUNES_1 } from './types';
 import { saveGameState, loadGameState } from './storage';
 
 export const useGameLogic = () => {
@@ -28,7 +28,7 @@ export const useGameLogic = () => {
           // Calculate rune money bonus at runtime
           let totalMoneyBonus = 0;
           prev.runes.forEach((amount, index) => {
-            const rune = RUNES[index];
+            const rune = RUNES_1[index];
             if (amount > 0) {
               totalMoneyBonus += (rune.moneyBonus || 0) * amount;
             }
@@ -82,7 +82,7 @@ export const useGameLogic = () => {
       let totalMoneyBonus = 0;
       let totalGemBonus = 0;
       prev.runes.forEach((amount, index) => {
-        const rune = RUNES[index];
+        const rune = RUNES_1[index];
         if (amount > 0) {
           totalMoneyBonus += (rune.moneyBonus || 0) * amount;
           totalGemBonus += (rune.gemBonus || 0) * amount;
@@ -264,7 +264,7 @@ export const useGameLogic = () => {
       // Calculate rune bonuses at the time of rebirth
       let totalRpBonus = 0;
       prev.runes.forEach((amount, index) => {
-        const rune = RUNES[index];
+        const rune = RUNES_1[index];
         if (amount > 0) {
           totalRpBonus += (rune.rpBonus || 0) * amount;
         }
@@ -311,7 +311,15 @@ export const useGameLogic = () => {
   const devAddMoney = useCallback(() => {
     setGameState(prev => ({
       ...prev,
-      money: prev.money + 10000000000000,
+      money: prev.money + 100000, // Add 100K instead of 10 trillion
+    }));
+  }, []);
+
+  // Direct money addition for console commands
+  const devAddMoneyDirect = useCallback((amount: number) => {
+    setGameState(prev => ({
+      ...prev,
+      money: prev.money + amount,
     }));
   }, []);
 
@@ -378,8 +386,8 @@ export const useGameLogic = () => {
       
       // Check from most common to rarest (cumulative)
       let cumulativeRate = 0;
-      for (let i = 0; i < RUNES.length; i++) {
-        cumulativeRate += RUNES[i].dropRate;
+      for (let i = 0; i < RUNES_1.length; i++) {
+        cumulativeRate += RUNES_1[i].dropRate;
         if (roll < cumulativeRate) {
           droppedRune = i;
           break;
@@ -408,6 +416,7 @@ export const useGameLogic = () => {
     resetGame,
     cheatMoney,
     devAddMoney,
+    devAddMoneyDirect,
     devAddRebirthPoint,
     devAddGem,
     devAddClick,

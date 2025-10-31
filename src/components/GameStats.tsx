@@ -1,11 +1,57 @@
+import { useState, useRef, useCallback } from 'react';
+import { createPortal } from 'react-dom';
 import type { GameState } from '../types';
-import { RUNES, REBIRTHUPGRADES, formatNumberGerman } from '../types';
+import { RUNES_1, REBIRTHUPGRADES, formatNumberGerman } from '../types';
 
 interface GameStatsProps {
   gameState: GameState;
 }
 
 const GameStats = ({ gameState }: GameStatsProps) => {
+  const [hoveredStat, setHoveredStat] = useState<'click' | 'tick' | null>(null);
+  const [tooltipPosition, setTooltipPosition] = useState({ x: 0, y: 0 });
+  const [tooltipBelow, setTooltipBelow] = useState(true); // Standardmäßig unten
+  const [showTooltip, setShowTooltip] = useState(false);
+  const clickRef = useRef<HTMLDivElement>(null);
+  const tickRef = useRef<HTMLDivElement>(null);
+
+  const updateTooltipPosition = useCallback((element: HTMLDivElement | null, statType: 'click' | 'tick') => {
+    if (element) {
+      const rect = element.getBoundingClientRect();
+      const tooltipWidth = 280; // minWidth des Tooltips
+      const tooltipHeight = 200; // geschätzte Höhe
+      const margin = 20; // Mindestabstand vom Bildschirmrand
+      
+      let x = rect.left + rect.width / 2;
+      let y = rect.bottom + 10; // Standardmäßig unter dem Element
+      let showBelow = true; // Standardmäßig unten anzeigen
+      
+      // Nur wenn nicht genug Platz unten ist, nach oben wechseln
+      if (rect.bottom + tooltipHeight + 10 > window.innerHeight - margin) {
+        y = rect.top - 10; // Über dem Element anzeigen wenn zu wenig Platz unten
+        showBelow = false;
+      }
+      
+      // Horizontale Grenze prüfen
+      if (x - tooltipWidth / 2 < margin) {
+        x = margin + tooltipWidth / 2; // Links begrenzen
+      } else if (x + tooltipWidth / 2 > window.innerWidth - margin) {
+        x = window.innerWidth - margin - tooltipWidth / 2; // Rechts begrenzen
+      }
+      
+      // Alle States in einem Update setzen um Flackern zu vermeiden
+      setTooltipPosition({ x, y });
+      setTooltipBelow(showBelow);
+      setHoveredStat(statType);
+      setShowTooltip(true); // Sofort anzeigen
+    }
+  }, []);
+
+  const handleMouseLeave = useCallback(() => {
+    setHoveredStat(null);
+    setShowTooltip(false);
+  }, []);
+
   // Calculate all multipliers exactly like in the game logic
   const calculateActualValues = () => {
     // Rebirth Upgrade 0 multiplier (Total Clicks multiplier)
@@ -21,7 +67,7 @@ const GameStats = ({ gameState }: GameStatsProps) => {
     let totalGemBonus = 0;
 
     gameState.runes.forEach((amount, index) => {
-      const rune = RUNES[index];
+      const rune = RUNES_1[index];
       if (amount > 0) {
         totalMoneyBonus += (rune.moneyBonus || 0) * amount;
         totalRpBonus += (rune.rpBonus || 0) * amount;
@@ -93,12 +139,20 @@ const GameStats = ({ gameState }: GameStatsProps) => {
         gridTemplateColumns: '1fr 1fr',
         gap: '16px'
       }}>
-        <div className="stat-item" style={{
-          background: 'rgba(34, 197, 94, 0.1)',
-          border: '1px solid rgba(34, 197, 94, 0.3)',
-          borderRadius: '8px',
-          padding: '12px'
-        }}>
+        <div 
+          ref={clickRef}
+          className="stat-item" 
+          style={{
+            background: 'rgba(34, 197, 94, 0.1)',
+            border: '1px solid rgba(34, 197, 94, 0.3)',
+            borderRadius: '8px',
+            padding: '12px',
+            cursor: 'help',
+            transition: 'all 0.3s ease'
+          }}
+          onMouseEnter={() => updateTooltipPosition(clickRef.current, 'click')}
+          onMouseLeave={handleMouseLeave}
+        >
           <span className="stat-label" style={{ color: '#94a3b8', fontSize: '14px' }}>Per Click:</span>
           <span className="stat-value" style={{ color: '#22c55e', fontWeight: 'bold', fontSize: '16px' }}>{formatNumberGerman(values.perClickTotal)}$
             {(values.clickMultiplier > 1 || values.runeMultiplier > 1 || values.rebirthPointMultiplier > 1) && (
@@ -106,12 +160,21 @@ const GameStats = ({ gameState }: GameStatsProps) => {
             )}
           </span>
         </div>
-        <div className="stat-item" style={{
-          background: 'rgba(34, 197, 94, 0.1)',
-          border: '1px solid rgba(34, 197, 94, 0.3)',
-          borderRadius: '8px',
-          padding: '12px'
-        }}>
+        
+        <div 
+          ref={tickRef}
+          className="stat-item" 
+          style={{
+            background: 'rgba(34, 197, 94, 0.1)',
+            border: '1px solid rgba(34, 197, 94, 0.3)',
+            borderRadius: '8px',
+            padding: '12px',
+            cursor: 'help',
+            transition: 'all 0.3s ease'
+          }}
+          onMouseEnter={() => updateTooltipPosition(tickRef.current, 'tick')}
+          onMouseLeave={handleMouseLeave}
+        >
           <span className="stat-label" style={{ color: '#94a3b8', fontSize: '14px' }}>Per Tick:</span>
           <span className="stat-value" style={{ color: '#22c55e', fontWeight: 'bold', fontSize: '16px' }}>{formatNumberGerman(values.perTickTotal)}$
             {(values.clickMultiplier > 1 || values.runeMultiplier > 1 || values.rebirthPointMultiplier > 1) && (
@@ -167,6 +230,169 @@ const GameStats = ({ gameState }: GameStatsProps) => {
           <span className="stat-value" style={{ color: '#64748b', fontWeight: 'bold', fontSize: '16px' }}>{formatNumberGerman(gameState.clicksTotal)}</span>
         </div>
       </div>
+      
+      {/* Portal Tooltips - werden am document.body angehängt */}
+      {hoveredStat && showTooltip && typeof document !== 'undefined' && (
+        <>
+          {createPortal(
+            <div style={{
+              position: 'fixed',
+              left: tooltipPosition.x,
+              top: tooltipPosition.y,
+              transform: tooltipBelow ? 'translateX(-50%) translateY(0%)' : 'translateX(-50%) translateY(-100%)',
+              background: 'linear-gradient(135deg, #0f172a 0%, #1e293b 100%)',
+              border: '2px solid #22c55e',
+              borderRadius: '12px',
+              padding: '16px',
+              boxShadow: '0 8px 32px rgba(0, 0, 0, 0.6), 0 0 20px rgba(34, 197, 94, 0.4)',
+              zIndex: 9999,
+              minWidth: '280px',
+              animation: `tooltipFadeIn${tooltipBelow ? 'Below' : 'Above'} 0.2s ease-out`,
+              backdropFilter: 'blur(10px)',
+              pointerEvents: 'none'
+            }}>
+              <div style={{
+                color: '#22c55e',
+                fontWeight: 'bold',
+                fontSize: '14px',
+                marginBottom: '12px',
+                textAlign: 'center',
+                textShadow: '0 0 8px rgba(34, 197, 94, 0.6)'
+              }}>
+                {hoveredStat === 'click' ? '💰 Money per Click Breakdown' : '⏰ Money per Tick Breakdown'}
+              </div>
+              
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                <div style={{
+                  color: '#e2e8f0',
+                  fontSize: '12px',
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
+                  padding: '6px 8px',
+                  background: 'rgba(255, 255, 255, 0.1)',
+                  borderRadius: '6px',
+                  border: '1px solid rgba(255, 255, 255, 0.2)'
+                }}>
+                  <span>🔨 Base Amount:</span>
+                  <span style={{ color: '#22c55e', fontWeight: 'bold' }}>
+                    {formatNumberGerman(hoveredStat === 'click' ? gameState.moneyPerClick : gameState.moneyPerTick)}$
+                  </span>
+                </div>
+                
+                {values.clickMultiplier > 1 && (
+                  <div style={{
+                    color: '#e2e8f0',
+                    fontSize: '12px',
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                    padding: '6px 8px',
+                    background: 'rgba(147, 51, 234, 0.1)',
+                    borderRadius: '6px',
+                    border: '1px solid rgba(147, 51, 234, 0.3)'
+                  }}>
+                    <span>🔄 Click Multiplier (Level {gameState.rebirth_upgradeAmounts[0]}):</span>
+                    <span style={{ color: '#9333ea', fontWeight: 'bold' }}>×{formatNumberGerman(values.clickMultiplier, 2)}</span>
+                  </div>
+                )}
+                
+                {values.runeMultiplier > 1 && (
+                  <div style={{
+                    color: '#e2e8f0',
+                    fontSize: '12px',
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                    padding: '6px 8px',
+                    background: 'rgba(59, 130, 246, 0.1)',
+                    borderRadius: '6px',
+                    border: '1px solid rgba(59, 130, 246, 0.3)'
+                  }}>
+                    <span>🎲 Rune Bonus:</span>
+                    <span style={{ color: '#3b82f6', fontWeight: 'bold' }}>×{formatNumberGerman(values.runeMultiplier, 2)}</span>
+                  </div>
+                )}
+                
+                {values.rebirthPointMultiplier > 1 && (
+                  <div style={{
+                    color: '#e2e8f0',
+                    fontSize: '12px',
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                    padding: '6px 8px',
+                    background: 'rgba(168, 85, 247, 0.1)',
+                    borderRadius: '6px',
+                    border: '1px solid rgba(168, 85, 247, 0.3)'
+                  }}>
+                    <span>⚡ RP Multiplier (Level {gameState.rebirth_upgradeAmounts[4]}):</span>
+                    <span style={{ color: '#a855f7', fontWeight: 'bold' }}>×{formatNumberGerman(values.rebirthPointMultiplier, 2)}</span>
+                  </div>
+                )}
+                
+                <div style={{
+                  borderTop: '1px solid rgba(255, 255, 255, 0.2)',
+                  marginTop: '8px',
+                  paddingTop: '8px'
+                }}>
+                  <div style={{
+                    color: '#22c55e',
+                    fontSize: '13px',
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                    fontWeight: 'bold',
+                    textShadow: '0 0 8px rgba(34, 197, 94, 0.6)'
+                  }}>
+                    <span>{hoveredStat === 'click' ? '💰 Total per Click:' : '⏰ Total per Tick:'}</span>
+                    <span>{formatNumberGerman(hoveredStat === 'click' ? values.perClickTotal : values.perTickTotal)}$</span>
+                  </div>
+                </div>
+              </div>
+              
+              {/* Tooltip Arrow */}
+              <div style={{
+                position: 'absolute',
+                [tooltipBelow ? 'top' : 'bottom']: '-8px',
+                left: '50%',
+                transform: 'translateX(-50%)',
+                width: '0',
+                height: '0',
+                borderLeft: '8px solid transparent',
+                borderRight: '8px solid transparent',
+                [tooltipBelow ? 'borderBottom' : 'borderTop']: '8px solid #22c55e'
+              }} />
+            </div>,
+            document.body
+          )}
+        </>
+      )}
+      
+      {/* Tooltip Animation CSS */}
+      <style>{`
+        @keyframes tooltipFadeInBelow {
+          0% {
+            opacity: 0;
+            transform: translateX(-50%) translateY(-20px) scale(0.8);
+          }
+          100% {
+            opacity: 1;
+            transform: translateX(-50%) translateY(0%) scale(1);
+          }
+        }
+        
+        @keyframes tooltipFadeInAbove {
+          0% {
+            opacity: 0;
+            transform: translateX(-50%) translateY(-80%) scale(0.8);
+          }
+          100% {
+            opacity: 1;
+            transform: translateX(-50%) translateY(-100%) scale(1);
+          }
+        }
+      `}</style>
     </div>
   );
 };

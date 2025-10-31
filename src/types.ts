@@ -174,7 +174,7 @@ export const formatNumberGerman = (num: number, decimalPlaces?: number): string 
   });
 };
 
-export const RUNES: Rune[] = [
+export const RUNES_1: Rune[] = [
   {
     id: 0,
     name: 'Common Rune',

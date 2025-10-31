@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import type { GameState } from '../types';
-import { RUNES, formatNumberGerman } from '../types';
+import { RUNES_1, REBIRTHUPGRADES, formatNumberGerman } from '../types';
 
 interface FloatingMoney {
   id: number;
@@ -25,19 +25,20 @@ const MoneyButton = ({ onClick, gameState, onGemDrop }: MoneyButtonProps) => {
   const [floatingMoneys, setFloatingMoneys] = useState<FloatingMoney[]>([]);
   const [floatingGems, setFloatingGems] = useState<FloatingGem[]>([]);
   
-  // Calculate exact money per click value like in GameStats
+  // Calculate actual money per click with all bonuses (same as GameStats)
   const calculateActualMoneyPerClick = () => {
     // Rebirth Upgrade 0 multiplier (Total Clicks multiplier)
     let clickMultiplier = 1;
     if (gameState.rebirth_upgradeAmounts[0] > 0) {
-      const exponent = 0.01 + (gameState.rebirth_upgradeAmounts[0] - 1) * 0.01;
-      clickMultiplier = Math.pow(gameState.clicksTotal + 1, exponent); // +1 for next click
+      const effectValue = REBIRTHUPGRADES[0].effect; // 0.01
+      const bonus = Math.log(gameState.clicksTotal + 1) * effectValue; // log(clicks + 1) * 0.01 als Decimal
+      clickMultiplier = 1 + bonus;
     }
 
     // Rune bonuses
     let totalMoneyBonus = 0;
     gameState.runes.forEach((amount, index) => {
-      const rune = RUNES[index];
+      const rune = RUNES_1[index];
       if (amount > 0) {
         totalMoneyBonus += (rune.moneyBonus || 0) * amount;
       }
@@ -47,7 +48,9 @@ const MoneyButton = ({ onClick, gameState, onGemDrop }: MoneyButtonProps) => {
     // Rebirth Upgrade 4 multiplier (Rebirth Points money boost)
     let rebirthPointMultiplier = 1;
     if (gameState.rebirth_upgradeAmounts[4] > 0) {
-      rebirthPointMultiplier = 1 + 0.1 * gameState.rebirthPoints;
+      const effectValue = REBIRTHUPGRADES[4].effect; // 0.05
+      const bonus = Math.log(gameState.rebirthPoints + 1) * effectValue; // log(RP + 1) * 0.05 als Decimal
+      rebirthPointMultiplier = 1 + bonus;
     }
 
     // Calculate final value
