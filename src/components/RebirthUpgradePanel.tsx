@@ -115,7 +115,7 @@ const RebirthPanel = ({ gameState, buyRebirthUpgrade }: RebirthPanelProps) => {
               if (upgrade.id === 0 && gameState.rebirth_upgradeAmounts[0] > 0) {
                 const currentLevel = gameState.rebirth_upgradeAmounts[0];
                 const currentExponent = 0.01 + (currentLevel - 1) * 0.01;
-                displayName = `Money Income x Total Clicks^${currentExponent.toFixed(2)}`;
+                displayName = `Money Income x Total Clicks^${currentExponent.toFixed(2)}`;      //1.Rebirth Upgrade Name after Buy
               }
               
               // Dynamische Namen für Unlock-Upgrades basierend auf Gems

@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import type { GameState } from './types';
-import { INITIAL_GAME_STATE, REBIRTHUPGRADES, UPGRADES, RUNES_1 } from './types';
+import { INITIAL_GAME_STATE, REBIRTHUPGRADES, UPGRADES, RUNES_1, RUNES_2 } from './types';
 import { saveGameState, loadGameState } from './storage';
 
 export const useGameLogic = () => {
@@ -11,9 +11,9 @@ export const useGameLogic = () => {
     saveGameState(gameState);
   }, [gameState]);
 
-  // Auto money generation & Rebirth-Upgrade: +1 Click per Tick
+  // Auto money generation & Rebirth-Upgrade: +1 Click per Tick & Elemental Rune Production
   useEffect(() => {
-    if (gameState.moneyPerTick > 0 || gameState.rebirth_upgradeAmounts[1] > 0) {
+    if (gameState.moneyPerTick > 0 || gameState.rebirth_upgradeAmounts[1] > 0 || gameState.elementalRunes.some(amount => amount > 0)) {
       const interval = setInterval(() => {
         setGameState(prev => {
           let multiplier = 1;
@@ -41,12 +41,22 @@ export const useGameLogic = () => {
             let rebirthPointMultiplier = 1;
             // Effekt des letzten Rebirth-Upgrades: Einkommen mit log(rebirthPoints + 1) * effect% multiplizieren
             if (prev.rebirth_upgradeAmounts[4] > 0) {
-              const effectValue = REBIRTHUPGRADES[4].effect; // 0.02
-              const bonus = Math.log(prev.rebirthPoints + 1) * effectValue; // log(RP + 1) * 0.02 als Decimal
+              const effectValue = REBIRTHUPGRADES[4].effect; // 0.05
+              const bonus = Math.log(prev.rebirthPoints + 1) * effectValue; // log(RP + 1) * 0.05 als Decimal
               rebirthPointMultiplier = 1 + bonus;
             }
             newMoney += prev.moneyPerTick * multiplier * runeMultiplier * rebirthPointMultiplier;
           }
+          
+          // Elemental Rune Production
+          const newElementalResources = [...prev.elementalResources];
+          prev.elementalRunes.forEach((amount, index) => {
+            if (amount > 0) {
+              const rune = RUNES_2[index];
+              newElementalResources[index] += (rune.produceAmount || 0) * amount;
+            }
+          });
+          
           // Rebirth-Upgrade: +1 Klick pro Tick (aber kein Geld)
           let newClicksTotal = prev.clicksTotal;
           let newClicksInRebirth = prev.clicksInRebirth;
@@ -59,13 +69,14 @@ export const useGameLogic = () => {
             money: newMoney,
             clicksTotal: newClicksTotal,
             clicksInRebirth: newClicksInRebirth,
+            elementalResources: newElementalResources,
           };
         });
       }, 1000);
 
       return () => clearInterval(interval);
     }
-  }, [gameState.moneyPerTick, gameState.rebirth_upgradeAmounts, gameState.clicksTotal]);
+  }, [gameState.moneyPerTick, gameState.rebirth_upgradeAmounts, gameState.clicksTotal, gameState.elementalRunes]);
 
   const clickMoney = useCallback(() => {
     setGameState(prev => {
@@ -104,8 +115,8 @@ export const useGameLogic = () => {
       let rebirthPointMultiplier = 1;
       // Effekt des letzten Rebirth-Upgrades: Einkommen mit log(rebirthPoints + 1) * effect% multiplizieren
       if (prev.rebirth_upgradeAmounts[4] > 0) {
-        const effectValue = REBIRTHUPGRADES[4].effect; // 0.02
-        const bonus = Math.log(prev.rebirthPoints + 1) * effectValue; // log(RP + 1) * 0.02 als Decimal
+        const effectValue = REBIRTHUPGRADES[4].effect; // 0.05
+        const bonus = Math.log(prev.rebirthPoints + 1) * effectValue; // log(RP + 1) * 0.05 als Decimal
         rebirthPointMultiplier = 1 + bonus;
       }
       return {
@@ -278,6 +289,10 @@ export const useGameLogic = () => {
         rebirthPoints: newRebirthPoints,
         gems: prev.gems, // Gems bleiben bei Rebirth erhalten
         runes: prev.runes, // Runen bleiben bei Rebirth erhalten
+        elementalRunes: prev.elementalRunes, // Elemental Runen bleiben bei Rebirth erhalten
+        elementalResources: prev.elementalResources, // Elemental Resources bleiben bei Rebirth erhalten
+        currentRuneType: prev.currentRuneType, // UI state stays
+        showElementalStats: prev.showElementalStats, // UI state stays
         clicksTotal: prev.clicksTotal,
         rebirth_upgradePrices: prev.rebirth_upgradePrices,
         rebirth_upgradeAmounts: prev.rebirth_upgradeAmounts,
@@ -355,6 +370,18 @@ export const useGameLogic = () => {
     });
   }, []);
 
+  const devAddElementalRune = useCallback((runeIndex: number) => {
+    setGameState(prev => {
+      const newElementalRunes = [...prev.elementalRunes];
+      newElementalRunes[runeIndex] = (newElementalRunes[runeIndex] || 0) + 1;
+      return {
+        ...prev,
+        elementalRunes: newElementalRunes,
+        showElementalStats: true, // Auto-show stats when elemental runes are added
+      };
+    });
+  }, []);
+
   const mergeRunes = useCallback((runeIndex: number) => {
     setGameState(prev => {
       // Prüfe ob genug Runen vorhanden sind (mindestens 3)
@@ -374,11 +401,42 @@ export const useGameLogic = () => {
     });
   }, []);
 
+  const mergeAllRunes = useCallback((runeIndex: number) => {
+    setGameState(prev => {
+      // Prüfe ob genug Runen vorhanden sind (mindestens 3)
+      if (prev.runes[runeIndex] < 3) return prev;
+      
+      // Prüfe ob eine höhere Stufe existiert (max ist Mythic = Index 5)
+      if (runeIndex >= 5) return prev;
+      
+      const newRunes = [...prev.runes];
+      
+      // Berechne wie viele Merges möglich sind
+      const possibleMerges = Math.floor(newRunes[runeIndex] / 3);
+      
+      if (possibleMerges > 0) {
+        newRunes[runeIndex] -= possibleMerges * 3; // Entferne alle möglichen 3er Gruppen
+        newRunes[runeIndex + 1] += possibleMerges; // Füge entsprechend viele höhere Runen hinzu
+      }
+      
+      return {
+        ...prev,
+        runes: newRunes
+      };
+    });
+  }, []);
+
   const openRunePack = useCallback(() => {
-    if (gameState.gems < 5) return;
+    // Check if player can afford the pack based on rune type
+    const canAfford = gameState.currentRuneType === 'basic' 
+      ? gameState.gems >= 5 
+      : gameState.money >= 10000000; // 10 million for elemental packs
+    
+    if (!canAfford) return;
 
     setGameState(prev => {
-      const newRunes = [...prev.runes];
+      const currentRunes = prev.currentRuneType === 'basic' ? RUNES_1 : RUNES_2;
+      const newRunes = prev.currentRuneType === 'basic' ? [...prev.runes] : [...prev.elementalRunes];
       
       // Roll for a rune (out of 1000)
       const roll = Math.floor(Math.random() * 1000);
@@ -386,8 +444,8 @@ export const useGameLogic = () => {
       
       // Check from most common to rarest (cumulative)
       let cumulativeRate = 0;
-      for (let i = 0; i < RUNES_1.length; i++) {
-        cumulativeRate += RUNES_1[i].dropRate;
+      for (let i = 0; i < currentRunes.length; i++) {
+        cumulativeRate += currentRunes[i].dropRate;
         if (roll < cumulativeRate) {
           droppedRune = i;
           break;
@@ -399,13 +457,54 @@ export const useGameLogic = () => {
         newRunes[droppedRune]++;
       }
       
+      // Check if we should show elemental stats (first elemental rune obtained)
+      let newShowElementalStats = prev.showElementalStats;
+      if (prev.currentRuneType === 'elemental' && !prev.showElementalStats && droppedRune !== -1) {
+        newShowElementalStats = true;
+      }
+      
+      // Deduct the appropriate cost
+      const newGems = prev.currentRuneType === 'basic' ? prev.gems - 5 : prev.gems;
+      const newMoney = prev.currentRuneType === 'elemental' ? prev.money - 10000000 : prev.money;
+      
       return {
         ...prev,
-        gems: prev.gems - 5,
-        runes: newRunes,
+        money: newMoney,
+        gems: newGems,
+        runes: prev.currentRuneType === 'basic' ? newRunes : prev.runes,
+        elementalRunes: prev.currentRuneType === 'elemental' ? newRunes : prev.elementalRunes,
+        showElementalStats: newShowElementalStats,
       };
     });
-  }, [gameState.gems]);
+  }, [gameState.gems, gameState.money, gameState.currentRuneType]);
+
+  const switchRuneType = useCallback(() => {
+    setGameState(prev => ({
+      ...prev,
+      currentRuneType: prev.currentRuneType === 'basic' ? 'elemental' : 'basic',
+    }));
+  }, []);
+
+  const toggleElementalStats = useCallback(() => {
+    setGameState(prev => ({
+      ...prev,
+      showElementalStats: !prev.showElementalStats,
+    }));
+  }, []);
+
+  const toggleMoneyEffects = useCallback(() => {
+    setGameState(prev => ({
+      ...prev,
+      disableMoneyEffects: !prev.disableMoneyEffects,
+    }));
+  }, []);
+
+  const toggleDiamondEffects = useCallback(() => {
+    setGameState(prev => ({
+      ...prev,
+      disableDiamondEffects: !prev.disableDiamondEffects,
+    }));
+  }, []);
 
   return {
     gameState,
@@ -421,7 +520,13 @@ export const useGameLogic = () => {
     devAddGem,
     devAddClick,
     devAddRune,
+    devAddElementalRune,
     openRunePack,
     mergeRunes,
+    mergeAllRunes,
+    switchRuneType,
+    toggleElementalStats,
+    toggleMoneyEffects,
+    toggleDiamondEffects,
   };
 };

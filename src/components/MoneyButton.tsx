@@ -30,9 +30,8 @@ const MoneyButton = ({ onClick, gameState, onGemDrop }: MoneyButtonProps) => {
     // Rebirth Upgrade 0 multiplier (Total Clicks multiplier)
     let clickMultiplier = 1;
     if (gameState.rebirth_upgradeAmounts[0] > 0) {
-      const effectValue = REBIRTHUPGRADES[0].effect; // 0.01
-      const bonus = Math.log(gameState.clicksTotal + 1) * effectValue; // log(clicks + 1) * 0.01 als Decimal
-      clickMultiplier = 1 + bonus;
+      const exponent = 0.01 + (gameState.rebirth_upgradeAmounts[0] - 1) * 0.01;
+      clickMultiplier = Math.pow(gameState.clicksTotal + 1, exponent); // +1 for next click
     }
 
     // Rune bonuses
@@ -65,6 +64,13 @@ const MoneyButton = ({ onClick, gameState, onGemDrop }: MoneyButtonProps) => {
   // Detect gem drops and trigger animation
   React.useEffect(() => {
     if (gameState.gems > prevGems) {
+      // Check if diamond effects are disabled
+      if (gameState.disableDiamondEffects) {
+        setPrevGems(gameState.gems);
+        onGemDrop?.(); // Still call the callback
+        return; // Skip floating gem animation
+      }
+      
       // A gem was obtained, trigger floating gem animation
       const container = document.querySelector('.money-button-container');
       const button = container?.querySelector('.money-button');
@@ -106,11 +112,16 @@ const MoneyButton = ({ onClick, gameState, onGemDrop }: MoneyButtonProps) => {
       }
     }
     setPrevGems(gameState.gems);
-  }, [gameState.gems, prevGems, onGemDrop]);
+  }, [gameState.gems, gameState.disableDiamondEffects, prevGems, onGemDrop]);
 
   const handleClick = (e: React.MouseEvent<HTMLButtonElement>) => {
     // Call the original onClick
     onClick();
+    
+    // Check if money effects are disabled
+    if (gameState.disableMoneyEffects) {
+      return; // Skip floating money animation
+    }
     
     // Create floating money animation
     const button = e.currentTarget;
@@ -192,7 +203,7 @@ const MoneyButton = ({ onClick, gameState, onGemDrop }: MoneyButtonProps) => {
       </button>
       
       {/* Floating Money Animations */}
-      {floatingMoneys.map(floatingMoney => (
+      {!gameState.disableMoneyEffects && floatingMoneys.map(floatingMoney => (
         <div
           key={floatingMoney.id}
           style={{
@@ -214,7 +225,7 @@ const MoneyButton = ({ onClick, gameState, onGemDrop }: MoneyButtonProps) => {
       ))}
       
       {/* Floating Gem Animations - More prominent */}
-      {floatingGems.map(floatingGem => (
+      {!gameState.disableDiamondEffects && floatingGems.map(floatingGem => (
         <div
           key={floatingGem.id}
           style={{
