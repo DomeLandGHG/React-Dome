@@ -53,7 +53,7 @@ export const INITIAL_GAME_STATE: GameState = {
   moneyPerClick: 1,
   moneyPerTick: 0,
   upgradePrices: [10, 100, 1000, 2500, 1000],
-  rebirth_upgradePrices: [1, 5, 15, 1, 20],
+  rebirth_upgradePrices: [1, 5, 15, 1, 25],
   upgradeAmounts: [0, 0, 0, 0, 0],
   rebirth_upgradeAmounts: [0, 0, 0, 0, 0],
   maxUpgradeAmounts: [10, 10, 10, 10, 1],

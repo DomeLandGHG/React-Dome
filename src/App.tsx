@@ -1322,10 +1322,16 @@ function App() {
                           border: runeAmount > 0 
                             ? `1px solid ${rune.color}60` 
                             : '1px solid rgba(255,255,255,0.1)',
-                          opacity: runeAmount > 0 ? 1 : 0.6
+                          opacity: runeAmount > 0 ? 1 : 0.6,
+                          transition: 'all 0.3s ease',
+                          cursor: 'pointer'
                         }}
+                        onMouseEnter={() => setHoveredRune(index)}
+                        onMouseLeave={() => setHoveredRune(null)}
+                        onTouchStart={() => setHoveredRune(index)}
+                        onTouchEnd={() => setTimeout(() => setHoveredRune(null), 2000)}
                       >
-                        <div>
+                        <div style={{ flex: 1 }}>
                           <div style={{ 
                             color: rune.color, 
                             fontWeight: 'bold',
@@ -1337,10 +1343,31 @@ function App() {
                           <div style={{ 
                             fontSize: '11px', 
                             color: '#94a3b8',
-                            lineHeight: 1.3
+                            lineHeight: 1.3,
+                            marginBottom: '4px'
                           }}>
-                            {rune.rarity} Rune
+                            {rune.rarity} Rune • {(rune.dropRate / 10)}% drop
                           </div>
+                          
+                          {/* Bonus Information */}
+                          {hoveredRune === index && (
+                            <div style={{
+                              fontSize: '10px',
+                              color: '#60a5fa',
+                              lineHeight: 1.2,
+                              marginTop: '4px',
+                              padding: '4px 6px',
+                              background: 'rgba(59, 130, 246, 0.1)',
+                              borderRadius: '4px',
+                              border: '1px solid rgba(59, 130, 246, 0.2)'
+                            }}>
+                              {rune.moneyBonus && `💰 +${(rune.moneyBonus * 100)}% Money`}
+                              {rune.rpBonus && `${rune.moneyBonus ? ' • ' : ''}🔄 +${(rune.rpBonus * 100)}% RP`}
+                              {rune.gemBonus && `${(rune.moneyBonus || rune.rpBonus) ? ' • ' : ''}💎 +${(rune.gemBonus * 100)}% Gem`}
+                              {rune.producing && `🌟 Produces ${rune.producing} (+${rune.produceAmount}/tick)`}
+                              {rune.tickBonus && `${(rune.moneyBonus || rune.rpBonus || rune.gemBonus) ? ' • ' : ''}⚡ -${rune.tickBonus}ms tick`}
+                            </div>
+                          )}
                         </div>
                         <div style={{ 
                           display: 'flex',
@@ -1628,7 +1655,7 @@ function App() {
         </div>
       </main>
 
-      {/* Development Panel - Nur in Dev Mode sichtbar */}
+      {/* Development Panel - Nur in Dev Mode sichtbar und nur auf Desktop */}
       {import.meta.env.DEV && (
         <div className="dev-panel" style={{
           position: 'fixed',
@@ -1639,7 +1666,8 @@ function App() {
           borderRadius: '8px',
           padding: '15px',
           boxShadow: '0 4px 12px rgba(255, 107, 107, 0.3)',
-          zIndex: 1000
+          zIndex: 1000,
+          display: window.innerWidth <= 1400 ? 'none' : 'block'
         }}>
           <h3 style={{ color: 'white', margin: '0 0 10px 0', fontSize: '14px' }}>🔧 Dev Tools</h3>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>

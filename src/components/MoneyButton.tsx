@@ -76,7 +76,7 @@ const MoneyButton = ({ onClick, gameState, onGemDrop }: MoneyButtonProps) => {
       const button = container?.querySelector('.money-button');
       
       if (container && button) {
-        const isMobile = window.innerWidth <= 767;
+        const isMobile = window.innerWidth <= 1400;
         
         let buttonCenterX: number;
         let buttonCenterY: number;
@@ -130,7 +130,7 @@ const MoneyButton = ({ onClick, gameState, onGemDrop }: MoneyButtonProps) => {
     if (!container) return;
     
     // For mobile devices, use simpler relative positioning
-    const isMobile = window.innerWidth <= 767;
+    const isMobile = window.innerWidth <= 1400;
     
     let buttonCenterX: number;
     let buttonCenterY: number;
