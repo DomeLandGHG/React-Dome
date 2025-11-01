@@ -13,17 +13,26 @@ export interface GameState {
   clicksInRebirth: number;
   clicksTotal: number;
   runes: number[]; // [common, uncommon, rare, epic, legendary, mythic]
+  elementalRunes: number[]; // [air, earth, water, fire, light, dark]
+  elementalResources: number[]; // [air, earth, water, fire, light, dark] - resources produced by elemental runes
+  currentRuneType: 'basic' | 'elemental'; // which rune collection is currently selected
+  showElementalStats: boolean; // whether to show elemental stats panel
+  disableMoneyEffects?: boolean; // whether to disable money floating animations
+  disableDiamondEffects?: boolean; // whether to disable diamond floating animations
 }
 
 export interface Rune {
   id: number;
   name: string;
-  rarity: 'Common' | 'Uncommon' | 'Rare' | 'Epic' | 'Legendary' | 'Mythic';
+  rarity: 'Common' | 'Uncommon' | 'Rare' | 'Epic' | 'Legendary' | 'Mythic' | 'Secret';
   color: string;
   dropRate: number; // out of 1000 (so 500 = 50%, 10 = 1%)
   moneyBonus?: number;
   rpBonus?: number;
   gemBonus?: number;
+  tickBonus?: number;
+  producing?: string;   //Elemental Rune produce their type (Air produces Air)
+  produceAmount?: number;   //Amount produced per tick 
 }
 
 export interface Upgrade {
@@ -44,14 +53,20 @@ export const INITIAL_GAME_STATE: GameState = {
   moneyPerClick: 1,
   moneyPerTick: 0,
   upgradePrices: [10, 100, 1000, 2500, 1000],
-  rebirth_upgradePrices: [1, 5, 15, 1, 20],
+  rebirth_upgradePrices: [1, 5, 15, 1, 25],
   upgradeAmounts: [0, 0, 0, 0, 0],
   rebirth_upgradeAmounts: [0, 0, 0, 0, 0],
   maxUpgradeAmounts: [10, 10, 10, 10, 1],
   rebirth_maxUpgradeAmounts: [5, 5, 1, 1, 1],
   clicksInRebirth: 0,
   clicksTotal: 0,
-  runes: [0, 0, 0, 0, 0, 0], // Start with 0 of each rune type
+  runes: [0, 0, 0, 0, 0, 0, 0], // Start with 0 of each rune type (including Secret Rune)
+  elementalRunes: [0, 0, 0, 0, 0, 0], // Start with 0 of each elemental rune type
+  elementalResources: [0, 0, 0, 0, 0, 0], // Start with 0 of each elemental resource
+  currentRuneType: 'basic',
+  showElementalStats: false,
+  disableMoneyEffects: false,
+  disableDiamondEffects: false,
 };
 
 export const UPGRADES: Upgrade[] = [
@@ -174,7 +189,7 @@ export const formatNumberGerman = (num: number, decimalPlaces?: number): string 
   });
 };
 
-export const RUNES_1: Rune[] = [
+export const RUNES_1: Rune[] = [  //Basic Rune
   {
     id: 0,
     name: 'Common Rune',
@@ -228,5 +243,73 @@ export const RUNES_1: Rune[] = [
     rpBonus: 0.25, // +25% RP
     moneyBonus: 0.50, // +50% money
     gemBonus: 0.001, // +0.1% gem chance (highest gem chance boost)
+  },
+  {
+    id: 6,
+    name: 'Secret Rune',
+    rarity: 'Secret',
+    color: '#404040ff', // Grey
+    dropRate: 0, // Not obtainable through normal means
+    rpBonus: 0.50, // +50% RP
+    moneyBonus: 1.00, // +100% money
+    gemBonus: 0.005, // +0.5% gem chance
+    tickBonus: 1, // -1 millisecond per tick
+  },      //Tick is standard at 1 second/100 miliseconds
+];
+
+export const RUNES_2: Rune[] = [  //Elemental Runes
+  {                               //Elemental Runes have no money/rp/gem bonus but produce their type
+    id: 0,
+    name: 'Air Rune',
+    rarity: 'Common',
+    color: '#34fafaff',
+    dropRate: 200, // 20%
+    producing: 'Air',
+    produceAmount: 1,
+  },
+  {
+    id: 1,
+    name: 'Earth Rune',
+    rarity: 'Common',
+    color: '#a0522dff',
+    dropRate: 200, // 20%
+    producing: 'Earth',
+    produceAmount: 1,
+  },
+  {
+    id: 2,
+    name: 'Water Rune',
+    rarity: 'Common',
+    color: '#1e90ff',
+    dropRate: 200, // 20%
+    producing: 'Water',
+    produceAmount: 1,
+  },
+  {
+    id: 3,
+    name: 'Fire Rune',
+    rarity: 'Common',
+    color: '#ff4500',
+    dropRate: 200, // 20%
+    producing: 'Fire',
+    produceAmount: 1,
+  },
+  {
+    id: 4,
+    name: 'Light Rune',
+    rarity: 'Rare',
+    color: '#fffb1fff',
+    dropRate: 100, // 10%
+    producing: 'Light',
+    produceAmount: 1,
+  },
+  {
+    id: 5,
+    name: 'Dark Rune',
+    rarity: 'Rare',
+    color: '#36005cff',
+    dropRate: 100, // 10%
+    producing: 'Dark',
+    produceAmount: 1,
   },
 ];

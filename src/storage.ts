@@ -20,7 +20,16 @@ export const loadGameState = (): GameState => {
       // Erweitere Arrays statt sie zu ersetzen, um Fortschritt zu bewahren
       const extendArray = (savedArray: any[], defaultArray: any[]) => {
         if (!Array.isArray(savedArray)) return defaultArray;
+        // Verwende die größere Länge um neue Elemente zu unterstützen
+        const maxLength = Math.max(savedArray.length, defaultArray.length);
         const result = [...defaultArray];
+        
+        // Erweitere das Array falls neue Elemente hinzugefügt wurden
+        while (result.length < maxLength) {
+          result.push(0);
+        }
+        
+        // Übernehme gespeicherte Werte
         for (let i = 0; i < savedArray.length && i < result.length; i++) {
           result[i] = savedArray[i];
         }
@@ -46,6 +55,14 @@ export const loadGameState = (): GameState => {
         clicksInRebirth: typeof parsed.clicksInRebirth === 'number' ? parsed.clicksInRebirth : INITIAL_GAME_STATE.clicksInRebirth,
         clicksTotal: typeof parsed.clicksTotal === 'number' ? parsed.clicksTotal : INITIAL_GAME_STATE.clicksTotal,
         runes: extendArray(parsed.runes, INITIAL_GAME_STATE.runes),
+        elementalRunes: extendArray(parsed.elementalRunes, INITIAL_GAME_STATE.elementalRunes),
+        elementalResources: extendArray(parsed.elementalResources, INITIAL_GAME_STATE.elementalResources),
+        currentRuneType: (parsed.currentRuneType === 'basic' || parsed.currentRuneType === 'elemental') 
+          ? parsed.currentRuneType 
+          : INITIAL_GAME_STATE.currentRuneType,
+        showElementalStats: typeof parsed.showElementalStats === 'boolean' 
+          ? parsed.showElementalStats 
+          : INITIAL_GAME_STATE.showElementalStats,
         gems: typeof parsed.gems === 'number' ? parsed.gems : 0,
       };
     }
