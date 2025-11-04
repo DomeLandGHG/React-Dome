@@ -1,5 +1,6 @@
 import type { GameState } from '../types';
-import { REBIRTHUPGRADES, formatNumberGerman } from '../types';
+import { formatNumberGerman } from '../types';
+import { REBIRTHUPGRADES } from '../types/Rebirth_Upgrade';
 
 interface RebirthUpgradeButtonProps {
   name: string;

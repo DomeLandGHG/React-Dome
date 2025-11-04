@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
 import type { GameState } from '../types';
-import { RUNES_1, REBIRTHUPGRADES, formatNumberGerman } from '../types';
+import { formatNumberGerman } from '../types';
+import { REBIRTHUPGRADES } from '../types/Rebirth_Upgrade';
+import { RUNES_1 } from '../types/Runes';
 
 interface FloatingMoney {
   id: number;

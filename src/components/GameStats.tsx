@@ -1,7 +1,10 @@
 import { useState, useRef, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import type { GameState } from '../types';
-import { RUNES_1, REBIRTHUPGRADES, formatNumberGerman } from '../types';
+import { formatNumberGerman } from '../types';
+import { RUNES_1 } from '../types/Runes';
+import { REBIRTHUPGRADES } from '../types/Rebirth_Upgrade';
+
 
 interface GameStatsProps {
   gameState: GameState;

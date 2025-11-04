@@ -11,7 +11,8 @@ import UpgradesPanel from './components/UpgradesPanel';
 import RebirthPanel from './components/RebirthUpgradePanel';
 import ActionButtons from './components/ActionButtons';
 import MobileTabNavigation from './components/MobileTabNavigation';
-import { RUNES_1, RUNES_2, type Rune, formatNumberGerman } from './types';
+import { formatNumberGerman } from './types';
+import { RUNES_1, RUNES_2, type Rune } from './types/Runes';
 import './App.css';
 
 function App() {

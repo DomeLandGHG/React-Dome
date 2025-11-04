@@ -1,7 +1,10 @@
 import { useState, useEffect, useCallback } from 'react';
 import type { GameState } from './types';
-import { INITIAL_GAME_STATE, REBIRTHUPGRADES, UPGRADES, RUNES_1, RUNES_2 } from './types';
+import { INITIAL_GAME_STATE } from './types';
 import { saveGameState, loadGameState } from './storage';
+import { RUNES_1, RUNES_2 } from './types/Runes';
+import { UPGRADES } from './types/Upgrade';
+import { REBIRTHUPGRADES } from './types/Rebirth_Upgrade';
 
 export const useGameLogic = () => {
   const [gameState, setGameState] = useState<GameState>(() => loadGameState());
