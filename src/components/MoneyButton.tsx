@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import type { GameState } from '../types';
-import { formatNumberGerman } from '../types';
+import { formatNumberGerman } from '../types/German_number';
 import { REBIRTHUPGRADES } from '../types/Rebirth_Upgrade';
 import { RUNES_1 } from '../types/Runes';
 

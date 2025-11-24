@@ -9,16 +9,18 @@ import MoneyButton from './components/MoneyButton';
 import SwitchButton from './components/Panel-switchButton';
 import UpgradesPanel from './components/UpgradesPanel';
 import RebirthPanel from './components/RebirthUpgradePanel';
+import AchievementsPanel from './components/AchievementsPanel';
 import ActionButtons from './components/ActionButtons';
 import MobileTabNavigation from './components/MobileTabNavigation';
-import { formatNumberGerman } from './types';
+import { formatNumberGerman } from './types/German_number';
 import { RUNES_1, RUNES_2, type Rune } from './types/Runes';
 import './App.css';
 
 function App() {
-  const { gameState, clickMoney, buyUpgrade, buyRebirthUpgrade, performRebirth, resetGame, cheatMoney, devAddMoney, devAddMoneyDirect, devAddRebirthPoint, devAddGem, devAddClick, devAddRune, devAddElementalRune, openRunePack, mergeRunes, mergeAllRunes, switchRuneType, toggleElementalStats, toggleMoneyEffects, toggleDiamondEffects } = useGameLogic();
-  const [activePanel, setActivePanel] = useState<'upgrades' | 'rebirth'>('upgrades');
-  const [mobileActiveTab, setMobileActiveTab] = useState<'stats' | 'upgrades' | 'rebirth' | 'gems' | 'dev'>('stats');
+  const { gameState, clickMoney, buyUpgrade, buyRebirthUpgrade, performRebirth, resetGame, cheatMoney, devAddMoney, devAddMoneyDirect, devAddRebirthPoint, devAddGem, devAddClick, devAddRune, devAddElementalRune, openRunePack, mergeRunes, mergeAllRunes, switchRuneType, toggleElementalStats, toggleMoneyEffects, toggleDiamondEffects, craftSecretRune } = useGameLogic();
+  const [activePanel, setActivePanel] = useState<'upgrades' | 'rebirth' | 'achievements'>('upgrades');
+  const [achievementsVisible, setAchievementsVisible] = useState(false);
+  const [mobileActiveTab, setMobileActiveTab] = useState<'stats' | 'upgrades' | 'rebirth' | 'gems' | 'achievements' | 'dev'>('stats');
   const [isFlashing, setIsFlashing] = useState(false);
   const [hoveredRune, setHoveredRune] = useState<number | null>(null);
   
@@ -71,8 +73,16 @@ function App() {
   const currentRunes = gameState.currentRuneType === 'basic' ? RUNES_1 : RUNES_2;
   const currentRuneAmounts = gameState.currentRuneType === 'basic' ? gameState.runes : gameState.elementalRunes;
   
-  // Check if any elemental runes exist to show the elemental stats button
-  const hasElementalRunes = gameState.elementalRunes.some(amount => amount > 0);
+  // Check if player can craft Secret Rune (1 of each Basic & Elemental Rune)
+  const canCraftSecretRune = 
+    gameState.runes.slice(0, 6).every(amount => amount >= 1) && 
+    gameState.elementalRunes.slice(0, 6).every(amount => amount >= 1);
+  
+  // Check if player has ever crafted a Secret Rune
+  const hasSecretRune = gameState.runes[6] > 0;
+  
+  // Check if elemental runes have ever been unlocked (permanent unlock)
+  const hasElementalRunes = gameState.elementalRunesUnlocked;
 
   // Handle rebirth with flash effect
   const handleRebirth = () => {
@@ -182,8 +192,47 @@ function App() {
             break;
           }
           
+          case 'materials': {
+            const runeName = args[0];
+            const amount = args[1] || 1;
+            
+            if (!runeName || typeof runeName !== 'string') {
+              console.error('❌ Usage: give materials {runeName} {amount}');
+              console.error('Available: "secret rune"');
+              return;
+            }
+            
+            if (typeof amount !== 'number' || amount <= 0) {
+              console.error('❌ Usage: give materials {runeName} {amount}');
+              return;
+            }
+            
+            if (runeName.toLowerCase() === 'secret rune') {
+              console.log(`🌑 Giving materials to craft ${amount}x Secret Rune`);
+              console.log(`   - Giving ${amount}x of each Basic Rune (Common to Mythic)`);
+              console.log(`   - Giving ${amount}x of each Elemental Rune (Air to Dark)`);
+              
+              // Give all basic runes (0-5: Common to Mythic)
+              for (let runeIndex = 0; runeIndex < 6; runeIndex++) {
+                for (let i = 0; i < amount; i++) {
+                  devAddRune(runeIndex);
+                }
+              }
+              
+              // Give all elemental runes (0-5: Air to Dark)
+              for (let runeIndex = 0; runeIndex < 6; runeIndex++) {
+                for (let i = 0; i < amount; i++) {
+                  devAddElementalRune(runeIndex);
+                }
+              }
+            } else {
+              console.error(`❌ Unknown rune: ${runeName}. Available: "secret rune"`);
+            }
+            break;
+          }
+          
           default:
-            console.error(`❌ Unknown item: ${thing}. Use: money, rp, gem, clicks, runes`);
+            console.error(`❌ Unknown item: ${thing}. Use: money, rp, gem, clicks, runes, materials`);
             (window as any).MoneyClicker.help();
         }
       },
@@ -249,11 +298,12 @@ function App() {
 🎮 Money Clicker Console Commands:
 
 🎯 MAIN COMMAND (give):
-  MoneyClicker.give("money", amount)                    - Give money
-  MoneyClicker.give("rp", amount)                       - Give Rebirth Points  
-  MoneyClicker.give("gem", amount)                      - Give gems
-  MoneyClicker.give("clicks", amount)                   - Give total clicks
-  MoneyClicker.give("runes", type, rarity, amount)     - Give runes
+  MoneyClicker.give("money", amount)                       - Give money
+  MoneyClicker.give("rp", amount)                          - Give Rebirth Points  
+  MoneyClicker.give("gem", amount)                         - Give gems
+  MoneyClicker.give("clicks", amount)                      - Give total clicks
+  MoneyClicker.give("runes", type, rarity, amount)         - Give runes
+  MoneyClicker.give("materials", "secret rune", amount)    - Give materials to craft Secret Rune
 
 🎲 Rune Types & Rarities:
   BASIC RUNES:
@@ -275,16 +325,17 @@ function App() {
   MoneyClicker.help()                  - Show this help
 
 📝 Examples:
-  MoneyClicker.give("money", 1000000)              // Give 1M money
-  MoneyClicker.give("rp", 100)                     // Give 100 RP
-  MoneyClicker.give("gem", 50)                     // Give 50 gems
-  MoneyClicker.give("clicks", 1000)                // Give 1000 clicks
-  MoneyClicker.give("runes", "basic", 6, 5)        // 5x Mythic basic runes
-  MoneyClicker.give("runes", "basic", 7, 1)        // 1x Secret rune
-  MoneyClicker.give("runes", "elemental", 1, 10)   // 10x Air runes
-  MoneyClicker.give("runes", "elemental", 5, 3)    // 3x Light runes
-  MoneyClicker.toggleMoneyEffects()                // Disable/enable money animations
-  MoneyClicker.toggleDiamondEffects()              // Disable/enable diamond animations
+  MoneyClicker.give("money", 1000000)                  // Give 1M money
+  MoneyClicker.give("rp", 100)                         // Give 100 RP
+  MoneyClicker.give("gem", 50)                         // Give 50 gems
+  MoneyClicker.give("clicks", 1000)                    // Give 1000 clicks
+  MoneyClicker.give("runes", "basic", 6, 5)            // 5x Mythic basic runes
+  MoneyClicker.give("runes", "basic", 7, 1)            // 1x Secret rune
+  MoneyClicker.give("runes", "elemental", 1, 10)       // 10x Air runes
+  MoneyClicker.give("runes", "elemental", 5, 3)        // 3x Light runes
+  MoneyClicker.give("materials", "secret rune", 2)     // Materials for 2x Secret Rune crafts
+  MoneyClicker.toggleMoneyEffects()                    // Disable/enable money animations
+  MoneyClicker.toggleDiamondEffects()                  // Disable/enable diamond animations
         `);
       }
     };
@@ -454,6 +505,51 @@ function App() {
                 </span>
               </button>
             </div>
+
+            {/* Secret Rune Craft Button - nur sichtbar wenn alle Runen vorhanden */}
+            {canCraftSecretRune && (
+              <div style={{ marginBottom: '24px' }}>
+                <button
+                  onClick={craftSecretRune}
+                  style={{
+                    width: '100%',
+                    padding: '16px',
+                    fontSize: '16px',
+                    fontWeight: 'bold',
+                    background: 'linear-gradient(135deg, #404040 0%, #1a1a1a 50%, #000000 100%)',
+                    color: '#d4d4d4',
+                    border: '2px solid #404040',
+                    borderRadius: '12px',
+                    cursor: 'pointer',
+                    transition: 'all 0.3s ease',
+                    boxShadow: '0 6px 20px rgba(64, 64, 64, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.1)',
+                    position: 'relative',
+                    overflow: 'hidden'
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.transform = 'translateY(-2px)';
+                    e.currentTarget.style.boxShadow = '0 8px 25px rgba(64, 64, 64, 0.7), inset 0 1px 0 rgba(255, 255, 255, 0.15)';
+                    e.currentTarget.style.borderColor = '#606060';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.transform = 'none';
+                    e.currentTarget.style.boxShadow = '0 6px 20px rgba(64, 64, 64, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.1)';
+                    e.currentTarget.style.borderColor = '#404040';
+                  }}
+                >
+                  <div style={{
+                    position: 'absolute',
+                    top: 0,
+                    left: '-100%',
+                    width: '100%',
+                    height: '100%',
+                    background: 'linear-gradient(90deg, transparent, rgba(255,255,255,0.1), transparent)',
+                    animation: 'shimmer 3s infinite'
+                  }} />
+                  {hasSecretRune ? '🌑 Secret Rune 🌑' : '🌑 ??? 🌑'}
+                </button>
+              </div>
+            )}
 
             {/* Rune Collection */}
             <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
@@ -810,86 +906,84 @@ function App() {
           {/* Elemental Stats Panel - ersetzt normale Stats wenn aktiv */}
           {gameState.showElementalStats && hasElementalRunes && (
             <div className="elemental-stats-panel" style={{
-              background: 'linear-gradient(135deg, #7c3aed 0%, #6366f1 30%, #3b82f6 100%)',
-              border: '3px solid',
-              borderImage: 'linear-gradient(135deg, #7c3aed, #a855f7, #c084fc) 1',
+              background: 'linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #334155 100%)',
+              border: '2px solid #64748b',
               borderRadius: '16px',
-              padding: '16px',
-              marginBottom: '16px',
-              boxShadow: '0 0 30px rgba(124, 58, 237, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.1)',
+              padding: '24px',
+              boxShadow: '0 8px 32px rgba(15, 23, 42, 0.6), inset 0 1px 0 rgba(255, 255, 255, 0.1)',
               color: 'white',
-              position: 'relative'
+              marginBottom: '20px'
             }}>
-              {/* Background Pattern */}
-              <div style={{
-                position: 'absolute',
-                top: '0',
-                left: '0',
-                right: '0',
-                bottom: '0',
-                backgroundImage: 'radial-gradient(circle at 25% 25%, rgba(124, 58, 237, 0.1) 0%, transparent 50%)',
-                pointerEvents: 'none'
-              }} />
-              
               <h3 style={{
                 color: '#c084fc',
                 textAlign: 'center',
                 marginBottom: '16px',
                 fontSize: '18px',
                 fontWeight: 'bold',
-                textShadow: '0 0 10px rgba(192, 132, 252, 0.5)',
-                position: 'relative'
+                textShadow: '0 0 10px rgba(192, 132, 252, 0.5)'
               }}>⚡ Elemental Production</h3>
               
               <div style={{ 
                 display: 'grid', 
-                gridTemplateColumns: 'repeat(auto-fit, minmax(120px, 1fr))', 
-                gap: '12px',
-                position: 'relative'
+                gridTemplateColumns: '1fr 1fr', 
+                gap: '16px'
               }}>
-                {elementalStats.map((stat, index) => (
+                {elementalStats.map((stat, index) => {
+                  // Konvertiere hex zu rgba
+                  const hexToRgba = (hex: string, alpha: number) => {
+                    const r = parseInt(hex.slice(1, 3), 16);
+                    const g = parseInt(hex.slice(3, 5), 16);
+                    const b = parseInt(hex.slice(5, 7), 16);
+                    return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+                  };
+                  
+                  return (
                   <div key={index} style={{
-                    background: `linear-gradient(135deg, ${stat.color}20, ${stat.color}10)`,
-                    border: `1px solid ${stat.color}60`,
+                    background: hexToRgba(stat.color, 0.2),
+                    border: `2px solid ${hexToRgba(stat.color, 0.5)}`,
                     borderRadius: '8px',
                     padding: '12px',
                     textAlign: 'center',
                     transition: 'all 0.3s ease',
                     cursor: stat.runeCount > 0 ? 'help' : 'default',
                     opacity: stat.runeCount > 0 ? 1 : 0.6
-                  }}>
-                    <div style={{
+                  }}>                    <div style={{
                       fontSize: '14px',
                       fontWeight: 'bold',
                       color: stat.color,
                       marginBottom: '4px',
-                      textShadow: `0 0 6px ${stat.color}`
+                      textShadow: `0 0 6px ${stat.color}`,
+                      filter: 'brightness(1.3)'
                     }}>
                       {stat.name}
                     </div>
                     <div style={{
                       fontSize: '12px',
-                      color: '#e2e8f0',
-                      marginBottom: '2px'
+                      color: '#f1f5f9',
+                      marginBottom: '2px',
+                      fontWeight: '500'
                     }}>
                       Stored: {formatNumberGerman(stat.currentAmount)}
                     </div>
                     <div style={{
                       fontSize: '11px',
-                      color: '#cbd5e1',
-                      marginBottom: '2px'
+                      color: '#e2e8f0',
+                      marginBottom: '2px',
+                      fontWeight: '500'
                     }}>
                       +{stat.totalProducing}/tick
                     </div>
                     <div style={{
                       fontSize: '10px',
                       color: stat.color,
-                      opacity: 0.8
+                      opacity: 0.9,
+                      filter: 'brightness(1.2)'
                     }}>
                       {stat.runeCount} rune{stat.runeCount !== 1 ? 's' : ''}
                     </div>
                   </div>
-                ))}
+                  );
+                })}
               </div>
             </div>
           )}
@@ -954,7 +1048,54 @@ function App() {
                 label2="Rebirth"
                 onSwitch={setActivePanel}
                 activePanel={activePanel}
+                showThirdButton={false}
                 />
+            </div>
+          )}
+
+          {/* Achievement Switch Button - nach dem Switch Button und vor dem Money Button */}
+          {(gameState.rebirthPoints > 0 || gameState.rebirth_upgradeAmounts.some(amount => amount > 0)) && (
+            <div className="Achievement-Switch" style={{ marginTop: '16px', marginBottom: '16px' }}>
+              <button
+                onClick={() => setAchievementsVisible(!achievementsVisible)}
+                style={{
+                  width: '100%',
+                  padding: '12px 16px',
+                  background: achievementsVisible
+                    ? 'linear-gradient(135deg, #f59e0b 0%, #d97706 50%, #92400e 100%)'
+                    : 'linear-gradient(135deg, #4b5563 0%, #6b7280 50%, #9ca3af 100%)',
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: '12px',
+                  cursor: 'pointer',
+                  fontSize: '16px',
+                  fontWeight: 'bold',
+                  textShadow: '0 0 8px rgba(0,0,0,0.3)',
+                  boxShadow: achievementsVisible
+                    ? '0 4px 12px rgba(245, 158, 11, 0.3)'
+                    : '0 4px 12px rgba(107, 114, 128, 0.3)',
+                  transition: 'all 0.3s ease',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '8px'
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.transform = 'translateY(-2px)';
+                  e.currentTarget.style.boxShadow = achievementsVisible
+                    ? '0 6px 20px rgba(245, 158, 11, 0.4)'
+                    : '0 6px 20px rgba(107, 114, 128, 0.4)';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.transform = 'none';
+                  e.currentTarget.style.boxShadow = achievementsVisible
+                    ? '0 4px 12px rgba(245, 158, 11, 0.3)'
+                    : '0 4px 12px rgba(107, 114, 128, 0.3)';
+                }}
+              >
+                <span>🏆</span>
+                <span>{achievementsVisible ? 'Hide' : 'Show'} Achievements</span>
+              </button>
             </div>
           )}
           
@@ -997,6 +1138,32 @@ function App() {
             />
           )}
         </div>
+        
+        {/* Achievements Panel - immer vorhanden, aber nur sichtbar wenn achievementsVisible === true */}
+        {(gameState.rebirthPoints > 0 || gameState.rebirth_upgradeAmounts.some(amount => amount > 0)) && (
+          <div className="achievements-panel-container" style={{
+            background: 'rgba(15, 23, 42, 0.4)',
+            borderRadius: '16px',
+            padding: '12px',
+            border: '1px solid rgba(100, 116, 139, 0.3)',
+            boxShadow: '0 4px 16px rgba(0, 0, 0, 0.2)',
+            minWidth: '350px',
+            overflow: 'hidden',
+            display: 'flex',
+            flexDirection: 'column',
+            minHeight: '0',
+            width: '420px',
+            maxWidth: '100%',
+            boxSizing: 'border-box',
+            visibility: achievementsVisible ? 'visible' : 'hidden',
+            opacity: achievementsVisible ? 1 : 0,
+            transition: 'opacity 0.3s ease'
+          }}>
+            <AchievementsPanel
+              gameState={gameState}
+            />
+          </div>
+        )}
         </div>
 
         {/* Mobile Layout */}
@@ -1022,86 +1189,84 @@ function App() {
                 {/* Mobile Elemental Stats Panel - ersetzt normale Stats wenn aktiv */}
                 {gameState.showElementalStats && hasElementalRunes && (
                   <div className="elemental-stats-panel" style={{
-                    background: 'linear-gradient(135deg, #7c3aed 0%, #6366f1 30%, #3b82f6 100%)',
-                    border: '3px solid',
-                    borderImage: 'linear-gradient(135deg, #7c3aed, #a855f7, #c084fc) 1',
+                    background: 'linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #334155 100%)',
+                    border: '2px solid #64748b',
                     borderRadius: '16px',
-                    padding: '16px',
-                    marginBottom: '16px',
-                    boxShadow: '0 0 30px rgba(124, 58, 237, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.1)',
+                    padding: '24px',
+                    boxShadow: '0 8px 32px rgba(15, 23, 42, 0.6), inset 0 1px 0 rgba(255, 255, 255, 0.1)',
                     color: 'white',
-                    position: 'relative'
+                    marginBottom: '20px'
                   }}>
-                    {/* Background Pattern */}
-                    <div style={{
-                      position: 'absolute',
-                      top: '0',
-                      left: '0',
-                      right: '0',
-                      bottom: '0',
-                      backgroundImage: 'radial-gradient(circle at 25% 25%, rgba(124, 58, 237, 0.1) 0%, transparent 50%)',
-                      pointerEvents: 'none'
-                    }} />
-                    
                     <h3 style={{
                       color: '#c084fc',
                       textAlign: 'center',
                       marginBottom: '16px',
                       fontSize: '18px',
                       fontWeight: 'bold',
-                      textShadow: '0 0 10px rgba(192, 132, 252, 0.5)',
-                      position: 'relative'
+                      textShadow: '0 0 10px rgba(192, 132, 252, 0.5)'
                     }}>⚡ Elemental Production</h3>
                     
                     <div style={{ 
                       display: 'grid', 
-                      gridTemplateColumns: 'repeat(auto-fit, minmax(120px, 1fr))', 
-                      gap: '12px',
-                      position: 'relative'
+                      gridTemplateColumns: '1fr 1fr', 
+                      gap: '16px'
                     }}>
-                      {elementalStats.map((stat, index) => (
+                      {elementalStats.map((stat, index) => {
+                        // Konvertiere hex zu rgba
+                        const hexToRgba = (hex: string, alpha: number) => {
+                          const r = parseInt(hex.slice(1, 3), 16);
+                          const g = parseInt(hex.slice(3, 5), 16);
+                          const b = parseInt(hex.slice(5, 7), 16);
+                          return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+                        };
+                        
+                        return (
                         <div key={index} style={{
-                          background: `linear-gradient(135deg, ${stat.color}20, ${stat.color}10)`,
-                          border: `1px solid ${stat.color}60`,
+                          background: hexToRgba(stat.color, 0.2),
+                          border: `2px solid ${hexToRgba(stat.color, 0.5)}`,
                           borderRadius: '8px',
                           padding: '12px',
                           textAlign: 'center',
                           transition: 'all 0.3s ease',
                           cursor: stat.runeCount > 0 ? 'help' : 'default',
                           opacity: stat.runeCount > 0 ? 1 : 0.6
-                        }}>
-                          <div style={{
+                        }}>                          <div style={{
                             fontSize: '14px',
                             fontWeight: 'bold',
                             color: stat.color,
                             marginBottom: '4px',
-                            textShadow: `0 0 6px ${stat.color}`
+                            textShadow: `0 0 6px ${stat.color}`,
+                            filter: 'brightness(1.3)'
                           }}>
                             {stat.name}
                           </div>
                           <div style={{
                             fontSize: '12px',
-                            color: '#e2e8f0',
-                            marginBottom: '2px'
+                            color: '#f1f5f9',
+                            marginBottom: '2px',
+                            fontWeight: '500'
                           }}>
                             Stored: {formatNumberGerman(stat.currentAmount)}
                           </div>
                           <div style={{
                             fontSize: '11px',
-                            color: '#cbd5e1',
-                            marginBottom: '2px'
+                            color: '#e2e8f0',
+                            marginBottom: '2px',
+                            fontWeight: '500'
                           }}>
                             +{stat.totalProducing}/tick
                           </div>
                           <div style={{
                             fontSize: '10px',
                             color: stat.color,
-                            opacity: 0.8
+                            opacity: 0.9,
+                            filter: 'brightness(1.2)'
                           }}>
                             {stat.runeCount} rune{stat.runeCount !== 1 ? 's' : ''}
                           </div>
                         </div>
-                      ))}
+                        );
+                      })}
                     </div>
                   </div>
                 )}
@@ -1194,6 +1359,12 @@ function App() {
               />
             )}
 
+            {mobileActiveTab === 'achievements' && isRebirthUnlocked && (
+              <AchievementsPanel
+                gameState={gameState}
+              />
+            )}
+
             {mobileActiveTab === 'gems' && bothUnlocksOwned && (
               <div className="mobile-gem-panel">
                 {/* Gem Panel Content für Mobile */}
@@ -1272,6 +1443,41 @@ function App() {
                     </span>
                   </button>
                 </div>
+
+                {/* Secret Rune Craft Button - Mobile */}
+                {canCraftSecretRune && (
+                  <div style={{ marginBottom: '24px' }}>
+                    <button
+                      onClick={craftSecretRune}
+                      style={{
+                        width: '100%',
+                        padding: '16px',
+                        fontSize: '16px',
+                        fontWeight: 'bold',
+                        background: 'linear-gradient(135deg, #404040 0%, #1a1a1a 50%, #000000 100%)',
+                        color: '#d4d4d4',
+                        border: '2px solid #404040',
+                        borderRadius: '12px',
+                        cursor: 'pointer',
+                        transition: 'all 0.3s ease',
+                        boxShadow: '0 6px 20px rgba(64, 64, 64, 0.5)',
+                        position: 'relative',
+                        overflow: 'hidden'
+                      }}
+                    >
+                      <div style={{
+                        position: 'absolute',
+                        top: 0,
+                        left: '-100%',
+                        width: '100%',
+                        height: '100%',
+                        background: 'linear-gradient(90deg, transparent, rgba(255,255,255,0.1), transparent)',
+                        animation: 'shimmer 3s infinite'
+                      }} />
+                      {hasSecretRune ? '🌑 Secret Rune 🌑' : '🌑 ??? 🌑'}
+                    </button>
+                  </div>
+                )}
 
                 {/* Mobile Rune Collection */}
                 <div style={{
@@ -1810,6 +2016,15 @@ function App() {
           100% {
             opacity: 1;
             transform: translateX(-50%) translateY(-100%) scale(1);
+          }
+        }
+        
+        @keyframes shimmer {
+          0% {
+            left: -100%;
+          }
+          100% {
+            left: 100%;
           }
         }
       `}</style>

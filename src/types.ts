@@ -17,6 +17,8 @@ export interface GameState {
   elementalResources: number[]; // [air, earth, water, fire, light, dark] - resources produced by elemental runes
   currentRuneType: 'basic' | 'elemental'; // which rune collection is currently selected
   showElementalStats: boolean; // whether to show elemental stats panel
+  elementalRunesUnlocked: boolean; // whether elemental runes have ever been obtained (permanent unlock)
+  achievements: number[]; // Array of unlocked achievement IDs
   disableMoneyEffects?: boolean; // whether to disable money floating animations
   disableDiamondEffects?: boolean; // whether to disable diamond floating animations
 }
@@ -40,20 +42,8 @@ export const INITIAL_GAME_STATE: GameState = {
   elementalResources: [0, 0, 0, 0, 0, 0], // Start with 0 of each elemental resource
   currentRuneType: 'basic',
   showElementalStats: false,
+  elementalRunesUnlocked: false,
+  achievements: [],
   disableMoneyEffects: false,
   disableDiamondEffects: false,
-};
-
-// German number formatting function with scientific notation for large numbers
-export const formatNumberGerman = (num: number, decimalPlaces?: number): string => {
-  // Ab 100 Millionen: Wissenschaftliche Notation
-  if (num >= 100_000_000) {
-    return num.toExponential(2).replace('.', ',');
-  }
-  
-  // Unter 100 Millionen: Normale deutsche Formatierung mit Punkten
-  return num.toLocaleString('de-DE', {
-    minimumFractionDigits: 0,
-    maximumFractionDigits: decimalPlaces ?? (num >= 1000 ? 0 : 2)
-  });
 };

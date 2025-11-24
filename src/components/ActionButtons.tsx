@@ -1,5 +1,5 @@
 import type { GameState } from '../types';
-import { formatNumberGerman } from '../types';
+import { formatNumberGerman } from '../types/German_number';
 import { RUNES_1 } from '../types/Runes';
 
 interface ActionButtonsProps {
