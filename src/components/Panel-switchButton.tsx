@@ -1,11 +1,13 @@
 interface SwitchButtonProps {
-  onSwitch: (selected: 'upgrades' | 'rebirth') => void;
+  onSwitch: (selected: 'upgrades' | 'rebirth' | 'achievements') => void;
   label1: string;
   label2: string;
-  activePanel?: 'upgrades' | 'rebirth';
+  label3?: string;
+  activePanel?: 'upgrades' | 'rebirth' | 'achievements';
+  showThirdButton?: boolean;
 }
 
-const SwitchButton =({ onSwitch, label1, label2, activePanel = 'upgrades' }: SwitchButtonProps) => {
+const SwitchButton =({ onSwitch, label1, label2, label3 = 'Achievements', activePanel = 'upgrades', showThirdButton = false }: SwitchButtonProps) => {
     return ( 
         <div className="switch-button-container" style={{
           display: 'flex',
@@ -61,6 +63,31 @@ const SwitchButton =({ onSwitch, label1, label2, activePanel = 'upgrades' }: Swi
             >
                 {label2}
             </button>
+            {showThirdButton && (
+              <button 
+                  className={`switch-button ${activePanel === 'achievements' ? 'active' : ''}`}
+                  onClick={() => onSwitch('achievements')}
+                  style={{
+                    flex: 1,
+                    padding: '12px 16px',
+                    border: 'none',
+                    borderRadius: '8px',
+                    cursor: 'pointer',
+                    fontSize: '14px',
+                    fontWeight: 'bold',
+                    transition: 'all 0.3s ease',
+                    background: activePanel === 'achievements' 
+                      ? 'linear-gradient(135deg, #f59e0b, #d97706)'
+                      : 'transparent',
+                    color: activePanel === 'achievements' ? 'white' : '#94a3b8',
+                    boxShadow: activePanel === 'achievements' 
+                      ? '0 4px 12px rgba(245, 158, 11, 0.3)'
+                      : 'none'
+                  }}
+              >
+                  {label3}
+              </button>
+            )}
         </div>
     )
 }

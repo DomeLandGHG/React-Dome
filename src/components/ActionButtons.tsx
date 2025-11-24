@@ -1,5 +1,6 @@
 import type { GameState } from '../types';
-import { RUNES_1, formatNumberGerman } from '../types';
+import { formatNumberGerman } from '../types/German_number';
+import { RUNES_1 } from '../types/Runes';
 
 interface ActionButtonsProps {
   money: number;

@@ -1,5 +1,6 @@
 import type { GameState } from '../types';
-import { UPGRADES, formatNumberGerman } from '../types';
+import { formatNumberGerman } from '../types/German_number';
+import { UPGRADES } from '../types/Upgrade';
 
 interface UpgradeButtonProps {
   name: string;

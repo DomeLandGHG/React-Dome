@@ -1,10 +1,29 @@
 import { useState, useEffect, useCallback } from 'react';
 import type { GameState } from './types';
-import { INITIAL_GAME_STATE, REBIRTHUPGRADES, UPGRADES, RUNES_1, RUNES_2 } from './types';
+import { INITIAL_GAME_STATE } from './types';
 import { saveGameState, loadGameState } from './storage';
+import { RUNES_1, RUNES_2 } from './types/Runes';
+import { UPGRADES } from './types/Upgrade';
+import { REBIRTHUPGRADES } from './types/Rebirth_Upgrade';
 
 export const useGameLogic = () => {
   const [gameState, setGameState] = useState<GameState>(() => loadGameState());
+
+  // Calculate Achievement Bonuses
+  // Pro Achievement: +1% Money, +1% RP, +1% Elemental Production, +0.1% Gem Chance
+  const calculateAchievementBonuses = useCallback((achievementCount: number) => {
+    const moneyBonus = achievementCount * 0.01; // 1% per achievement
+    const rpBonus = achievementCount * 0.01; // 1% per achievement
+    const elementalBonus = achievementCount * 0.01; // 1% per achievement
+    const gemBonus = achievementCount * 0.001; // 0.1% per achievement
+    
+    return {
+      moneyMultiplier: 1 + moneyBonus,
+      rpMultiplier: 1 + rpBonus,
+      elementalMultiplier: 1 + elementalBonus,
+      gemBonusChance: gemBonus
+    };
+  }, []);
 
   // Auto-save when state changes
   useEffect(() => {
@@ -16,6 +35,9 @@ export const useGameLogic = () => {
     if (gameState.moneyPerTick > 0 || gameState.rebirth_upgradeAmounts[1] > 0 || gameState.elementalRunes.some(amount => amount > 0)) {
       const interval = setInterval(() => {
         setGameState(prev => {
+          // Achievement bonuses
+          const achievementBonuses = calculateAchievementBonuses(prev.achievements.length);
+          
           let multiplier = 1;
           if (prev.rebirth_upgradeAmounts[0] > 0) {
             // Berechne den Exponent: 0.01 + (upgradeAmount - 1) * 0.01
@@ -45,15 +67,17 @@ export const useGameLogic = () => {
               const bonus = Math.log(prev.rebirthPoints + 1) * effectValue; // log(RP + 1) * 0.05 als Decimal
               rebirthPointMultiplier = 1 + bonus;
             }
-            newMoney += prev.moneyPerTick * multiplier * runeMultiplier * rebirthPointMultiplier;
+            // Apply achievement bonus to money
+            newMoney += prev.moneyPerTick * multiplier * runeMultiplier * rebirthPointMultiplier * achievementBonuses.moneyMultiplier;
           }
           
-          // Elemental Rune Production
+          // Elemental Rune Production (with achievement bonus)
           const newElementalResources = [...prev.elementalResources];
           prev.elementalRunes.forEach((amount, index) => {
             if (amount > 0) {
               const rune = RUNES_2[index];
-              newElementalResources[index] += (rune.produceAmount || 0) * amount;
+              const baseProduction = (rune.produceAmount || 0) * amount;
+              newElementalResources[index] += baseProduction * achievementBonuses.elementalMultiplier;
             }
           });
           
@@ -76,10 +100,13 @@ export const useGameLogic = () => {
 
       return () => clearInterval(interval);
     }
-  }, [gameState.moneyPerTick, gameState.rebirth_upgradeAmounts, gameState.clicksTotal, gameState.elementalRunes]);
+  }, [gameState.moneyPerTick, gameState.rebirth_upgradeAmounts, gameState.clicksTotal, gameState.elementalRunes, calculateAchievementBonuses]);
 
   const clickMoney = useCallback(() => {
     setGameState(prev => {
+      // Achievement bonuses
+      const achievementBonuses = calculateAchievementBonuses(prev.achievements.length);
+      
       const newClicksTotal = prev.clicksTotal + 1;
       let multiplier = 1;
       if (prev.rebirth_upgradeAmounts[0] > 0) {
@@ -104,9 +131,21 @@ export const useGameLogic = () => {
       // Gem Drop Chance wenn das dritte Rebirth-Upgrade gekauft wurde
       if (prev.rebirth_upgradeAmounts[2] > 0) {
         const baseGemChance = REBIRTHUPGRADES[2].effect; // 0.005 = 0.5%
-        const totalGemChance = baseGemChance + totalGemBonus;
-        if (Math.random() < totalGemChance) {
-          newGems += 1;
+        const totalGemChance = baseGemChance + totalGemBonus + achievementBonuses.gemBonusChance;
+        
+        // Wenn Chance über 100%, garantiert mindestens 1 Gem + Chance für mehr
+        if (totalGemChance >= 1.0) {
+          const guaranteedGems = Math.floor(totalGemChance);
+          const remainingChance = totalGemChance - guaranteedGems;
+          newGems += guaranteedGems;
+          if (Math.random() < remainingChance) {
+            newGems += 1;
+          }
+        } else {
+          // Normale Chance unter 100%
+          if (Math.random() < totalGemChance) {
+            newGems += 1;
+          }
         }
       }
       
@@ -121,13 +160,13 @@ export const useGameLogic = () => {
       }
       return {
         ...prev,
-        money: prev.money + (prev.moneyPerClick * multiplier * runeMoneyMultiplier * rebirthPointMultiplier),
+        money: prev.money + (prev.moneyPerClick * multiplier * runeMoneyMultiplier * rebirthPointMultiplier * achievementBonuses.moneyMultiplier),
         gems: newGems,
         clicksInRebirth: prev.clicksInRebirth + 1,
         clicksTotal: newClicksTotal,
       };
     });
-  }, []);
+  }, [calculateAchievementBonuses]);
 
   const buyUpgrade = useCallback((upgradeIndex: number) => {
     setGameState(prev => {
@@ -272,6 +311,9 @@ export const useGameLogic = () => {
 
   const performRebirth = useCallback(() => {
     setGameState(prev => {
+      // Achievement bonuses
+      const achievementBonuses = calculateAchievementBonuses(prev.achievements.length);
+      
       // Calculate rune bonuses at the time of rebirth
       let totalRpBonus = 0;
       prev.runes.forEach((amount, index) => {
@@ -283,7 +325,14 @@ export const useGameLogic = () => {
       
       const baseRebirthPoints = Math.floor(prev.money / 1000);
       const runeRpMultiplier = 1 + totalRpBonus;
-      const newRebirthPoints = prev.rebirthPoints + Math.floor(baseRebirthPoints * runeRpMultiplier);
+      const newRebirthPoints = prev.rebirthPoints + Math.floor(baseRebirthPoints * runeRpMultiplier * achievementBonuses.rpMultiplier);
+      
+      // Unlock "First Rebirth" achievement (ID 0) if not already unlocked
+      const newAchievements = [...prev.achievements];
+      if (!newAchievements.includes(0)) {
+        newAchievements.push(0);
+      }
+      
       return {
         ...INITIAL_GAME_STATE,
         rebirthPoints: newRebirthPoints,
@@ -293,6 +342,8 @@ export const useGameLogic = () => {
         elementalResources: prev.elementalResources, // Elemental Resources bleiben bei Rebirth erhalten
         currentRuneType: prev.currentRuneType, // UI state stays
         showElementalStats: prev.showElementalStats, // UI state stays
+        elementalRunesUnlocked: prev.elementalRunesUnlocked, // Permanent unlock stays
+        achievements: newAchievements, // Achievements bleiben bei Rebirth erhalten
         clicksTotal: prev.clicksTotal,
         rebirth_upgradePrices: prev.rebirth_upgradePrices,
         rebirth_upgradeAmounts: prev.rebirth_upgradeAmounts,
@@ -309,7 +360,7 @@ export const useGameLogic = () => {
         ),
       };
     });
-  }, []);
+  }, [calculateAchievementBonuses]);
 
   const resetGame = useCallback(() => {
     setGameState(INITIAL_GAME_STATE);
@@ -378,6 +429,7 @@ export const useGameLogic = () => {
         ...prev,
         elementalRunes: newElementalRunes,
         showElementalStats: true, // Auto-show stats when elemental runes are added
+        elementalRunesUnlocked: true, // Mark as unlocked
       };
     });
   }, []);
@@ -459,8 +511,14 @@ export const useGameLogic = () => {
       
       // Check if we should show elemental stats (first elemental rune obtained)
       let newShowElementalStats = prev.showElementalStats;
-      if (prev.currentRuneType === 'elemental' && !prev.showElementalStats && droppedRune !== -1) {
-        newShowElementalStats = true;
+      let newElementalRunesUnlocked = prev.elementalRunesUnlocked;
+      if (prev.currentRuneType === 'elemental' && droppedRune !== -1) {
+        if (!prev.showElementalStats) {
+          newShowElementalStats = true;
+        }
+        if (!prev.elementalRunesUnlocked) {
+          newElementalRunesUnlocked = true;
+        }
       }
       
       // Deduct the appropriate cost
@@ -474,6 +532,7 @@ export const useGameLogic = () => {
         runes: prev.currentRuneType === 'basic' ? newRunes : prev.runes,
         elementalRunes: prev.currentRuneType === 'elemental' ? newRunes : prev.elementalRunes,
         showElementalStats: newShowElementalStats,
+        elementalRunesUnlocked: newElementalRunesUnlocked,
       };
     });
   }, [gameState.gems, gameState.money, gameState.currentRuneType]);
@@ -506,6 +565,44 @@ export const useGameLogic = () => {
     }));
   }, []);
 
+  const craftSecretRune = useCallback(() => {
+    setGameState(prev => {
+      // Prüfe ob mindestens 1 von jeder Basic Rune vorhanden ist (IDs 0-5)
+      const hasAllBasicRunes = prev.runes.slice(0, 6).every(amount => amount >= 1);
+      
+      // Prüfe ob mindestens 1 von jeder Elemental Rune vorhanden ist (IDs 0-5)
+      const hasAllElementalRunes = prev.elementalRunes.slice(0, 6).every(amount => amount >= 1);
+      
+      // Wenn nicht alle vorhanden sind, keine Aktion
+      if (!hasAllBasicRunes || !hasAllElementalRunes) {
+        return prev;
+      }
+      
+      // Kopiere Arrays und verbrauche je 1 Rune
+      const newRunes = [...prev.runes];
+      const newElementalRunes = [...prev.elementalRunes];
+      
+      // Entferne je 1 von jeder Basic Rune (IDs 0-5)
+      for (let i = 0; i < 6; i++) {
+        newRunes[i] -= 1;
+      }
+      
+      // Entferne je 1 von jeder Elemental Rune (IDs 0-5)
+      for (let i = 0; i < 6; i++) {
+        newElementalRunes[i] -= 1;
+      }
+      
+      // Füge 1 Secret Rune hinzu (ID 6)
+      newRunes[6] = (newRunes[6] || 0) + 1;
+      
+      return {
+        ...prev,
+        runes: newRunes,
+        elementalRunes: newElementalRunes,
+      };
+    });
+  }, []);
+
   return {
     gameState,
     clickMoney,
@@ -528,5 +625,6 @@ export const useGameLogic = () => {
     toggleElementalStats,
     toggleMoneyEffects,
     toggleDiamondEffects,
+    craftSecretRune,
   };
 };

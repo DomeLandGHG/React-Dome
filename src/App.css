@@ -81,19 +81,37 @@ html, body {
 
 /* Desktop: 2-3 column layout */
 @media (min-width: 1025px) {
-  .game-container {
-    display: grid;
-    grid-template-columns: 1fr 420px;
+  .desktop-layout {
+    display: grid !important;
+    grid-template-columns: 320px 1fr 420px 420px;
     gap: 1rem;
-    padding: 1rem;
+    width: 100%;
+    height: 100%;
   }
   
-  .gem-panel + .left-panel {
+  .gem-panel {
+    grid-column: 1;
+    grid-row: 1;
+  }
+  
+  .left-panel {
     grid-column: 2;
+    grid-row: 1;
   }
   
   .right-Upgrade-panel {
     grid-column: 3;
+    grid-row: 1;
+  }
+  
+  .achievements-panel-container {
+    grid-column: 4;
+    grid-row: 1;
+  }
+  
+  /* Wenn kein Achievements Panel, dann nur 3 Spalten */
+  .desktop-layout:not(:has(.achievements-panel-container)) {
+    grid-template-columns: 320px 1fr 420px;
   }
 }
 

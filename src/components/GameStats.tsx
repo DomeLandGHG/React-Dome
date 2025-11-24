@@ -1,7 +1,10 @@
 import { useState, useRef, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import type { GameState } from '../types';
-import { RUNES_1, REBIRTHUPGRADES, formatNumberGerman } from '../types';
+import { formatNumberGerman } from '../types/German_number';
+import { RUNES_1 } from '../types/Runes';
+import { REBIRTHUPGRADES } from '../types/Rebirth_Upgrade';
+
 
 interface GameStatsProps {
   gameState: GameState;
@@ -143,8 +146,8 @@ const GameStats = ({ gameState }: GameStatsProps) => {
           ref={clickRef}
           className="stat-item" 
           style={{
-            background: 'rgba(34, 197, 94, 0.1)',
-            border: '1px solid rgba(34, 197, 94, 0.3)',
+            background: 'rgba(34, 197, 94, 0.2)',
+            border: '2px solid rgba(34, 197, 94, 0.5)',
             borderRadius: '8px',
             padding: '12px',
             cursor: 'help',
@@ -153,10 +156,10 @@ const GameStats = ({ gameState }: GameStatsProps) => {
           onMouseEnter={() => updateTooltipPosition(clickRef.current, 'click')}
           onMouseLeave={handleMouseLeave}
         >
-          <span className="stat-label" style={{ color: '#94a3b8', fontSize: '14px' }}>Per Click:</span>
-          <span className="stat-value" style={{ color: '#22c55e', fontWeight: 'bold', fontSize: '16px' }}>{formatNumberGerman(values.perClickTotal)}$
+          <span className="stat-label" style={{ color: '#cbd5e1', fontSize: '14px', fontWeight: '500' }}>Per Click:</span>
+          <span className="stat-value" style={{ color: '#4ade80', fontWeight: 'bold', fontSize: '16px' }}>{formatNumberGerman(values.perClickTotal)}$
             {(values.clickMultiplier > 1 || values.runeMultiplier > 1 || values.rebirthPointMultiplier > 1) && (
-              <span style={{ fontSize: '0.9em', color: '#64748b' }}> ({formatNumberGerman(gameState.moneyPerClick)}$)</span>
+              <span style={{ fontSize: '0.9em', color: '#94a3b8' }}> ({formatNumberGerman(gameState.moneyPerClick)}$)</span>
             )}
           </span>
         </div>
@@ -165,8 +168,8 @@ const GameStats = ({ gameState }: GameStatsProps) => {
           ref={tickRef}
           className="stat-item" 
           style={{
-            background: 'rgba(34, 197, 94, 0.1)',
-            border: '1px solid rgba(34, 197, 94, 0.3)',
+            background: 'rgba(34, 197, 94, 0.2)',
+            border: '2px solid rgba(34, 197, 94, 0.5)',
             borderRadius: '8px',
             padding: '12px',
             cursor: 'help',
@@ -175,59 +178,59 @@ const GameStats = ({ gameState }: GameStatsProps) => {
           onMouseEnter={() => updateTooltipPosition(tickRef.current, 'tick')}
           onMouseLeave={handleMouseLeave}
         >
-          <span className="stat-label" style={{ color: '#94a3b8', fontSize: '14px' }}>Per Tick:</span>
-          <span className="stat-value" style={{ color: '#22c55e', fontWeight: 'bold', fontSize: '16px' }}>{formatNumberGerman(values.perTickTotal)}$
+          <span className="stat-label" style={{ color: '#cbd5e1', fontSize: '14px', fontWeight: '500' }}>Per Tick:</span>
+          <span className="stat-value" style={{ color: '#4ade80', fontWeight: 'bold', fontSize: '16px' }}>{formatNumberGerman(values.perTickTotal)}$/s
             {(values.clickMultiplier > 1 || values.runeMultiplier > 1 || values.rebirthPointMultiplier > 1) && (
-              <span style={{ fontSize: '0.9em', color: '#64748b' }}> ({formatNumberGerman(gameState.moneyPerTick)}$)</span>
+              <span style={{ fontSize: '0.9em', color: '#94a3b8' }}> ({formatNumberGerman(gameState.moneyPerTick)}$)</span>
             )}
           </span>
         </div>
         {(gameState.rebirthPoints > 0 || gameState.rebirth_upgradeAmounts.some(amount => amount > 0)) && (
           <div className="stat-item" style={{
-            background: 'rgba(147, 51, 234, 0.1)',
-            border: '1px solid rgba(147, 51, 234, 0.3)',
+            background: 'rgba(147, 51, 234, 0.2)',
+            border: '2px solid rgba(147, 51, 234, 0.5)',
             borderRadius: '8px',
             padding: '12px'
           }}>
-            <span className="stat-label" style={{ color: '#94a3b8', fontSize: '14px' }}>Rebirth Points:</span>
-            <span className="stat-value" style={{ color: '#9333ea', fontWeight: 'bold', fontSize: '16px' }}>{formatNumberGerman(Math.floor(gameState.rebirthPoints))}</span>
+            <span className="stat-label" style={{ color: '#cbd5e1', fontSize: '14px', fontWeight: '500' }}>Rebirth Points:</span>
+            <span className="stat-value" style={{ color: '#c084fc', fontWeight: 'bold', fontSize: '16px' }}>{formatNumberGerman(Math.floor(gameState.rebirthPoints))}</span>
           </div>
         )}
         {showGems && (
           <div className="stat-item" style={{
-            background: 'rgba(59, 130, 246, 0.1)',
-            border: '1px solid rgba(59, 130, 246, 0.3)',
+            background: 'rgba(59, 130, 246, 0.2)',
+            border: '2px solid rgba(59, 130, 246, 0.5)',
             borderRadius: '8px',
             padding: '12px'
           }}>
-            <span className="stat-label" style={{ color: '#94a3b8', fontSize: '14px' }}>💎 Gems:</span>
-            <span className="stat-value" style={{ color: '#3b82f6', fontWeight: 'bold', fontSize: '16px' }}>{formatNumberGerman(gameState.gems)}</span>
+            <span className="stat-label" style={{ color: '#cbd5e1', fontSize: '14px', fontWeight: '500' }}>💎 Gems:</span>
+            <span className="stat-value" style={{ color: '#60a5fa', fontWeight: 'bold', fontSize: '16px' }}>{formatNumberGerman(gameState.gems)}</span>
           </div>
         )}
         {showGems && (
           <div className="stat-item" style={{
-            background: 'rgba(245, 158, 11, 0.1)',
-            border: '1px solid rgba(245, 158, 11, 0.3)',
+            background: 'rgba(245, 158, 11, 0.2)',
+            border: '2px solid rgba(245, 158, 11, 0.5)',
             borderRadius: '8px',
             padding: '12px'
           }}>
-            <span className="stat-label" style={{ color: '#94a3b8', fontSize: '14px' }}>💎 Chance:</span>
-            <span className="stat-value" style={{ color: '#f59e0b', fontWeight: 'bold', fontSize: '16px' }}>
+            <span className="stat-label" style={{ color: '#cbd5e1', fontSize: '14px', fontWeight: '500' }}>💎 Chance:</span>
+            <span className="stat-value" style={{ color: '#fbbf24', fontWeight: 'bold', fontSize: '16px' }}>
               {formatNumberGerman(gemChance * 100, 2)}%
               {values.totalGemBonus > 0 && (
-                <span style={{ fontSize: '0.9em', color: '#64748b' }}> (0,5%)</span>
+                <span style={{ fontSize: '0.9em', color: '#94a3b8' }}> (0,5%)</span>
               )}
             </span>
           </div>
         )}
         <div className="stat-item" style={{
-          background: 'rgba(100, 116, 139, 0.1)',
-          border: '1px solid rgba(100, 116, 139, 0.3)',
+          background: 'rgba(100, 116, 139, 0.25)',
+          border: '2px solid rgba(100, 116, 139, 0.6)',
           borderRadius: '8px',
           padding: '12px'
         }}>
-          <span className="stat-label" style={{ color: '#94a3b8', fontSize: '14px' }}>Total Clicks:</span>
-          <span className="stat-value" style={{ color: '#64748b', fontWeight: 'bold', fontSize: '16px' }}>{formatNumberGerman(gameState.clicksTotal)}</span>
+          <span className="stat-label" style={{ color: '#cbd5e1', fontSize: '14px', fontWeight: '500' }}>Total Clicks:</span>
+          <span className="stat-value" style={{ color: '#cbd5e1', fontWeight: 'bold', fontSize: '16px' }}>{formatNumberGerman(gameState.clicksTotal)}</span>
         </div>
       </div>
       
