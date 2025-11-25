@@ -1,6 +1,6 @@
 interface MobileTabNavigationProps {
-  activeTab: 'stats' | 'upgrades' | 'rebirth' | 'gems' | 'achievements' | 'dev';
-  onTabChange: (tab: 'stats' | 'upgrades' | 'rebirth' | 'gems' | 'achievements' | 'dev') => void;
+  activeTab: 'stats' | 'upgrades' | 'rebirth' | 'gems' | 'achievements' | 'statistics' | 'dev';
+  onTabChange: (tab: 'stats' | 'upgrades' | 'rebirth' | 'gems' | 'achievements' | 'statistics' | 'dev') => void;
   hasGems: boolean;
   hasRebirth: boolean;
   showDev?: boolean;
@@ -8,10 +8,11 @@ interface MobileTabNavigationProps {
 
 const MobileTabNavigation = ({ activeTab, onTabChange, hasGems, hasRebirth, showDev = false }: MobileTabNavigationProps) => {
   const tabs = [
-    { id: 'stats' as const, label: '📊 Stats', icon: '📊' },
+    { id: 'stats' as const, label: '🏠 Main', icon: '🏠' },
     { id: 'upgrades' as const, label: '⬆️ Upgrades', icon: '⬆️' },
     ...(hasRebirth ? [{ id: 'rebirth' as const, label: '🔄 Rebirth', icon: '🔄' }] : []),
-    ...(hasRebirth ? [{ id: 'achievements' as const, label: '🏆 Achievements', icon: '🏆' }] : []),
+    ...(hasRebirth ? [{ id: 'achievements' as const, label: '🏆 Achiev', icon: '🏆' }] : []),
+    ...(hasRebirth ? [{ id: 'statistics' as const, label: '📊 Stats', icon: '📊' }] : []),
     ...(hasGems ? [{ id: 'gems' as const, label: '💎 Runes', icon: '💎' }] : []),
     ...(showDev ? [{ id: 'dev' as const, label: '🔧 Dev', icon: '🔧' }] : [])
   ];
@@ -19,12 +20,15 @@ const MobileTabNavigation = ({ activeTab, onTabChange, hasGems, hasRebirth, show
   return (
     <div className="mobile-tab-navigation" style={{
       display: 'flex',
+      overflowX: 'auto',
       background: 'rgba(15, 23, 42, 0.9)',
       borderRadius: '12px',
       padding: '4px',
       border: '1px solid rgba(100, 116, 139, 0.3)',
       marginBottom: '12px',
-      gap: '2px'
+      gap: '2px',
+      scrollbarWidth: 'thin',
+      WebkitOverflowScrolling: 'touch'
     }}>
       {tabs.map(tab => (
         <button

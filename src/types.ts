@@ -18,9 +18,95 @@ export interface GameState {
   currentRuneType: 'basic' | 'elemental'; // which rune collection is currently selected
   showElementalStats: boolean; // whether to show elemental stats panel
   elementalRunesUnlocked: boolean; // whether elemental runes have ever been obtained (permanent unlock)
-  achievements: number[]; // Array of unlocked achievement IDs
+  achievements: Array<{ id: number; tier: number }>; // Array of unlocked achievements with their tier
   disableMoneyEffects?: boolean; // whether to disable money floating animations
   disableDiamondEffects?: boolean; // whether to disable diamond floating animations
+  includeDevStats?: boolean; // whether to include dev command stats in statistics display (default: false)
+  
+  // Statistics
+  stats: {
+    allTimeMoneyEarned: number;
+    moneyFromClicks: number;
+    moneyFromTicks: number;
+    allTimeRebirthPointsEarned: number;
+    totalRebirths: number;
+    allTimeGemsEarned: number;
+    allTimeClicksTotal: number;
+    clicksFromManual: number;
+    clicksFromTicks: number;
+    baseRunePacksPurchased: number;
+    elementalRunePacksPurchased: number;
+    totalUpgradesPurchased: number;
+    totalRebirthUpgradesPurchased: number;
+    allTimeMoneySpent: number;
+    allTimeRebirthPointsSpent: number;
+    allTimeGemsSpent: number;
+    allTimeElementsProduced: {
+      air: number;
+      earth: number;
+      water: number;
+      fire: number;
+      light: number;
+      dark: number;
+    };
+    runesCrafted: {
+      common: number;
+      uncommon: number;
+      rare: number;
+      epic: number;
+      legendary: number;
+      mythic: number;
+      secret: number;
+    };
+    runesObtained: {
+      common: number;
+      uncommon: number;
+      rare: number;
+      epic: number;
+      legendary: number;
+      mythic: number;
+    };
+    elementalRunesObtained: {
+      air: number;
+      earth: number;
+      water: number;
+      fire: number;
+      light: number;
+      dark: number;
+    };
+    // Dev Command Stats (separate tracking)
+    devStats: {
+      moneyAdded: number;
+      rebirthPointsAdded: number;
+      gemsAdded: number;
+      clicksAdded: number;
+      runesAdded: {
+        common: number;
+        uncommon: number;
+        rare: number;
+        epic: number;
+        legendary: number;
+        mythic: number;
+        secret: number;
+      };
+      elementalRunesAdded: {
+        air: number;
+        earth: number;
+        water: number;
+        fire: number;
+        light: number;
+        dark: number;
+      };
+      elementsAdded: {
+        air: number;
+        earth: number;
+        water: number;
+        fire: number;
+        light: number;
+        dark: number;
+      };
+    };
+  };
 }
 
 export const INITIAL_GAME_STATE: GameState = {
@@ -46,4 +132,87 @@ export const INITIAL_GAME_STATE: GameState = {
   achievements: [],
   disableMoneyEffects: false,
   disableDiamondEffects: false,
+  includeDevStats: false,
+  stats: {
+    allTimeMoneyEarned: 0,
+    moneyFromClicks: 0,
+    moneyFromTicks: 0,
+    allTimeRebirthPointsEarned: 0,
+    totalRebirths: 0,
+    allTimeGemsEarned: 0,
+    allTimeClicksTotal: 0,
+    clicksFromManual: 0,
+    clicksFromTicks: 0,
+    baseRunePacksPurchased: 0,
+    elementalRunePacksPurchased: 0,
+    totalUpgradesPurchased: 0,
+    totalRebirthUpgradesPurchased: 0,
+    allTimeMoneySpent: 0,
+    allTimeRebirthPointsSpent: 0,
+    allTimeGemsSpent: 0,
+    allTimeElementsProduced: {
+      air: 0,
+      earth: 0,
+      water: 0,
+      fire: 0,
+      light: 0,
+      dark: 0,
+    },
+    runesCrafted: {
+      common: 0,
+      uncommon: 0,
+      rare: 0,
+      epic: 0,
+      legendary: 0,
+      mythic: 0,
+      secret: 0,
+    },
+    runesObtained: {
+      common: 0,
+      uncommon: 0,
+      rare: 0,
+      epic: 0,
+      legendary: 0,
+      mythic: 0,
+    },
+    elementalRunesObtained: {
+      air: 0,
+      earth: 0,
+      water: 0,
+      fire: 0,
+      light: 0,
+      dark: 0,
+    },
+    devStats: {
+      moneyAdded: 0,
+      rebirthPointsAdded: 0,
+      gemsAdded: 0,
+      clicksAdded: 0,
+      runesAdded: {
+        common: 0,
+        uncommon: 0,
+        rare: 0,
+        epic: 0,
+        legendary: 0,
+        mythic: 0,
+        secret: 0,
+      },
+      elementalRunesAdded: {
+        air: 0,
+        earth: 0,
+        water: 0,
+        fire: 0,
+        light: 0,
+        dark: 0,
+      },
+      elementsAdded: {
+        air: 0,
+        earth: 0,
+        water: 0,
+        fire: 0,
+        light: 0,
+        dark: 0,
+      },
+    },
+  },
 };

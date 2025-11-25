@@ -5,17 +5,125 @@ import { saveGameState, loadGameState } from './storage';
 import { RUNES_1, RUNES_2 } from './types/Runes';
 import { UPGRADES } from './types/Upgrade';
 import { REBIRTHUPGRADES } from './types/Rebirth_Upgrade';
+import { ACHIEVEMENTS } from './types/Achievement';
 
 export const useGameLogic = () => {
   const [gameState, setGameState] = useState<GameState>(() => loadGameState());
 
+  // Check and unlock achievements based on current game state
+  const checkAchievements = useCallback((currentState: GameState): Array<{ id: number; tier: number }> => {
+    const newAchievements: Array<{ id: number; tier: number }> = [...currentState.achievements];
+    
+    ACHIEVEMENTS.forEach(achievement => {
+      // For dynamic tier achievements (e.g., Money Maker)
+      if (achievement.maxTier && achievement.tierMultiplier && achievement.requirement) {
+        const { type, value: baseValue } = achievement.requirement;
+        
+        // Find current tier for this achievement
+        const existingAchievement = newAchievements.find(a => a.id === achievement.id);
+        const currentTier = existingAchievement ? existingAchievement.tier : 0;
+        
+        // Check if we can unlock the next tier
+        const nextTier = currentTier + 1;
+        if (nextTier <= achievement.maxTier) {
+          const requiredValue = baseValue * Math.pow(achievement.tierMultiplier, nextTier - 1);
+          let currentValue = 0;
+          
+          switch (type) {
+            case 'money':
+              currentValue = currentState.money;
+              break;
+            case 'rebirth':
+              currentValue = currentState.rebirthPoints;
+              break;
+            case 'clicks':
+              currentValue = currentState.clicksTotal;
+              break;
+            case 'gems':
+              currentValue = currentState.gems;
+              break;
+            case 'upgrades':
+              currentValue = currentState.upgradeAmounts.reduce((a, b) => a + b, 0);
+              break;
+            case 'elements':
+              currentValue = currentState.stats?.allTimeElementsProduced 
+                ? Object.values(currentState.stats.allTimeElementsProduced).reduce((a, b) => a + b, 0)
+                : 0;
+              break;
+            case 'runespurchased':
+              currentValue = (currentState.stats?.baseRunePacksPurchased || 0) + (currentState.stats?.elementalRunePacksPurchased || 0);
+              break;
+          }
+          
+          if (currentValue >= requiredValue) {
+            if (existingAchievement) {
+              existingAchievement.tier = nextTier;
+            } else {
+              newAchievements.push({ id: achievement.id, tier: nextTier });
+            }
+          }
+        }
+      } else {
+        // Static achievements (e.g., First Rebirth)
+        const alreadyUnlocked = newAchievements.some(a => a.id === achievement.id);
+        if (alreadyUnlocked) return;
+        
+        // Check requirements
+        if (achievement.requirement) {
+          const { type, value } = achievement.requirement;
+          let conditionMet = false;
+          
+          switch (type) {
+            case 'money':
+              conditionMet = currentState.money >= value;
+              break;
+            case 'rebirth':
+              conditionMet = currentState.rebirthPoints >= value;
+              break;
+            case 'clicks':
+              conditionMet = currentState.clicksTotal >= value;
+              break;
+            case 'gems':
+              conditionMet = currentState.gems >= value;
+              break;
+            case 'upgrades':
+              conditionMet = currentState.upgradeAmounts.reduce((a, b) => a + b, 0) >= value;
+              break;
+            case 'elements':
+              const totalElements = currentState.stats?.allTimeElementsProduced 
+                ? Object.values(currentState.stats.allTimeElementsProduced).reduce((a, b) => a + b, 0)
+                : 0;
+              conditionMet = totalElements >= value;
+              break;
+            case 'runespurchased':
+              const totalPacks = (currentState.stats?.baseRunePacksPurchased || 0) + (currentState.stats?.elementalRunePacksPurchased || 0);
+              conditionMet = totalPacks >= value;
+              break;
+          }
+          
+          if (conditionMet) {
+            newAchievements.push({ id: achievement.id, tier: 1 });
+          }
+        } else {
+          // Special case: First Rebirth (no requirement object)
+          if (achievement.id === 1 && currentState.rebirthPoints > 0) {
+            newAchievements.push({ id: achievement.id, tier: 1 });
+          }
+        }
+      }
+    });
+    
+    return newAchievements;
+  }, []);
+
   // Calculate Achievement Bonuses
-  // Pro Achievement: +1% Money, +1% RP, +1% Elemental Production, +0.1% Gem Chance
-  const calculateAchievementBonuses = useCallback((achievementCount: number) => {
-    const moneyBonus = achievementCount * 0.01; // 1% per achievement
-    const rpBonus = achievementCount * 0.01; // 1% per achievement
-    const elementalBonus = achievementCount * 0.01; // 1% per achievement
-    const gemBonus = achievementCount * 0.001; // 0.1% per achievement
+  // Pro Achievement Tier: +1% Money, +1% RP, +1% Elemental Production, +0.1% Gem Chance
+  // ABER: Gem Bonus nur wenn Gem-Unlock Upgrade gekauft wurde
+  const calculateAchievementBonuses = useCallback((totalTiers: number, hasGemUnlock: boolean) => {
+    const moneyBonus = totalTiers * 0.01; // 1% per achievement tier
+    const rpBonus = totalTiers * 0.01; // 1% per achievement tier
+    const elementalBonus = totalTiers * 0.01; // 1% per achievement tier
+    const gemBonus = hasGemUnlock ? totalTiers * 0.001 : 0; // 0.1% per achievement tier, nur wenn Gem Unlock aktiv
     
     return {
       moneyMultiplier: 1 + moneyBonus,
@@ -36,7 +144,9 @@ export const useGameLogic = () => {
       const interval = setInterval(() => {
         setGameState(prev => {
           // Achievement bonuses
-          const achievementBonuses = calculateAchievementBonuses(prev.achievements.length);
+          const hasGemUnlock = prev.rebirth_upgradeAmounts[2] > 0;
+          const totalAchievementTiers = prev.achievements.reduce((sum, a) => sum + (a.tier || 0), 0);
+          const achievementBonuses = calculateAchievementBonuses(totalAchievementTiers, hasGemUnlock);
           
           let multiplier = 1;
           if (prev.rebirth_upgradeAmounts[0] > 0) {
@@ -58,6 +168,7 @@ export const useGameLogic = () => {
           
           // Geld generieren wie gehabt
           let newMoney = prev.money;
+          let moneyFromTicks = 0;
           if (prev.moneyPerTick > 0) {
             const runeMultiplier = 1 + totalMoneyBonus;
             let rebirthPointMultiplier = 1;
@@ -68,25 +179,36 @@ export const useGameLogic = () => {
               rebirthPointMultiplier = 1 + bonus;
             }
             // Apply achievement bonus to money
-            newMoney += prev.moneyPerTick * multiplier * runeMultiplier * rebirthPointMultiplier * achievementBonuses.moneyMultiplier;
+            moneyFromTicks = prev.moneyPerTick * multiplier * runeMultiplier * rebirthPointMultiplier * achievementBonuses.moneyMultiplier;
+            newMoney += moneyFromTicks;
           }
           
           // Elemental Rune Production (with achievement bonus)
           const newElementalResources = [...prev.elementalResources];
+          const elementsProduced = { air: 0, earth: 0, water: 0, fire: 0, light: 0, dark: 0 };
           prev.elementalRunes.forEach((amount, index) => {
             if (amount > 0) {
               const rune = RUNES_2[index];
               const baseProduction = (rune.produceAmount || 0) * amount;
-              newElementalResources[index] += baseProduction * achievementBonuses.elementalMultiplier;
+              const productionAmount = baseProduction * achievementBonuses.elementalMultiplier;
+              newElementalResources[index] += productionAmount;
+              
+              // Track production per element
+              const elementNames = ['air', 'earth', 'water', 'fire', 'light', 'dark'] as const;
+              if (index < elementNames.length) {
+                elementsProduced[elementNames[index]] = productionAmount;
+              }
             }
           });
           
           // Rebirth-Upgrade: +1 Klick pro Tick (aber kein Geld)
           let newClicksTotal = prev.clicksTotal;
           let newClicksInRebirth = prev.clicksInRebirth;
+          let clicksFromTicksAmount = 0;
           if (prev.rebirth_upgradeAmounts[1] > 0) {
-            newClicksTotal += prev.rebirth_upgradeAmounts[1];
-            newClicksInRebirth += prev.rebirth_upgradeAmounts[1];
+            clicksFromTicksAmount = prev.rebirth_upgradeAmounts[1];
+            newClicksTotal += clicksFromTicksAmount;
+            newClicksInRebirth += clicksFromTicksAmount;
           }
           return {
             ...prev,
@@ -94,6 +216,21 @@ export const useGameLogic = () => {
             clicksTotal: newClicksTotal,
             clicksInRebirth: newClicksInRebirth,
             elementalResources: newElementalResources,
+            stats: {
+              ...prev.stats,
+              allTimeMoneyEarned: prev.stats.allTimeMoneyEarned + moneyFromTicks,
+              moneyFromTicks: prev.stats.moneyFromTicks + moneyFromTicks,
+              allTimeClicksTotal: prev.stats.allTimeClicksTotal + clicksFromTicksAmount,
+              clicksFromTicks: prev.stats.clicksFromTicks + clicksFromTicksAmount,
+              allTimeElementsProduced: {
+                air: prev.stats.allTimeElementsProduced.air + elementsProduced.air,
+                earth: prev.stats.allTimeElementsProduced.earth + elementsProduced.earth,
+                water: prev.stats.allTimeElementsProduced.water + elementsProduced.water,
+                fire: prev.stats.allTimeElementsProduced.fire + elementsProduced.fire,
+                light: prev.stats.allTimeElementsProduced.light + elementsProduced.light,
+                dark: prev.stats.allTimeElementsProduced.dark + elementsProduced.dark,
+              },
+            },
           };
         });
       }, 1000);
@@ -105,7 +242,9 @@ export const useGameLogic = () => {
   const clickMoney = useCallback(() => {
     setGameState(prev => {
       // Achievement bonuses
-      const achievementBonuses = calculateAchievementBonuses(prev.achievements.length);
+      const hasGemUnlock = prev.rebirth_upgradeAmounts[2] > 0;
+      const totalAchievementTiers = prev.achievements.reduce((sum, a) => sum + (a.tier || 0), 0);
+      const achievementBonuses = calculateAchievementBonuses(totalAchievementTiers, hasGemUnlock);
       
       const newClicksTotal = prev.clicksTotal + 1;
       let multiplier = 1;
@@ -128,6 +267,7 @@ export const useGameLogic = () => {
       });
       
       let newGems = prev.gems;
+      let gemsEarned = 0;
       // Gem Drop Chance wenn das dritte Rebirth-Upgrade gekauft wurde
       if (prev.rebirth_upgradeAmounts[2] > 0) {
         const baseGemChance = REBIRTHUPGRADES[2].effect; // 0.005 = 0.5%
@@ -137,16 +277,17 @@ export const useGameLogic = () => {
         if (totalGemChance >= 1.0) {
           const guaranteedGems = Math.floor(totalGemChance);
           const remainingChance = totalGemChance - guaranteedGems;
-          newGems += guaranteedGems;
+          gemsEarned = guaranteedGems;
           if (Math.random() < remainingChance) {
-            newGems += 1;
+            gemsEarned += 1;
           }
         } else {
           // Normale Chance unter 100%
           if (Math.random() < totalGemChance) {
-            newGems += 1;
+            gemsEarned = 1;
           }
         }
+        newGems += gemsEarned;
       }
       
       const runeMoneyMultiplier = 1 + totalMoneyBonus;
@@ -158,15 +299,34 @@ export const useGameLogic = () => {
         const bonus = Math.log(prev.rebirthPoints + 1) * effectValue; // log(RP + 1) * 0.05 als Decimal
         rebirthPointMultiplier = 1 + bonus;
       }
-      return {
+      
+      const moneyEarned = prev.moneyPerClick * multiplier * runeMoneyMultiplier * rebirthPointMultiplier * achievementBonuses.moneyMultiplier;
+      
+      const newState = {
         ...prev,
-        money: prev.money + (prev.moneyPerClick * multiplier * runeMoneyMultiplier * rebirthPointMultiplier * achievementBonuses.moneyMultiplier),
+        money: prev.money + moneyEarned,
         gems: newGems,
         clicksInRebirth: prev.clicksInRebirth + 1,
         clicksTotal: newClicksTotal,
+        stats: {
+          ...prev.stats,
+          allTimeMoneyEarned: prev.stats.allTimeMoneyEarned + moneyEarned,
+          moneyFromClicks: prev.stats.moneyFromClicks + moneyEarned,
+          allTimeGemsEarned: prev.stats.allTimeGemsEarned + gemsEarned,
+          allTimeClicksTotal: prev.stats.allTimeClicksTotal + 1,
+          clicksFromManual: prev.stats.clicksFromManual + 1,
+        },
+      };
+      
+      // Check for new achievements
+      const updatedAchievements = checkAchievements(newState);
+      
+      return {
+        ...newState,
+        achievements: updatedAchievements
       };
     });
-  }, [calculateAchievementBonuses]);
+  }, [calculateAchievementBonuses, checkAchievements]);
 
   const buyUpgrade = useCallback((upgradeIndex: number) => {
     setGameState(prev => {
@@ -189,6 +349,13 @@ export const useGameLogic = () => {
             gems: prev.gems - 1,
             upgradePrices: newUpgradePrices,
             upgradeAmounts: newUpgradeAmounts,
+            stats: {
+              ...prev.stats,
+              totalUpgradesPurchased: prev.stats.totalUpgradesPurchased + 1,
+              allTimeMoneySpent: prev.stats.allTimeMoneySpent + 1000,
+              allTimeRebirthPointsSpent: prev.stats.allTimeRebirthPointsSpent + 1,
+              allTimeGemsSpent: prev.stats.allTimeGemsSpent + 1,
+            },
           };
         }
         return prev;
@@ -233,6 +400,11 @@ export const useGameLogic = () => {
           moneyPerTick: newMoneyPerTick,
           upgradePrices: newUpgradePrices,
           upgradeAmounts: newUpgradeAmounts,
+          stats: {
+            ...prev.stats,
+            totalUpgradesPurchased: prev.stats.totalUpgradesPurchased + 1,
+            allTimeMoneySpent: prev.stats.allTimeMoneySpent + currentPrice,
+          },
         };
       }
       return prev;
@@ -260,6 +432,13 @@ export const useGameLogic = () => {
             gems: prev.gems - 1,
             rebirth_upgradePrices: rebirth_newUpgradePrices,
             rebirth_upgradeAmounts: rebirth_newUpgradeAmounts,
+            stats: {
+              ...prev.stats,
+              totalRebirthUpgradesPurchased: prev.stats.totalRebirthUpgradesPurchased + 1,
+              allTimeMoneySpent: prev.stats.allTimeMoneySpent + 1000,
+              allTimeRebirthPointsSpent: prev.stats.allTimeRebirthPointsSpent + 1,
+              allTimeGemsSpent: prev.stats.allTimeGemsSpent + 1,
+            },
           };
         }
         return prev;
@@ -278,6 +457,11 @@ export const useGameLogic = () => {
             rebirthPoints: prev.rebirthPoints - rebirth_currentPrice,
             rebirth_upgradePrices: rebirth_newUpgradePrices,
             rebirth_upgradeAmounts: rebirth_newUpgradeAmounts,
+            stats: {
+              ...prev.stats,
+              totalRebirthUpgradesPurchased: prev.stats.totalRebirthUpgradesPurchased + 1,
+              allTimeRebirthPointsSpent: prev.stats.allTimeRebirthPointsSpent + rebirth_currentPrice,
+            },
           };
         }
         return prev;
@@ -303,6 +487,11 @@ export const useGameLogic = () => {
           rebirthPoints: prev.rebirthPoints - rebirth_currentPrice,
           rebirth_upgradePrices: rebirth_newUpgradePrices,
           rebirth_upgradeAmounts: rebirth_newUpgradeAmounts,
+          stats: {
+            ...prev.stats,
+            totalRebirthUpgradesPurchased: prev.stats.totalRebirthUpgradesPurchased + 1,
+            allTimeRebirthPointsSpent: prev.stats.allTimeRebirthPointsSpent + rebirth_currentPrice,
+          },
         };
       }
       return prev;
@@ -312,7 +501,9 @@ export const useGameLogic = () => {
   const performRebirth = useCallback(() => {
     setGameState(prev => {
       // Achievement bonuses
-      const achievementBonuses = calculateAchievementBonuses(prev.achievements.length);
+      const hasGemUnlock = prev.rebirth_upgradeAmounts[2] > 0;
+      const totalAchievementTiers = prev.achievements.reduce((sum, a) => sum + (a.tier || 0), 0);
+      const achievementBonuses = calculateAchievementBonuses(totalAchievementTiers, hasGemUnlock);
       
       // Calculate rune bonuses at the time of rebirth
       let totalRpBonus = 0;
@@ -325,12 +516,13 @@ export const useGameLogic = () => {
       
       const baseRebirthPoints = Math.floor(prev.money / 1000);
       const runeRpMultiplier = 1 + totalRpBonus;
-      const newRebirthPoints = prev.rebirthPoints + Math.floor(baseRebirthPoints * runeRpMultiplier * achievementBonuses.rpMultiplier);
+      const rpEarned = Math.floor(baseRebirthPoints * runeRpMultiplier * achievementBonuses.rpMultiplier);
+      const newRebirthPoints = prev.rebirthPoints + rpEarned;
       
-      // Unlock "First Rebirth" achievement (ID 0) if not already unlocked
+      // Unlock "First Rebirth" achievement (ID 1) if not already unlocked
       const newAchievements = [...prev.achievements];
-      if (!newAchievements.includes(0)) {
-        newAchievements.push(0);
+      if (!newAchievements.some(a => a.id === 1)) {
+        newAchievements.push({ id: 1, tier: 1 });
       }
       
       return {
@@ -348,6 +540,11 @@ export const useGameLogic = () => {
         rebirth_upgradePrices: prev.rebirth_upgradePrices,
         rebirth_upgradeAmounts: prev.rebirth_upgradeAmounts,
         rebirth_maxUpgradeAmounts: prev.rebirth_maxUpgradeAmounts,
+        stats: {
+          ...prev.stats,
+          allTimeRebirthPointsEarned: prev.stats.allTimeRebirthPointsEarned + rpEarned,
+          totalRebirths: prev.stats.totalRebirths + 1,
+        },
         // Normale Upgrades die Gems kosten bleiben auch erhalten
         upgradeAmounts: prev.upgradeAmounts.map((amount, index) => 
           UPGRADES[index]?.type === 'Unlock' ? amount : 0
@@ -378,6 +575,13 @@ export const useGameLogic = () => {
     setGameState(prev => ({
       ...prev,
       money: prev.money + 100000, // Add 100K instead of 10 trillion
+      stats: {
+        ...prev.stats,
+        devStats: {
+          ...prev.stats.devStats,
+          moneyAdded: prev.stats.devStats.moneyAdded + 100000,
+        },
+      },
     }));
   }, []);
 
@@ -386,6 +590,13 @@ export const useGameLogic = () => {
     setGameState(prev => ({
       ...prev,
       money: prev.money + amount,
+      stats: {
+        ...prev.stats,
+        devStats: {
+          ...prev.stats.devStats,
+          moneyAdded: prev.stats.devStats.moneyAdded + amount,
+        },
+      },
     }));
   }, []);
 
@@ -393,6 +604,13 @@ export const useGameLogic = () => {
     setGameState(prev => ({
       ...prev,
       rebirthPoints: prev.rebirthPoints + 10,
+      stats: {
+        ...prev.stats,
+        devStats: {
+          ...prev.stats.devStats,
+          rebirthPointsAdded: prev.stats.devStats.rebirthPointsAdded + 10,
+        },
+      },
     }));
   }, []);
 
@@ -400,6 +618,13 @@ export const useGameLogic = () => {
     setGameState(prev => ({
       ...prev,
       gems: prev.gems + 10,
+      stats: {
+        ...prev.stats,
+        devStats: {
+          ...prev.stats.devStats,
+          gemsAdded: prev.stats.devStats.gemsAdded + 10,
+        },
+      },
     }));
   }, []);
 
@@ -407,6 +632,13 @@ export const useGameLogic = () => {
     setGameState(prev => ({
       ...prev,
       clicksTotal: prev.clicksTotal + 100,
+      stats: {
+        ...prev.stats,
+        devStats: {
+          ...prev.stats.devStats,
+          clicksAdded: prev.stats.devStats.clicksAdded + 100,
+        },
+      },
     }))
   }, []);
 
@@ -414,9 +646,23 @@ export const useGameLogic = () => {
     setGameState(prev => {
       const newRunes = [...prev.runes];
       newRunes[runeIndex] = (newRunes[runeIndex] || 0) + 1;
+      
+      const runeNames = ['common', 'uncommon', 'rare', 'epic', 'legendary', 'mythic', 'secret'] as const;
+      const runeName = runeNames[runeIndex];
+      
       return {
         ...prev,
         runes: newRunes,
+        stats: {
+          ...prev.stats,
+          devStats: {
+            ...prev.stats.devStats,
+            runesAdded: {
+              ...prev.stats.devStats.runesAdded,
+              [runeName]: prev.stats.devStats.runesAdded[runeName] + 1,
+            },
+          },
+        },
       };
     });
   }, []);
@@ -425,11 +671,25 @@ export const useGameLogic = () => {
     setGameState(prev => {
       const newElementalRunes = [...prev.elementalRunes];
       newElementalRunes[runeIndex] = (newElementalRunes[runeIndex] || 0) + 1;
+      
+      const elementNames = ['air', 'earth', 'water', 'fire', 'light', 'dark'] as const;
+      const elementName = elementNames[runeIndex];
+      
       return {
         ...prev,
         elementalRunes: newElementalRunes,
         showElementalStats: true, // Auto-show stats when elemental runes are added
         elementalRunesUnlocked: true, // Mark as unlocked
+        stats: {
+          ...prev.stats,
+          devStats: {
+            ...prev.stats.devStats,
+            elementalRunesAdded: {
+              ...prev.stats.devStats.elementalRunesAdded,
+              [elementName]: prev.stats.devStats.elementalRunesAdded[elementName] + 1,
+            },
+          },
+        },
       };
     });
   }, []);
@@ -446,9 +706,20 @@ export const useGameLogic = () => {
       newRunes[runeIndex] -= 3; // Entferne 3 Runen der aktuellen Stufe
       newRunes[runeIndex + 1] += 1; // Füge 1 Rune der nächsten Stufe hinzu
       
+      // Track crafted rune
+      const runeNames = ['common', 'uncommon', 'rare', 'epic', 'legendary', 'mythic'] as const;
+      const craftedRuneName = runeNames[runeIndex + 1];
+      
       return {
         ...prev,
-        runes: newRunes
+        runes: newRunes,
+        stats: {
+          ...prev.stats,
+          runesCrafted: {
+            ...prev.stats.runesCrafted,
+            [craftedRuneName]: prev.stats.runesCrafted[craftedRuneName] + 1,
+          },
+        },
       };
     });
   }, []);
@@ -469,6 +740,22 @@ export const useGameLogic = () => {
       if (possibleMerges > 0) {
         newRunes[runeIndex] -= possibleMerges * 3; // Entferne alle möglichen 3er Gruppen
         newRunes[runeIndex + 1] += possibleMerges; // Füge entsprechend viele höhere Runen hinzu
+        
+        // Track crafted runes
+        const runeNames = ['common', 'uncommon', 'rare', 'epic', 'legendary', 'mythic'] as const;
+        const craftedRuneName = runeNames[runeIndex + 1];
+        
+        return {
+          ...prev,
+          runes: newRunes,
+          stats: {
+            ...prev.stats,
+            runesCrafted: {
+              ...prev.stats.runesCrafted,
+              [craftedRuneName]: prev.stats.runesCrafted[craftedRuneName] + possibleMerges,
+            },
+          },
+        };
       }
       
       return {
@@ -509,6 +796,32 @@ export const useGameLogic = () => {
         newRunes[droppedRune]++;
       }
       
+      // Track obtained rune
+      let updatedStats = { ...prev.stats };
+      if (droppedRune !== -1) {
+        if (prev.currentRuneType === 'basic') {
+          const runeNames = ['common', 'uncommon', 'rare', 'epic', 'legendary', 'mythic'] as const;
+          const obtainedRuneName = runeNames[droppedRune];
+          updatedStats = {
+            ...updatedStats,
+            runesObtained: {
+              ...updatedStats.runesObtained,
+              [obtainedRuneName]: updatedStats.runesObtained[obtainedRuneName] + 1,
+            },
+          };
+        } else {
+          const elementNames = ['air', 'earth', 'water', 'fire', 'light', 'dark'] as const;
+          const obtainedElementName = elementNames[droppedRune];
+          updatedStats = {
+            ...updatedStats,
+            elementalRunesObtained: {
+              ...updatedStats.elementalRunesObtained,
+              [obtainedElementName]: updatedStats.elementalRunesObtained[obtainedElementName] + 1,
+            },
+          };
+        }
+      }
+      
       // Check if we should show elemental stats (first elemental rune obtained)
       let newShowElementalStats = prev.showElementalStats;
       let newElementalRunesUnlocked = prev.elementalRunesUnlocked;
@@ -533,6 +846,21 @@ export const useGameLogic = () => {
         elementalRunes: prev.currentRuneType === 'elemental' ? newRunes : prev.elementalRunes,
         showElementalStats: newShowElementalStats,
         elementalRunesUnlocked: newElementalRunesUnlocked,
+        stats: {
+          ...updatedStats,
+          baseRunePacksPurchased: prev.currentRuneType === 'basic' 
+            ? updatedStats.baseRunePacksPurchased + 1 
+            : updatedStats.baseRunePacksPurchased,
+          elementalRunePacksPurchased: prev.currentRuneType === 'elemental' 
+            ? updatedStats.elementalRunePacksPurchased + 1 
+            : updatedStats.elementalRunePacksPurchased,
+          allTimeGemsSpent: prev.currentRuneType === 'basic' 
+            ? updatedStats.allTimeGemsSpent + 5 
+            : updatedStats.allTimeGemsSpent,
+          allTimeMoneySpent: prev.currentRuneType === 'elemental' 
+            ? updatedStats.allTimeMoneySpent + 10000000 
+            : updatedStats.allTimeMoneySpent,
+        },
       };
     });
   }, [gameState.gems, gameState.money, gameState.currentRuneType]);
@@ -599,8 +927,22 @@ export const useGameLogic = () => {
         ...prev,
         runes: newRunes,
         elementalRunes: newElementalRunes,
+        stats: {
+          ...prev.stats,
+          runesCrafted: {
+            ...prev.stats.runesCrafted,
+            secret: prev.stats.runesCrafted.secret + 1,
+          },
+        },
       };
     });
+  }, []);
+
+  const toggleDevStats = useCallback(() => {
+    setGameState(prev => ({
+      ...prev,
+      includeDevStats: !prev.includeDevStats,
+    }));
   }, []);
 
   return {
@@ -625,6 +967,7 @@ export const useGameLogic = () => {
     toggleElementalStats,
     toggleMoneyEffects,
     toggleDiamondEffects,
+    toggleDevStats,
     craftSecretRune,
   };
 };
