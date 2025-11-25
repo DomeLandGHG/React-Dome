@@ -1,100 +1,90 @@
-4️⃣ Elemental Trading (Ressourcenhöker)
+# 🌟 **Elemental System – Readme**  
+*Version 1.0 – Design Draft*
 
-Du führst einen NPC ein: "Elemental Trader"
+Dieses Dokument beschreibt alle zentralen Systeme des **Elemental Progression Frameworks** für das Spiel: *Ressourcenhändler, Prestige, Welt-Events und Portal-Mechaniken*.
 
-Jalle 10-20 minuten erzeugt er 3 zufällige Angebote, z.B.:
+---
 
-Bei Spiele:
+## 4️⃣ **Elemental Trading – Der Ressourcenhändler**
 
-5.000 Fire → 50 Gems
+Sobald der Spieler **mindestens eine Elemental-Rune** gekauft hat, kann nach **random(10–20 Minuten)** ein **Elemental Trader** erscheinen.
 
-10.000 Air → 1 Legendary Rune
+- Der Trader zeigt **3 zufällige Angebote** an.  
+- Alle **10–20 Minuten** werden die 3 Angebote neu gewürfelt.  
+- Preise und Belohnungen müssen gebalanced werden.
 
-100.000 Dark → 1 Secret Rune Fragment
+**Beispiel-Angebote (Platzhalter!):**
 
-20.000 Earth → 10 RP
+5.000 Fire          → 50 Gems
+10.000 Air          → 1 Legendary Rune
+100.000 Dark        → 1 Secret Rune Fragment
+20.000 Earth        → 10 RP
 
-✔️ Gibt den Ressourcen Wert
-✔️ RNG motiviert tägliches Spielen
-✔️ Du kannst die Angebote rotieren lassen
+Die finalen Werte werden im Balancing-Prozess festgelegt.
 
+---
 
-5️⃣ Elemental Ascension (Kleine Prestige-Mechanik auf Element-Basis)
+## 5️⃣ **Elemental Ascension – Elementbasiertes Prestige**
 
-Jedes Element kann geprestigt werden.
+Jedes Element besitzt ein **eigenes Prestige-System**.  
+Wenn ein Element einen bestimmten Ressourcenwert erreicht (z. B. *100.000 Fire*), kann der Spieler **Fire Prestige 1** aktivieren.
 
-Beispiel:
+### 🔁 **Prestige Reset:**
+- Setzt **nur die Ressource des spezifischen Elements** auf `0`.
+- Verleiht dauerhaft einen **permanenten Element-Bonus pro Prestige-Level**.
+- Boni sind *multiplikativ stapelbar*.
 
-Wenn du 1 Million Fire hast → Fire Prestige 1
+### 📈 **Prestige-Boni pro Element:**
 
-Prestige Reset:
+| Element | Bonus |
+|--------|-------|
+| **Air** | +0.5% Auto-Speed pro Level |
+| **Earth** | +2% Auto-Income pro Level |
+| **Water** | +1% Click-Power pro Level |
+| **Fire** | +1% Rune-Pack-Luck pro Level |
+| **Light** | +1% RP-Gain pro Level |
+| **Dark** | +1% Upgrade-Discount pro Level |
 
-Setzt Fire Resource auf 0
+---
 
-Gibt einen permanenten Bonus pro Prestige-Level
+## 8️⃣ **Elemental World Events – Automatische Passivevents**
 
-Beispiel Boni:
+Alle **random(10–20 Minuten)** startet ein zufälliges **10-Minuten-Event**.  
+Ein Event kann **nur erscheinen**, wenn das entsprechende Element bereits freigeschaltet wurde.
 
-Element	Bonus
-Air	+0.5% Auto-Speed per level
-Earth	+2% Auto Income
-Water	+1% Click Money
-Fire	+1% Rune Pack Luck
-Light	+1% RP Gain
-Dark	+1% Upgrade Discount
+### 🌍 **Mögliche Events & Effekte (10 Minuten Dauer):**
 
-✔️ Erhöht Motivation für Langzeitspieler
-✔️ Sehr angenehme zweistufige Progression
+| Event | Effekt |
+|--------|--------|
+| **Fire Storm** | Klicken gibt **2× Gems** |
+| **Earthquake** | Auto Income **×5** |
+| **Solar Flare** | Auto Speed **×2** (1s → 0.5s) |
+| **Tsunami** | Click Power **×5** |
+| **Darkness** | Upgrade Kosten **−25%** |
+| **Tempest** | Gems droppen **2× so oft** |
 
+---
 
-8️⃣ Elemental World Events (Automatische Passiv-Ereignisse)
+## 9️⃣ **Elemental Portal – Zugang zu *World 2*** (Mega-Late-Game)
 
-Alle random 10-20 Minuten startet ein zufälliges Ereignis:
+Wenn der Spieler **je 10.000.000 eines Elements** besitzt, kann das **Elemental Portal** aktiviert werden.
 
-Event	Effekt (10 Minuten)
-Fire Storm	Klicken gibt doppelt Gems
-Earthquake	Auto Income ×5
-Solar Flare	Achievements ×5 schneller
-Tsunami	Click Power ×5
-Darkness	Upgrade Preise um 90% reduziert
-Tempest	Gems droppen doppelt so oft
+### 🔓 **Aktivierung:**
+- Setzt **alle Element-Ressourcen auf 0**.
+- Öffnet den Zugang zu **World 2**.
+- **Elemental Prestige bleibt erhalten!**
 
-Events werden durch Elemental Production schneller ausgelöst:
-
-Chance per minute = total elements / 1.000.000
-
-
-✔️ Dynamisch
-✔️ Spannend
-✔️ Elemental Ressourcen fühlen sich wertvoll an
-
-
-9️⃣ Elemental Portal – Zugang zu “World 2” (Mega-Late-Game)
-
-Wenn du z. B. je 10 Millionen Elemente hast:
-
-→ Du kannst das Elemental Portal öffnen.
-
-Aktivierung:
-
-Setzt alle Element Ressourcen auf 0
-
-Öffnet World 2
-
-World 2 Features könnten sein:
-
-Neue Upgrades
-
-Neue Runes
-
-Neue Achievements
-
-Elemental Prestige wird übernommen
-
-Neue Gem-Währung
-
-✔️ Fantastischer Long-Term Meta Layer
-✔️ Keine Balance-Probleme in World 1
-✔️ Riesige Motivation
+### 🌌 **World 2 Inhalte (Factory_Readme.md):**
 
 
+Das Factory-System besteht aus:
+- Separaten spezialisierten Maschinen  
+- Minecraft-ähnlichem Crafting Grid  
+- Automatisierter und manueller Produktion  
+- Fortschritt über Upgrades und Prestige  
+- Globale Boni durch Produkte  
+- Synergien mit bestehenden Spielsystemen  
+- Erweiterbarer und modularer Architektur  
+
+Dies bildet die Grundlage für ein tiefes, motivierendes
+und endgamefähiges Produktionssystem.
