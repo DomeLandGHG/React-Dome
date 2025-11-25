@@ -80,41 +80,6 @@ const ActionButtons = ({ money, onRebirth, onReset, gameState /* onCheat, moneyP
           </div>
         </button>
       )}
-      
-      <button 
-        className="reset-button"
-        onClick={() => {
-          if (window.confirm('Are you sure you want to reset all progress? This cannot be undone!')) {
-            onReset();
-          }
-        }}
-        type="button"
-        style={{
-          background: 'linear-gradient(135deg, #dc2626, #ef4444)',
-          color: 'white',
-          border: '2px solid #b91c1c',
-          padding: '12px 20px',
-          borderRadius: '12px',
-          cursor: 'pointer',
-          fontSize: '14px',
-          fontWeight: 'bold',
-          transition: 'all 0.3s ease',
-          boxShadow: '0 4px 12px rgba(220, 38, 38, 0.4)',
-          textShadow: '0 1px 2px rgba(0, 0, 0, 0.3)',
-          width: '100%'
-        }}
-        onMouseEnter={(e) => {
-          e.currentTarget.style.transform = 'translateY(-1px)';
-          e.currentTarget.style.boxShadow = '0 6px 16px rgba(220, 38, 38, 0.6)';
-        }}
-        onMouseLeave={(e) => {
-          e.currentTarget.style.transform = 'none';
-          e.currentTarget.style.boxShadow = '0 4px 12px rgba(220, 38, 38, 0.4)';
-        }}
-      >
-        ⚠️ Reset All
-      </button>
-      
     </div>
   );
 };

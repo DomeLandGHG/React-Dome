@@ -26,7 +26,12 @@ const deepMerge = (target: any, source: any): any => {
 
 export const saveGameState = (state: GameState): void => {
   try {
-    localStorage.setItem(SAVE_KEY, JSON.stringify(state));
+    // Update lastSaveTime before saving
+    const stateWithTimestamp = {
+      ...state,
+      lastSaveTime: Date.now()
+    };
+    localStorage.setItem(SAVE_KEY, JSON.stringify(stateWithTimestamp));
   } catch (error) {
     console.error('Failed to save game state:', error);
   }

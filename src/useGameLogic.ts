@@ -9,6 +9,100 @@ import { ACHIEVEMENTS } from './types/Achievement';
 
 export const useGameLogic = () => {
   const [gameState, setGameState] = useState<GameState>(() => loadGameState());
+  const [offlineProgress, setOfflineProgress] = useState<{ time: number; money: number } | null>(null);
+
+  // Calculate offline progress on initial load
+  useEffect(() => {
+    const calculateOfflineProgress = () => {
+      const now = Date.now();
+      const lastSave = gameState.lastSaveTime || now;
+      const timeDiff = (now - lastSave) / 1000; // Convert to seconds
+      
+      // Track offline time in stats
+      if (timeDiff >= 60) {
+        const MAX_OFFLINE_TIME = 21600; // 6 hours cap
+        const actualOfflineTime = Math.min(timeDiff, MAX_OFFLINE_TIME);
+        
+        setGameState(prev => ({
+          ...prev,
+          stats: {
+            ...prev.stats,
+            offlineTime: prev.stats.offlineTime + actualOfflineTime,
+          },
+        }));
+      }
+      
+      // Only show offline progress if away for more than 60 seconds (1 minute)
+      if (timeDiff < 60) return;
+      
+      // Cap at 6 hours (21600 seconds)
+      const MAX_OFFLINE_TIME = 21600;
+      const offlineTime = Math.min(timeDiff, MAX_OFFLINE_TIME);
+      
+      // Calculate money earned from moneyPerTick during offline time
+      // Also add clicks from Auto Clicker upgrade (Rebirth Upgrade 2)
+      if (gameState.moneyPerTick > 0 || gameState.rebirth_upgradeAmounts[1] > 0) {
+        // Calculate all multipliers
+        const totalAchievementTiers = gameState.achievements.reduce((sum, a) => sum + (a.tier || 0), 0);
+        const achievementMoneyBonus = totalAchievementTiers * 0.01;
+        const achievementMoneyMultiplier = 1 + achievementMoneyBonus;
+        
+        // Calculate clicks that would have been generated offline
+        let offlineClicks = 0;
+        if (gameState.rebirth_upgradeAmounts[1] > 0) {
+          offlineClicks = gameState.rebirth_upgradeAmounts[1] * offlineTime; // clicks per second × seconds
+        }
+        
+        // Use total clicks + offline clicks for multiplier calculation
+        const totalClicksForMultiplier = gameState.clicksTotal + offlineClicks;
+        
+        let clickMultiplier = 1;
+        if (gameState.rebirth_upgradeAmounts[0] > 0) {
+          const exponent = 0.01 + (gameState.rebirth_upgradeAmounts[0] - 1) * 0.01;
+          clickMultiplier = Math.pow(totalClicksForMultiplier + 1, exponent);
+        }
+        
+        let totalMoneyBonus = 0;
+        gameState.runes.forEach((amount, index) => {
+          const rune = RUNES_1[index];
+          if (amount > 0) {
+            totalMoneyBonus += (rune.moneyBonus || 0) * amount;
+          }
+        });
+        const runeMultiplier = 1 + totalMoneyBonus;
+        
+        let rebirthPointMultiplier = 1;
+        if (gameState.rebirth_upgradeAmounts[4] > 0) {
+          const effectValue = REBIRTHUPGRADES[4].effect;
+          const bonus = Math.log(gameState.rebirthPoints + 1) * effectValue;
+          rebirthPointMultiplier = 1 + bonus;
+        }
+        
+        const actualMoneyPerTick = gameState.moneyPerTick * clickMultiplier * runeMultiplier * rebirthPointMultiplier * achievementMoneyMultiplier;
+        const moneyEarned = (actualMoneyPerTick * offlineTime) * 0.5; // 50% offline efficiency
+        const adjustedClicks = Math.floor(offlineClicks * 0.5); // 50% offline efficiency
+        
+        setOfflineProgress({ time: offlineTime, money: moneyEarned, clicks: adjustedClicks });
+      }
+    };
+    
+    calculateOfflineProgress();
+  }, []); // Only run once on mount
+  
+  // Track online time
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setGameState(prev => ({
+        ...prev,
+        stats: {
+          ...prev.stats,
+          onlineTime: prev.stats.onlineTime + 1, // Add 1 second
+        },
+      }));
+    }, 1000); // Every second
+    
+    return () => clearInterval(interval);
+  }, []);
 
   // Check and unlock achievements based on current game state
   const checkAchievements = useCallback((currentState: GameState): Array<{ id: number; tier: number }> => {
@@ -52,6 +146,12 @@ export const useGameLogic = () => {
               break;
             case 'runespurchased':
               currentValue = (currentState.stats?.baseRunePacksPurchased || 0) + (currentState.stats?.elementalRunePacksPurchased || 0);
+              break;
+            case 'onlinetime':
+              currentValue = currentState.stats?.onlineTime || 0;
+              break;
+            case 'offlinetime':
+              currentValue = currentState.stats?.offlineTime || 0;
               break;
           }
           
@@ -98,6 +198,12 @@ export const useGameLogic = () => {
             case 'runespurchased':
               const totalPacks = (currentState.stats?.baseRunePacksPurchased || 0) + (currentState.stats?.elementalRunePacksPurchased || 0);
               conditionMet = totalPacks >= value;
+              break;
+            case 'onlinetime':
+              conditionMet = (currentState.stats?.onlineTime || 0) >= value;
+              break;
+            case 'offlinetime':
+              conditionMet = (currentState.stats?.offlineTime || 0) >= value;
               break;
           }
           
@@ -945,11 +1051,225 @@ export const useGameLogic = () => {
     }));
   }, []);
 
+  const devSimulateOfflineTime = useCallback((minutes: number) => {
+    const seconds = minutes * 60;
+    
+    // Cap at 6 hours (21600 seconds)
+    const MAX_OFFLINE_TIME = 21600;
+    const offlineTime = Math.min(seconds, MAX_OFFLINE_TIME);
+    
+    // Calculate money earned from moneyPerTick during offline time
+    // Also add clicks from Auto Clicker upgrade
+    if (gameState.moneyPerTick > 0 || gameState.rebirth_upgradeAmounts[1] > 0) {
+      // Calculate all multipliers (same as in initial load)
+      const totalAchievementTiers = gameState.achievements.reduce((sum, a) => sum + (a.tier || 0), 0);
+      const achievementMoneyBonus = totalAchievementTiers * 0.01;
+      const achievementMoneyMultiplier = 1 + achievementMoneyBonus;
+      
+      // Calculate clicks that would have been generated offline
+      let offlineClicks = 0;
+      if (gameState.rebirth_upgradeAmounts[1] > 0) {
+        offlineClicks = gameState.rebirth_upgradeAmounts[1] * offlineTime;
+      }
+      
+      // Use total clicks + offline clicks for multiplier calculation
+      const totalClicksForMultiplier = gameState.clicksTotal + offlineClicks;
+      
+      let clickMultiplier = 1;
+      if (gameState.rebirth_upgradeAmounts[0] > 0) {
+        const exponent = 0.01 + (gameState.rebirth_upgradeAmounts[0] - 1) * 0.01;
+        clickMultiplier = Math.pow(totalClicksForMultiplier + 1, exponent);
+      }
+      
+      let totalMoneyBonus = 0;
+      gameState.runes.forEach((amount, index) => {
+        const rune = RUNES_1[index];
+        if (amount > 0) {
+          totalMoneyBonus += (rune.moneyBonus || 0) * amount;
+        }
+      });
+      const runeMultiplier = 1 + totalMoneyBonus;
+      
+      let rebirthPointMultiplier = 1;
+      if (gameState.rebirth_upgradeAmounts[4] > 0) {
+        const effectValue = REBIRTHUPGRADES[4].effect;
+        const bonus = Math.log(gameState.rebirthPoints + 1) * effectValue;
+        rebirthPointMultiplier = 1 + bonus;
+      }
+      
+      const actualMoneyPerTick = gameState.moneyPerTick * clickMultiplier * runeMultiplier * rebirthPointMultiplier * achievementMoneyMultiplier;
+      const moneyEarned = (actualMoneyPerTick * offlineTime) * 0.5; // 50% offline efficiency
+      const adjustedClicks = Math.floor(offlineClicks * 0.5); // 50% offline efficiency
+      
+      // Update dev stats and show modal
+      setGameState(prev => ({
+        ...prev,
+        stats: {
+          ...prev.stats,
+          devStats: {
+            ...prev.stats.devStats,
+            offlineTimeAdded: prev.stats.devStats.offlineTimeAdded + offlineTime,
+          },
+          offlineTime: prev.stats.offlineTime + offlineTime,
+        },
+      }));
+      
+      // Show offline progress modal
+      setOfflineProgress({ time: offlineTime, money: moneyEarned, clicks: adjustedClicks });
+    }
+  }, [gameState]);
+
+  const claimOfflineProgress = useCallback(() => {
+    if (!offlineProgress) return;
+    
+    setGameState(prev => ({
+      ...prev,
+      money: prev.money + offlineProgress.money,
+      clicksTotal: prev.clicksTotal + (offlineProgress.clicks || 0),
+      stats: {
+        ...prev.stats,
+        allTimeMoneyEarned: prev.stats.allTimeMoneyEarned + offlineProgress.money,
+        moneyFromTicks: prev.stats.moneyFromTicks + offlineProgress.money,
+        totalClicks: prev.stats.totalClicks + (offlineProgress.clicks || 0),
+      },
+    }));
+    
+    setOfflineProgress(null);
+  }, [offlineProgress]);
+  
+  const buyMaxUpgrades = useCallback((upgradeIndex: number) => {
+    setGameState(prev => {
+      const maxAmount = prev.maxUpgradeAmounts[upgradeIndex];
+      let purchaseCount = 0;
+      
+      // Create mutable copies of arrays and values
+      const newUpgradeAmounts = [...prev.upgradeAmounts];
+      const newUpgradePrices = [...prev.upgradePrices];
+      let newMoney = prev.money;
+      let newRebirthPoints = prev.rebirthPoints;
+      let newGems = prev.gems;
+      let newMoneyPerClick = prev.moneyPerClick;
+      let newMoneyPerTick = prev.moneyPerTick;
+      let totalMoneySpent = 0;
+      let totalRPSpent = 0;
+      let totalGemsSpent = 0;
+      
+      // Kaufe so viele wie möglich
+      while (newUpgradeAmounts[upgradeIndex] < maxAmount) {
+        const currentPrice = newUpgradePrices[upgradeIndex];
+        
+        // Spezielle Logik für Unlock-Upgrades (Index 4)
+        if (upgradeIndex === 4) {
+          if (newMoney >= 1000 && newRebirthPoints >= 1 && newGems >= 1) {
+            newMoney -= 1000;
+            newRebirthPoints -= 1;
+            newGems -= 1;
+            newUpgradeAmounts[upgradeIndex] += 1;
+            purchaseCount++;
+            totalMoneySpent += 1000;
+            totalRPSpent += 1;
+            totalGemsSpent += 1;
+          } else {
+            break;
+          }
+        } else {
+          // Normale Upgrades
+          if (newMoney >= currentPrice) {
+            newMoney -= currentPrice;
+            newUpgradeAmounts[upgradeIndex] += 1;
+            purchaseCount++;
+            totalMoneySpent += currentPrice;
+            
+            // Apply upgrade effects
+            if (upgradeIndex === 0) newMoneyPerClick += 1;
+            else if (upgradeIndex === 1) newMoneyPerTick += 1;
+            else if (upgradeIndex === 2) newMoneyPerClick += 10;
+            else if (upgradeIndex === 3) newMoneyPerTick += 10;
+            
+            // Calculate next price
+            const priceMultiplier = upgradeIndex <= 1 ? 2.0 : upgradeIndex <= 3 ? 2.5 : 3.0;
+            const basePrice = UPGRADES[upgradeIndex].price;
+            const nextAmount = newUpgradeAmounts[upgradeIndex];
+            newUpgradePrices[upgradeIndex] = Math.floor(basePrice * Math.pow(priceMultiplier, nextAmount));
+          } else {
+            break;
+          }
+        }
+      }
+      
+      // Only update state if purchases were made
+      if (purchaseCount === 0) return prev;
+      
+      const newState = {
+        ...prev,
+        money: newMoney,
+        rebirthPoints: newRebirthPoints,
+        gems: newGems,
+        moneyPerClick: newMoneyPerClick,
+        moneyPerTick: newMoneyPerTick,
+        upgradeAmounts: newUpgradeAmounts,
+        upgradePrices: newUpgradePrices,
+        stats: {
+          ...prev.stats,
+          totalUpgradesPurchased: prev.stats.totalUpgradesPurchased + purchaseCount,
+          allTimeMoneySpent: prev.stats.allTimeMoneySpent + totalMoneySpent,
+          allTimeRebirthPointsSpent: prev.stats.allTimeRebirthPointsSpent + totalRPSpent,
+          allTimeGemsSpent: prev.stats.allTimeGemsSpent + totalGemsSpent,
+        },
+      };
+      
+      // Check achievements after bulk purchase
+      const updatedAchievements = checkAchievements(newState);
+      return { ...newState, achievements: updatedAchievements };
+    });
+  }, [checkAchievements]);
+
+  const buyMaxRebirthUpgrades = useCallback((upgradeIndex: number) => {
+    setGameState(prev => {
+      let newState = { ...prev };
+      const maxAmount = prev.rebirth_maxUpgradeAmounts[upgradeIndex];
+      let purchaseCount = 0;
+      
+      // Kaufe so viele wie möglich
+      while (newState.rebirth_upgradeAmounts[upgradeIndex] < maxAmount) {
+        const currentPrice = newState.rebirth_upgradePrices[upgradeIndex];
+        
+        if (newState.rebirthPoints >= currentPrice) {
+          newState.rebirthPoints -= currentPrice;
+          newState.rebirth_upgradeAmounts[upgradeIndex] += 1;
+          purchaseCount++;
+          newState.stats.totalRebirthUpgradesPurchased++;
+          newState.stats.allTimeRebirthPointsSpent += currentPrice;
+          
+          // Calculate next price (nur für upgrades die mehr als 1x kaufbar sind)
+          if (maxAmount > 1) {
+            const priceMultiplier = upgradeIndex <= 1 ? 2.0 : upgradeIndex <= 3 ? 2.5 : 3.0;
+            const basePrice = REBIRTHUPGRADES[upgradeIndex].price;
+            const nextAmount = newState.rebirth_upgradeAmounts[upgradeIndex];
+            newState.rebirth_upgradePrices[upgradeIndex] = Math.floor(basePrice * Math.pow(priceMultiplier, nextAmount));
+          }
+        } else {
+          break;
+        }
+      }
+      
+      // Check achievements after bulk purchase
+      const updatedAchievements = checkAchievements(newState);
+      return { ...newState, achievements: updatedAchievements };
+    });
+  }, [checkAchievements]);
+
   return {
     gameState,
+    setGameState,
+    offlineProgress,
+    setOfflineProgress,
+    claimOfflineProgress,
     clickMoney,
     buyUpgrade,
+    buyMaxUpgrades,
     buyRebirthUpgrade,
+    buyMaxRebirthUpgrades,
     performRebirth,
     resetGame,
     cheatMoney,
@@ -968,6 +1288,7 @@ export const useGameLogic = () => {
     toggleMoneyEffects,
     toggleDiamondEffects,
     toggleDevStats,
+    devSimulateOfflineTime,
     craftSecretRune,
   };
 };

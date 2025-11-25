@@ -55,9 +55,10 @@ const UpgradeButton = ({
 interface UpgradesPanelProps {
   gameState: GameState;
   buyUpgrade: (index: number) => void;
+  buyMaxUpgrades: (index: number) => void;
 }
 
-const UpgradesPanel = ({ gameState, buyUpgrade }: UpgradesPanelProps) => {
+const UpgradesPanel = ({ gameState, buyUpgrade, buyMaxUpgrades }: UpgradesPanelProps) => {
   return (
     <div className="upgrades-panel" style={{
       background: 'rgba(34, 197, 94, 0.1)',
@@ -122,17 +123,55 @@ const UpgradesPanel = ({ gameState, buyUpgrade }: UpgradesPanelProps) => {
           }
           
           return (
-            <UpgradeButton
-              key={upgrade.id}
-              name={displayName}
-              price={displayPrice}
-              priceText={priceText}
-              amount={gameState.upgradeAmounts[index]}
-              maxAmount={gameState.maxUpgradeAmounts[index]}
-              canAfford={canAfford && !isDisabled}
-              isMaxed={gameState.upgradeAmounts[index] >= gameState.maxUpgradeAmounts[index]}
-              onClick={() => !isDisabled && buyUpgrade(index)}
-            />
+            <div key={upgrade.id} style={{ position: 'relative' }}>
+              <UpgradeButton
+                name={displayName}
+                price={displayPrice}
+                priceText={priceText}
+                amount={gameState.upgradeAmounts[index]}
+                maxAmount={gameState.maxUpgradeAmounts[index]}
+                canAfford={canAfford && !isDisabled}
+                isMaxed={gameState.upgradeAmounts[index] >= gameState.maxUpgradeAmounts[index]}
+                onClick={() => !isDisabled && buyUpgrade(index)}
+              />
+              {gameState.maxUpgradeAmounts[index] > 1 && gameState.upgradeAmounts[index] < gameState.maxUpgradeAmounts[index] && (
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    if (!isDisabled) buyMaxUpgrades(index);
+                  }}
+                  disabled={isDisabled}
+                  style={{
+                    position: 'absolute',
+                    top: '8px',
+                    right: '8px',
+                    padding: '4px 10px',
+                    background: 'linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%)',
+                    border: '2px solid #d97706',
+                    borderRadius: '12px',
+                    color: '#78350f',
+                    fontSize: '11px',
+                    fontWeight: 'bold',
+                    cursor: 'pointer',
+                    boxShadow: '0 2px 6px rgba(251, 191, 36, 0.4)',
+                    transition: 'all 0.2s ease',
+                    textTransform: 'uppercase',
+                    letterSpacing: '0.5px',
+                    zIndex: 10
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.transform = 'scale(1.1)';
+                    e.currentTarget.style.boxShadow = '0 3px 10px rgba(251, 191, 36, 0.6)';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.transform = 'scale(1)';
+                    e.currentTarget.style.boxShadow = '0 2px 6px rgba(251, 191, 36, 0.4)';
+                  }}
+                >
+                  max
+                </button>
+              )}
+            </div>
           );
         })}
       </div>

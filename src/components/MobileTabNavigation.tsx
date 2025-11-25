@@ -1,12 +1,11 @@
 interface MobileTabNavigationProps {
-  activeTab: 'stats' | 'upgrades' | 'rebirth' | 'gems' | 'achievements' | 'statistics' | 'dev';
-  onTabChange: (tab: 'stats' | 'upgrades' | 'rebirth' | 'gems' | 'achievements' | 'statistics' | 'dev') => void;
+  activeTab: 'stats' | 'upgrades' | 'rebirth' | 'gems' | 'achievements' | 'statistics';
+  onTabChange: (tab: 'stats' | 'upgrades' | 'rebirth' | 'gems' | 'achievements' | 'statistics') => void;
   hasGems: boolean;
   hasRebirth: boolean;
-  showDev?: boolean;
 }
 
-const MobileTabNavigation = ({ activeTab, onTabChange, hasGems, hasRebirth, showDev = false }: MobileTabNavigationProps) => {
+const MobileTabNavigation = ({ activeTab, onTabChange, hasGems, hasRebirth }: MobileTabNavigationProps) => {
   const tabs = [
     { id: 'stats' as const, label: '🏠 Main', icon: '🏠' },
     { id: 'upgrades' as const, label: '⬆️ Upgrades', icon: '⬆️' },
@@ -14,7 +13,6 @@ const MobileTabNavigation = ({ activeTab, onTabChange, hasGems, hasRebirth, show
     ...(hasRebirth ? [{ id: 'achievements' as const, label: '🏆 Achiev', icon: '🏆' }] : []),
     ...(hasRebirth ? [{ id: 'statistics' as const, label: '📊 Stats', icon: '📊' }] : []),
     ...(hasGems ? [{ id: 'gems' as const, label: '💎 Runes', icon: '💎' }] : []),
-    ...(showDev ? [{ id: 'dev' as const, label: '🔧 Dev', icon: '🔧' }] : [])
   ];
 
   return (

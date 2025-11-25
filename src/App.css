@@ -429,6 +429,7 @@ html, body {
   flex-direction: column;
   gap: 0.5rem;
   text-align: center;
+  width: 100%;
 }
 
 .upgrade-button.affordable {
@@ -511,6 +512,7 @@ html, body {
   flex-direction: column;
   gap: 0.5rem;
   text-align: center;
+  width: 100%;
 }
 
 .rebirth-upgrade-button.affordable {

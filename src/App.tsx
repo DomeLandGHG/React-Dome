@@ -13,17 +13,22 @@ import AchievementsPanel from './components/AchievementsPanel';
 import StatisticsPanel from './components/StatisticsPanel';
 import ActionButtons from './components/ActionButtons';
 import MobileTabNavigation from './components/MobileTabNavigation';
+import SettingsMenu from './components/SettingsMenu';
+import OfflineProgressModal from './components/OfflineProgressModal';
+import DevModal from './components/DevModal';
 import { formatNumberGerman } from './types/German_number';
 import { RUNES_1, RUNES_2, type Rune } from './types/Runes';
 import './App.css';
 
 function App() {
-  const { gameState, clickMoney, buyUpgrade, buyRebirthUpgrade, performRebirth, resetGame, cheatMoney, devAddMoney, devAddMoneyDirect, devAddRebirthPoint, devAddGem, devAddClick, devAddRune, devAddElementalRune, openRunePack, mergeRunes, mergeAllRunes, switchRuneType, toggleElementalStats, toggleMoneyEffects, toggleDiamondEffects, toggleDevStats, craftSecretRune } = useGameLogic();
+  const { gameState, setGameState, offlineProgress, setOfflineProgress, claimOfflineProgress, clickMoney, buyUpgrade, buyMaxUpgrades, buyRebirthUpgrade, buyMaxRebirthUpgrades, performRebirth, resetGame, cheatMoney, devAddMoney, devAddMoneyDirect, devAddRebirthPoint, devAddGem, devAddClick, devAddRune, devAddElementalRune, openRunePack, mergeRunes, mergeAllRunes, switchRuneType, toggleElementalStats, toggleMoneyEffects, toggleDiamondEffects, toggleDevStats, devSimulateOfflineTime, craftSecretRune } = useGameLogic();
   const [activePanel, setActivePanel] = useState<'upgrades' | 'rebirth' | 'achievements'>('upgrades');
   const [secondPanelView, setSecondPanelView] = useState<'achievements' | 'statistics'>('achievements');
-  const [mobileActiveTab, setMobileActiveTab] = useState<'stats' | 'upgrades' | 'rebirth' | 'gems' | 'achievements' | 'statistics' | 'dev'>('stats');
+  const [mobileActiveTab, setMobileActiveTab] = useState<'stats' | 'upgrades' | 'rebirth' | 'gems' | 'achievements' | 'statistics'>('stats');
   const [isFlashing, setIsFlashing] = useState(false);
   const [hoveredRune, setHoveredRune] = useState<number | null>(null);
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  const [isDevOpen, setIsDevOpen] = useState(false);
   
   // Check if rebirth is unlocked
   const isRebirthUnlocked = gameState.rebirthPoints > 0 || gameState.rebirth_upgradeAmounts.some(amount => amount > 0);
@@ -366,7 +371,107 @@ function App() {
       <header className="app-header">
         <h1>💰 Money Clicker</h1>
         <p>Click to earn money, buy upgrades, and grow your fortune!</p>
+        
+        {/* Settings Button (Top Right) */}
+        <button
+          onClick={() => setIsSettingsOpen(true)}
+          style={{
+            position: 'absolute',
+            top: '20px',
+            right: '20px',
+            background: 'rgba(255, 255, 255, 0.1)',
+            border: '2px solid rgba(255, 255, 255, 0.3)',
+            borderRadius: '12px',
+            width: '48px',
+            height: '48px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            cursor: 'pointer',
+            transition: 'all 0.3s ease',
+            boxShadow: '0 4px 12px rgba(0, 0, 0, 0.2)',
+            backdropFilter: 'blur(10px)'
+          }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.background = 'rgba(255, 255, 255, 0.2)';
+            e.currentTarget.style.transform = 'rotate(90deg) scale(1.1)';
+            e.currentTarget.style.boxShadow = '0 6px 16px rgba(0, 0, 0, 0.3)';
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.background = 'rgba(255, 255, 255, 0.1)';
+            e.currentTarget.style.transform = 'none';
+            e.currentTarget.style.boxShadow = '0 4px 12px rgba(0, 0, 0, 0.2)';
+          }}
+        >
+          <span style={{
+            fontSize: '28px',
+            color: 'white',
+            filter: 'drop-shadow(0 2px 4px rgba(0, 0, 0, 0.3))'
+          }}>⚙️</span>
+        </button>
+
+        {/* Dev Icon (next to Settings) */}
+        <button
+          onClick={() => setIsDevOpen(true)}
+          style={{
+            position: 'absolute',
+            top: '20px',
+            right: '78px',
+            background: 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)',
+            border: '2px solid #b45309',
+            borderRadius: '12px',
+            width: '48px',
+            height: '48px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            cursor: 'pointer',
+            transition: 'all 0.3s ease',
+            boxShadow: '0 4px 12px rgba(245, 158, 11, 0.4)',
+            backdropFilter: 'blur(10px)'
+          }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.transform = 'scale(1.1)';
+            e.currentTarget.style.boxShadow = '0 6px 16px rgba(245, 158, 11, 0.6)';
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.transform = 'none';
+            e.currentTarget.style.boxShadow = '0 4px 12px rgba(245, 158, 11, 0.4)';
+          }}
+        >
+          <span style={{
+            fontSize: '28px',
+            color: 'white',
+            filter: 'drop-shadow(0 2px 4px rgba(0, 0, 0, 0.3))'
+          }}>🛠️</span>
+        </button>
       </header>
+      
+      {/* Settings Menu */}
+      <SettingsMenu 
+        isOpen={isSettingsOpen}
+        onClose={() => setIsSettingsOpen(false)}
+        onReset={resetGame}
+      />
+      
+      {/* Offline Progress Modal */}
+      <OfflineProgressModal
+        isOpen={offlineProgress !== null}
+        onClose={claimOfflineProgress}
+        offlineTime={offlineProgress?.time || 0}
+        moneyEarned={offlineProgress?.money || 0}
+        clicksEarned={offlineProgress?.clicks}
+      />
+
+      {/* Dev Modal */}
+      <DevModal
+        isOpen={isDevOpen}
+        onClose={() => setIsDevOpen(false)}
+        gameState={gameState}
+        setGameState={setGameState}
+        devSimulateOfflineTime={devSimulateOfflineTime}
+        setOfflineProgress={setOfflineProgress}
+      />
 
       <main className="game-container">
         {/* Desktop Layout */}
@@ -1140,17 +1245,20 @@ function App() {
           {activePanel === 'upgrades' ? (
             <UpgradesPanel 
               gameState={gameState} 
-              buyUpgrade={buyUpgrade} 
+              buyUpgrade={buyUpgrade}
+              buyMaxUpgrades={buyMaxUpgrades}
             />
           ) : (gameState.rebirthPoints > 0 || gameState.rebirth_upgradeAmounts.some(amount => amount > 0)) ? (
             <RebirthPanel
               gameState={gameState}
               buyRebirthUpgrade={buyRebirthUpgrade}
+              buyMaxRebirthUpgrades={buyMaxRebirthUpgrades}
             />
           ) : (
             <UpgradesPanel 
               gameState={gameState} 
-              buyUpgrade={buyUpgrade} 
+              buyUpgrade={buyUpgrade}
+              buyMaxUpgrades={buyMaxUpgrades}
             />
           )}
         </div>
@@ -1188,7 +1296,6 @@ function App() {
             onTabChange={setMobileActiveTab}
             hasGems={bothUnlocksOwned}
             hasRebirth={isRebirthUnlocked}
-            showDev={import.meta.env.DEV}
           />
 
           <div className="mobile-tab-content">
@@ -1363,7 +1470,8 @@ function App() {
             {mobileActiveTab === 'upgrades' && (
               <UpgradesPanel 
                 gameState={gameState} 
-                buyUpgrade={buyUpgrade} 
+                buyUpgrade={buyUpgrade}
+                buyMaxUpgrades={buyMaxUpgrades}
               />
             )}
 
@@ -1371,6 +1479,7 @@ function App() {
               <RebirthPanel
                 gameState={gameState}
                 buyRebirthUpgrade={buyRebirthUpgrade}
+                buyMaxRebirthUpgrades={buyMaxRebirthUpgrades}
               />
             )}
 
@@ -1731,295 +1840,9 @@ function App() {
                 )}
               </div>
             )}
-
-            {mobileActiveTab === 'dev' && import.meta.env.DEV && (
-              <div className="mobile-dev-panel">
-                <h2 style={{ 
-                  color: '#ff6b6b', 
-                  textAlign: 'center', 
-                  marginBottom: '24px',
-                  fontSize: '20px',
-                  fontWeight: 'bold'
-                }}>🔧 Dev Tools</h2>
-                
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                  <button 
-                    onClick={devAddMoney}
-                    style={{
-                      padding: '12px 16px',
-                      backgroundColor: '#4caf50',
-                      color: 'white',
-                      border: 'none',
-                      borderRadius: '8px',
-                      cursor: 'pointer',
-                      fontSize: '16px',
-                      fontWeight: 'bold'
-                    }}
-                  >
-                    💰 +100K Money
-                  </button>
-                  <button 
-                    onClick={devAddRebirthPoint}
-                    style={{
-                      padding: '12px 16px',
-                      backgroundColor: '#2196f3',
-                      color: 'white',
-                      border: 'none',
-                      borderRadius: '8px',
-                      cursor: 'pointer',
-                      fontSize: '16px',
-                      fontWeight: 'bold'
-                    }}
-                  >
-                    🔄 +10 Rebirth Points
-                  </button>
-                  <button 
-                    onClick={devAddGem}
-                    style={{
-                      padding: '12px 16px',
-                      backgroundColor: '#9c27b0',
-                      color: 'white',
-                      border: 'none',
-                      borderRadius: '8px',
-                      cursor: 'pointer',
-                      fontSize: '16px',
-                      fontWeight: 'bold'
-                    }}
-                  >
-                    💎 +10 Gems
-                  </button>
-                  <button
-                    onClick={devAddClick}
-                    style={{
-                      padding: '12px 16px',
-                      backgroundColor: '#504f4fff',
-                      color: 'white',
-                      border: 'none',
-                      borderRadius: '8px',
-                      cursor: 'pointer',
-                      fontSize: '16px',
-                      fontWeight: 'bold'
-                    }}
-                  >
-                    👆 +100 Clicks
-                  </button>
-                  
-                  {/* Rune Buttons */}
-                  <div style={{ 
-                    borderTop: '2px solid rgba(255, 255, 255, 0.3)', 
-                    marginTop: '16px', 
-                    paddingTop: '16px'
-                  }}>
-                    <h3 style={{ 
-                      fontSize: '16px',
-                      color: '#60a5fa',
-                      fontWeight: 'bold',
-                      marginBottom: '12px',
-                      textAlign: 'center'
-                    }}>
-                      🎲 Add Basic Runes
-                    </h3>
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', marginBottom: '16px' }}>
-                      {RUNES_1.map((rune, index) => (
-                        <button 
-                          key={rune.id}
-                          onClick={() => devAddRune(index)}
-                          style={{
-                            padding: '8px 12px',
-                            backgroundColor: rune.color,
-                            color: 'white',
-                            border: 'none',
-                            borderRadius: '6px',
-                            cursor: 'pointer',
-                            fontSize: '12px',
-                            fontWeight: 'bold',
-                            textShadow: '0 1px 2px rgba(0,0,0,0.5)'
-                          }}
-                          title={`Add 1x ${rune.name}`}
-                        >
-                          +{rune.name.split(' ')[0]}
-                        </button>
-                      ))}
-                    </div>
-                    
-                    <h3 style={{ 
-                      fontSize: '16px',
-                      color: '#c084fc',
-                      fontWeight: 'bold',
-                      marginBottom: '12px',
-                      textAlign: 'center'
-                    }}>
-                      ⚡ Add Elemental Runes
-                    </h3>
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
-                      {RUNES_2.map((rune, index) => (
-                        <button 
-                          key={rune.id}
-                          onClick={() => devAddElementalRune(index)}
-                          style={{
-                            padding: '8px 12px',
-                            backgroundColor: rune.color,
-                            color: 'white',
-                            border: 'none',
-                            borderRadius: '6px',
-                            cursor: 'pointer',
-                            fontSize: '12px',
-                            fontWeight: 'bold',
-                            textShadow: '0 1px 2px rgba(0,0,0,0.5)'
-                          }}
-                          title={`Add 1x ${rune.name}`}
-                        >
-                          +{rune.name.split(' ')[0]}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                </div>
-              </div>
-            )}
           </div>
         </div>
       </main>
-
-      {/* Development Panel - Nur in Dev Mode sichtbar und nur auf Desktop */}
-      {import.meta.env.DEV && (
-        <div className="dev-panel" style={{
-          position: 'fixed',
-          bottom: '20px',
-          right: '20px',
-          backgroundColor: '#ff6b6b',
-          border: '2px solid #ff5252',
-          borderRadius: '8px',
-          padding: '15px',
-          boxShadow: '0 4px 12px rgba(255, 107, 107, 0.3)',
-          zIndex: 1000,
-          display: window.innerWidth <= 1400 ? 'none' : 'block'
-        }}>
-          <h3 style={{ color: 'white', margin: '0 0 10px 0', fontSize: '14px' }}>🔧 Dev Tools</h3>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-            <button 
-              onClick={devAddMoney}
-              style={{
-                padding: '6px 12px',
-                backgroundColor: '#4caf50',
-                color: 'white',
-                border: 'none',
-                borderRadius: '4px',
-                cursor: 'pointer',
-                fontSize: '12px'
-              }}
-            >
-              +100K Money
-            </button>
-            <button 
-              onClick={devAddRebirthPoint}
-              style={{
-                padding: '6px 12px',
-                backgroundColor: '#2196f3',
-                color: 'white',
-                border: 'none',
-                borderRadius: '4px',
-                cursor: 'pointer',
-                fontSize: '12px'
-              }}
-            >
-              +10 Rebirth Point
-            </button>
-            <button 
-              onClick={devAddGem}
-              style={{
-                padding: '6px 12px',
-                backgroundColor: '#9c27b0',
-                color: 'white',
-                border: 'none',
-                borderRadius: '4px',
-                cursor: 'pointer',
-                fontSize: '12px'
-              }}
-            >
-              +10 Gem
-            </button>
-            <button
-              onClick={devAddClick}
-              style={{
-                padding: '6px 12px',
-                backgroundColor: '#504f4fff',
-                color: 'white',
-                border: 'none',
-                borderRadius: '4px',
-                cursor: 'pointer',
-                fontSize:'12px'
-              }}
-            >
-              +100 Clicks
-            </button>
-            
-            {/* Rune Buttons */}
-            <div style={{ 
-              borderTop: '1px solid rgba(255, 255, 255, 0.3)', 
-              marginTop: '8px', 
-              paddingTop: '8px',
-              fontSize: '11px',
-              color: 'white',
-              fontWeight: 'bold'
-            }}>
-              🎲 Basic Runes:
-            </div>
-            {RUNES_1.map((rune, index) => (
-              <button 
-                key={rune.id}
-                onClick={() => devAddRune(index)}
-                style={{
-                  padding: '4px 8px',
-                  backgroundColor: rune.color,
-                  color: 'white',
-                  border: 'none',
-                  borderRadius: '3px',
-                  cursor: 'pointer',
-                  fontSize: '10px',
-                  fontWeight: 'bold',
-                  textShadow: '0 1px 2px rgba(0,0,0,0.5)',
-                  marginBottom: '2px'
-                }}
-                title={`Add 1x ${rune.name}`}
-              >
-                +{rune.name.split(' ')[0]}
-              </button>
-            ))}
-            <div style={{ 
-              borderTop: '1px solid rgba(255, 255, 255, 0.3)', 
-              marginTop: '4px', 
-              paddingTop: '4px',
-              fontSize: '11px',
-              color: 'white',
-              fontWeight: 'bold'
-            }}>
-              ⚡ Elemental Runes:
-            </div>
-            {RUNES_2.map((rune, index) => (
-              <button 
-                key={rune.id}
-                onClick={() => devAddElementalRune(index)}
-                style={{
-                  padding: '4px 8px',
-                  backgroundColor: rune.color,
-                  color: 'white',
-                  border: 'none',
-                  borderRadius: '3px',
-                  cursor: 'pointer',
-                  fontSize: '10px',
-                  fontWeight: 'bold',
-                  textShadow: '0 1px 2px rgba(0,0,0,0.5)',
-                  marginBottom: '2px'
-                }}
-                title={`Add 1x ${rune.name}`}
-              >
-                +{rune.name.split(' ')[0]}
-              </button>
-            ))}
-          </div>
-        </div>
-      )}
 
       <footer className="app-footer">
         <p>React Money Clicker v0.0.6 | Your progress is automatically saved!</p>

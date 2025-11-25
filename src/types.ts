@@ -22,6 +22,7 @@ export interface GameState {
   disableMoneyEffects?: boolean; // whether to disable money floating animations
   disableDiamondEffects?: boolean; // whether to disable diamond floating animations
   includeDevStats?: boolean; // whether to include dev command stats in statistics display (default: false)
+  lastSaveTime?: number; // timestamp of last save for offline progress (in milliseconds)
   
   // Statistics
   stats: {
@@ -41,6 +42,8 @@ export interface GameState {
     allTimeMoneySpent: number;
     allTimeRebirthPointsSpent: number;
     allTimeGemsSpent: number;
+    onlineTime: number; // Total time spent online (in seconds)
+    offlineTime: number; // Total time spent offline (in seconds)
     allTimeElementsProduced: {
       air: number;
       earth: number;
@@ -80,6 +83,7 @@ export interface GameState {
       rebirthPointsAdded: number;
       gemsAdded: number;
       clicksAdded: number;
+      offlineTimeAdded: number; // Simulated offline time in seconds
       runesAdded: {
         common: number;
         uncommon: number;
@@ -133,6 +137,7 @@ export const INITIAL_GAME_STATE: GameState = {
   disableMoneyEffects: false,
   disableDiamondEffects: false,
   includeDevStats: false,
+  lastSaveTime: Date.now(),
   stats: {
     allTimeMoneyEarned: 0,
     moneyFromClicks: 0,
@@ -150,6 +155,8 @@ export const INITIAL_GAME_STATE: GameState = {
     allTimeMoneySpent: 0,
     allTimeRebirthPointsSpent: 0,
     allTimeGemsSpent: 0,
+    onlineTime: 0,
+    offlineTime: 0,
     allTimeElementsProduced: {
       air: 0,
       earth: 0,
@@ -188,6 +195,7 @@ export const INITIAL_GAME_STATE: GameState = {
       rebirthPointsAdded: 0,
       gemsAdded: 0,
       clicksAdded: 0,
+      offlineTimeAdded: 0,
       runesAdded: {
         common: 0,
         uncommon: 0,

@@ -7,6 +7,21 @@ interface StatisticsPanelProps {
   onToggleDevStats: () => void;
 }
 
+const formatTime = (seconds: number): string => {
+  const days = Math.floor(seconds / 86400);
+  const hours = Math.floor((seconds % 86400) / 3600);
+  const minutes = Math.floor((seconds % 3600) / 60);
+  const secs = Math.floor(seconds % 60);
+  
+  const parts: string[] = [];
+  if (days > 0) parts.push(`${days}d`);
+  if (hours > 0) parts.push(`${hours}h`);
+  if (minutes > 0) parts.push(`${minutes}m`);
+  if (secs > 0 || parts.length === 0) parts.push(`${secs}s`);
+  
+  return parts.join(' ');
+};
+
 const StatisticsPanel: React.FC<StatisticsPanelProps> = ({ gameState, onToggleDevStats }) => {
   const { stats } = gameState;
   const includeDevStats = gameState.includeDevStats || false;
@@ -84,6 +99,15 @@ const StatisticsPanel: React.FC<StatisticsPanelProps> = ({ gameState, onToggleDe
         { label: 'Money Spent', value: formatNumberGerman(stats.allTimeMoneySpent) + '$' },
         { label: 'Rebirth Points Spent', value: formatNumberGerman(stats.allTimeRebirthPointsSpent) + ' RP' },
         ...(hasGemUnlock ? [{ label: 'Gems Spent', value: formatNumberGerman(stats.allTimeGemsSpent) + ' 💎' }] : []),
+      ]
+    },
+    {
+      title: '⏰ Play Time',
+      stats: [
+        { label: 'Online Time', value: formatTime(stats.onlineTime || 0) },
+        { label: 'Offline Time', value: formatTime(stats.offlineTime || 0) },
+        ...(includeDevStats && (stats.devStats?.offlineTimeAdded || 0) > 0 ? [{ label: '  - Offline Time (Dev)', value: formatTime(stats.devStats.offlineTimeAdded), isSubItem: true }] : []),
+        { label: 'Total Time', value: formatTime((stats.onlineTime || 0) + (stats.offlineTime || 0)) },
       ]
     },
     ...(hasElementalUnlock ? [{

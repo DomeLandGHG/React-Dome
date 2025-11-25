@@ -6,7 +6,7 @@ export interface Achievement {
   unlocked: boolean;
   tier?: number; // Für mehrstufige Achievements (z.B. Money I, Money II)
   requirement?: {
-    type: 'money' | 'rebirth' | 'clicks' | 'gems' | 'upgrades' | 'elements' | 'runespurchased';
+    type: 'money' | 'rebirth' | 'clicks' | 'gems' | 'upgrades' | 'elements' | 'runespurchased' | 'onlinetime' | 'offlinetime';
     value: number;
   };
   requiresUnlock?: boolean; // z.B. Gem-Achievements brauchen Gem-Unlock Upgrade
@@ -115,5 +115,33 @@ export const ACHIEVEMENTS: Achievement[] = [
     requiresUnlock: true,
     maxTier: 100,
     tierMultiplier: 10
+  },
+  {
+    id: 7,
+    name: 'Active Player',
+    description: 'Play for',
+    icon: '⏰',
+    unlocked: false,
+    tier: 1,
+    requirement: {
+      type: 'onlinetime',
+      value: 3600 // 1 hour in seconds
+    },
+    maxTier: 50,
+    tierMultiplier: 3600 // Each tier = +1 hour
+  },
+  {
+    id: 8,
+    name: 'Idle Master',
+    description: 'Accumulate',
+    icon: '💤',
+    unlocked: false,
+    tier: 1,
+    requirement: {
+      type: 'offlinetime',
+      value: 3600 // 1 hour in seconds
+    },
+    maxTier: 50,
+    tierMultiplier: 3600 // Each tier = +1 hour
   },
 ];
