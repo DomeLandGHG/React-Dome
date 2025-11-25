@@ -3,6 +3,27 @@ import { INITIAL_GAME_STATE } from './types';
 
 const SAVE_KEY = 'moneyClickerSave';
 
+// Deep merge helper function
+const deepMerge = (target: any, source: any): any => {
+  if (!source || typeof source !== 'object') return target;
+  
+  const output = { ...target };
+  
+  for (const key in source) {
+    if (source.hasOwnProperty(key)) {
+      if (source[key] && typeof source[key] === 'object' && !Array.isArray(source[key])) {
+        // Recursively merge nested objects
+        output[key] = deepMerge(target[key] || {}, source[key]);
+      } else if (source[key] !== undefined) {
+        // Use source value if defined
+        output[key] = source[key];
+      }
+    }
+  }
+  
+  return output;
+};
+
 export const saveGameState = (state: GameState): void => {
   try {
     localStorage.setItem(SAVE_KEY, JSON.stringify(state));
@@ -43,9 +64,40 @@ export const loadGameState = (): GameState => {
         return newMax;
       };
       
+      // Merge base game state with saved state
+      const mergedState = deepMerge(INITIAL_GAME_STATE, parsed);
+      
+      // Recalculate stats based on current game state to fix missing/incorrect stats
+      const recalculatedStats = {
+        ...mergedState.stats,
+        // Recalculate total upgrades purchased from current amounts
+        totalUpgradesPurchased: (parsed.upgradeAmounts || []).reduce((sum: number, amount: number) => sum + amount, 0),
+        totalRebirthUpgradesPurchased: (parsed.rebirth_upgradeAmounts || []).reduce((sum: number, amount: number) => sum + amount, 0),
+      };
+      
+      // Add current rune counts to runesObtained if stats are missing
+      if (parsed.runes && Array.isArray(parsed.runes)) {
+        const runeNames = ['common', 'uncommon', 'rare', 'epic', 'legendary', 'mythic'] as const;
+        runeNames.forEach((name, index) => {
+          if (parsed.runes[index] > 0 && recalculatedStats.runesObtained[name] === 0) {
+            // If player has runes but stats show 0, assume they obtained at least as many as they currently have
+            recalculatedStats.runesObtained[name] = parsed.runes[index];
+          }
+        });
+      }
+      
+      // Add current elemental rune counts to elementalRunesObtained if stats are missing
+      if (parsed.elementalRunes && Array.isArray(parsed.elementalRunes)) {
+        const elementNames = ['air', 'earth', 'water', 'fire', 'light', 'dark'] as const;
+        elementNames.forEach((name, index) => {
+          if (parsed.elementalRunes[index] > 0 && recalculatedStats.elementalRunesObtained[name] === 0) {
+            recalculatedStats.elementalRunesObtained[name] = parsed.elementalRunes[index];
+          }
+        });
+      }
+      
       return {
-        ...INITIAL_GAME_STATE,
-        ...parsed,
+        ...mergedState,
         upgradePrices: extendArray(parsed.upgradePrices, INITIAL_GAME_STATE.upgradePrices),
         upgradeAmounts: extendArray(parsed.upgradeAmounts, INITIAL_GAME_STATE.upgradeAmounts),
         maxUpgradeAmounts: updateMaxAmounts(parsed.maxUpgradeAmounts, INITIAL_GAME_STATE.maxUpgradeAmounts),
@@ -64,6 +116,8 @@ export const loadGameState = (): GameState => {
           ? parsed.showElementalStats 
           : INITIAL_GAME_STATE.showElementalStats,
         gems: typeof parsed.gems === 'number' ? parsed.gems : 0,
+        // Stats with recalculated values
+        stats: recalculatedStats,
       };
     }
   } catch (error) {

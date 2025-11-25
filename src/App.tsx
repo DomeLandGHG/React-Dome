@@ -10,6 +10,7 @@ import SwitchButton from './components/Panel-switchButton';
 import UpgradesPanel from './components/UpgradesPanel';
 import RebirthPanel from './components/RebirthUpgradePanel';
 import AchievementsPanel from './components/AchievementsPanel';
+import StatisticsPanel from './components/StatisticsPanel';
 import ActionButtons from './components/ActionButtons';
 import MobileTabNavigation from './components/MobileTabNavigation';
 import { formatNumberGerman } from './types/German_number';
@@ -17,10 +18,10 @@ import { RUNES_1, RUNES_2, type Rune } from './types/Runes';
 import './App.css';
 
 function App() {
-  const { gameState, clickMoney, buyUpgrade, buyRebirthUpgrade, performRebirth, resetGame, cheatMoney, devAddMoney, devAddMoneyDirect, devAddRebirthPoint, devAddGem, devAddClick, devAddRune, devAddElementalRune, openRunePack, mergeRunes, mergeAllRunes, switchRuneType, toggleElementalStats, toggleMoneyEffects, toggleDiamondEffects, craftSecretRune } = useGameLogic();
+  const { gameState, clickMoney, buyUpgrade, buyRebirthUpgrade, performRebirth, resetGame, cheatMoney, devAddMoney, devAddMoneyDirect, devAddRebirthPoint, devAddGem, devAddClick, devAddRune, devAddElementalRune, openRunePack, mergeRunes, mergeAllRunes, switchRuneType, toggleElementalStats, toggleMoneyEffects, toggleDiamondEffects, toggleDevStats, craftSecretRune } = useGameLogic();
   const [activePanel, setActivePanel] = useState<'upgrades' | 'rebirth' | 'achievements'>('upgrades');
-  const [achievementsVisible, setAchievementsVisible] = useState(false);
-  const [mobileActiveTab, setMobileActiveTab] = useState<'stats' | 'upgrades' | 'rebirth' | 'gems' | 'achievements' | 'dev'>('stats');
+  const [secondPanelView, setSecondPanelView] = useState<'achievements' | 'statistics'>('achievements');
+  const [mobileActiveTab, setMobileActiveTab] = useState<'stats' | 'upgrades' | 'rebirth' | 'gems' | 'achievements' | 'statistics' | 'dev'>('stats');
   const [isFlashing, setIsFlashing] = useState(false);
   const [hoveredRune, setHoveredRune] = useState<number | null>(null);
   
@@ -1053,49 +1054,64 @@ function App() {
             </div>
           )}
 
-          {/* Achievement Switch Button - nach dem Switch Button und vor dem Money Button */}
+          {/* Second Panel Switch Button - nach dem Switch Button und vor dem Money Button */}
           {(gameState.rebirthPoints > 0 || gameState.rebirth_upgradeAmounts.some(amount => amount > 0)) && (
-            <div className="Achievement-Switch" style={{ marginTop: '16px', marginBottom: '16px' }}>
-              <button
-                onClick={() => setAchievementsVisible(!achievementsVisible)}
-                style={{
-                  width: '100%',
-                  padding: '12px 16px',
-                  background: achievementsVisible
-                    ? 'linear-gradient(135deg, #f59e0b 0%, #d97706 50%, #92400e 100%)'
-                    : 'linear-gradient(135deg, #4b5563 0%, #6b7280 50%, #9ca3af 100%)',
-                  color: 'white',
-                  border: 'none',
-                  borderRadius: '12px',
-                  cursor: 'pointer',
-                  fontSize: '16px',
-                  fontWeight: 'bold',
-                  textShadow: '0 0 8px rgba(0,0,0,0.3)',
-                  boxShadow: achievementsVisible
-                    ? '0 4px 12px rgba(245, 158, 11, 0.3)'
-                    : '0 4px 12px rgba(107, 114, 128, 0.3)',
-                  transition: 'all 0.3s ease',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  gap: '8px'
-                }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.transform = 'translateY(-2px)';
-                  e.currentTarget.style.boxShadow = achievementsVisible
-                    ? '0 6px 20px rgba(245, 158, 11, 0.4)'
-                    : '0 6px 20px rgba(107, 114, 128, 0.4)';
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.transform = 'none';
-                  e.currentTarget.style.boxShadow = achievementsVisible
-                    ? '0 4px 12px rgba(245, 158, 11, 0.3)'
-                    : '0 4px 12px rgba(107, 114, 128, 0.3)';
-                }}
-              >
-                <span>🏆</span>
-                <span>{achievementsVisible ? 'Hide' : 'Show'} Achievements</span>
-              </button>
+            <div className="Second-Panel-Switch" style={{ marginTop: '16px', marginBottom: '16px' }}>
+              <div style={{
+                display: 'flex',
+                gap: '8px',
+                background: 'rgba(0, 0, 0, 0.2)',
+                padding: '4px',
+                borderRadius: '12px',
+                border: '1px solid rgba(100, 116, 139, 0.3)'
+              }}>
+                <button
+                  onClick={() => setSecondPanelView('achievements')}
+                  style={{
+                    flex: 1,
+                    padding: '10px 12px',
+                    background: secondPanelView === 'achievements'
+                      ? 'linear-gradient(135deg, #f59e0b 0%, #d97706 50%, #92400e 100%)'
+                      : 'transparent',
+                    color: 'white',
+                    border: 'none',
+                    borderRadius: '8px',
+                    cursor: 'pointer',
+                    fontSize: '14px',
+                    fontWeight: 'bold',
+                    textShadow: '0 0 8px rgba(0,0,0,0.3)',
+                    boxShadow: secondPanelView === 'achievements'
+                      ? '0 2px 8px rgba(245, 158, 11, 0.3)'
+                      : 'none',
+                    transition: 'all 0.3s ease'
+                  }}
+                >
+                  🏆
+                </button>
+                <button
+                  onClick={() => setSecondPanelView('statistics')}
+                  style={{
+                    flex: 1,
+                    padding: '10px 12px',
+                    background: secondPanelView === 'statistics'
+                      ? 'linear-gradient(135deg, #3b82f6 0%, #1d4ed8 50%, #1e3a8a 100%)'
+                      : 'transparent',
+                    color: 'white',
+                    border: 'none',
+                    borderRadius: '8px',
+                    cursor: 'pointer',
+                    fontSize: '14px',
+                    fontWeight: 'bold',
+                    textShadow: '0 0 8px rgba(0,0,0,0.3)',
+                    boxShadow: secondPanelView === 'statistics'
+                      ? '0 2px 8px rgba(59, 130, 246, 0.3)'
+                      : 'none',
+                    transition: 'all 0.3s ease'
+                  }}
+                >
+                  📊
+                </button>
+              </div>
             </div>
           )}
           
@@ -1139,9 +1155,9 @@ function App() {
           )}
         </div>
         
-        {/* Achievements Panel - immer vorhanden, aber nur sichtbar wenn achievementsVisible === true */}
+        {/* Second Panel - Achievements oder Statistics */}
         {(gameState.rebirthPoints > 0 || gameState.rebirth_upgradeAmounts.some(amount => amount > 0)) && (
-          <div className="achievements-panel-container" style={{
+          <div className="second-panel-container" style={{
             background: 'rgba(15, 23, 42, 0.4)',
             borderRadius: '16px',
             padding: '12px',
@@ -1154,14 +1170,13 @@ function App() {
             minHeight: '0',
             width: '420px',
             maxWidth: '100%',
-            boxSizing: 'border-box',
-            visibility: achievementsVisible ? 'visible' : 'hidden',
-            opacity: achievementsVisible ? 1 : 0,
-            transition: 'opacity 0.3s ease'
+            boxSizing: 'border-box'
           }}>
-            <AchievementsPanel
-              gameState={gameState}
-            />
+            {secondPanelView === 'achievements' ? (
+              <AchievementsPanel gameState={gameState} />
+            ) : (
+              <StatisticsPanel gameState={gameState} onToggleDevStats={toggleDevStats} />
+            )}
           </div>
         )}
         </div>
@@ -1363,6 +1378,10 @@ function App() {
               <AchievementsPanel
                 gameState={gameState}
               />
+            )}
+
+            {mobileActiveTab === 'statistics' && isRebirthUnlocked && (
+              <StatisticsPanel gameState={gameState} onToggleDevStats={toggleDevStats} />
             )}
 
             {mobileActiveTab === 'gems' && bothUnlocksOwned && (
@@ -2003,7 +2022,7 @@ function App() {
       )}
 
       <footer className="app-footer">
-        <p>React Money Clicker v0.0.5 | Your progress is automatically saved!</p>
+        <p>React Money Clicker v0.0.6 | Your progress is automatically saved!</p>
       </footer>
       
       {/* Tooltip Animation CSS */}

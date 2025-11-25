@@ -104,13 +104,13 @@ html, body {
     grid-row: 1;
   }
   
-  .achievements-panel-container {
+  .second-panel-container {
     grid-column: 4;
     grid-row: 1;
   }
   
-  /* Wenn kein Achievements Panel, dann nur 3 Spalten */
-  .desktop-layout:not(:has(.achievements-panel-container)) {
+  /* Wenn kein Second Panel, dann nur 3 Spalten */
+  .desktop-layout:not(:has(.second-panel-container)) {
     grid-template-columns: 320px 1fr 420px;
   }
 }

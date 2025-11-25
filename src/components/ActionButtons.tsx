@@ -15,6 +15,11 @@ const ActionButtons = ({ money, onRebirth, onReset, gameState /* onCheat, moneyP
   const canRebirth = money >= 1000;
   const baseRebirthPoints = Math.floor(money / 1000);
   
+  // Calculate achievement RP bonus
+  const totalAchievementTiers = gameState.achievements.reduce((sum, a) => sum + (a.tier || 0), 0);
+  const achievementRpBonus = totalAchievementTiers * 0.01; // 1% per tier
+  const achievementRpMultiplier = 1 + achievementRpBonus;
+  
   // Calculate rune RP bonus
   const calculateRuneRpBonus = () => {
     let totalRpBonus = 0;
@@ -29,7 +34,7 @@ const ActionButtons = ({ money, onRebirth, onReset, gameState /* onCheat, moneyP
   
   const runeRpBonus = calculateRuneRpBonus();
   const runeRpMultiplier = 1 + runeRpBonus;
-  const totalRebirthPoints = Math.floor(baseRebirthPoints * runeRpMultiplier);
+  const totalRebirthPoints = Math.floor(baseRebirthPoints * runeRpMultiplier * achievementRpMultiplier);
 
   return (
     <div className="action-buttons">
@@ -65,9 +70,11 @@ const ActionButtons = ({ money, onRebirth, onReset, gameState /* onCheat, moneyP
           <div style={{ fontSize: '18px', marginBottom: '4px' }}>🔄 REBIRTH</div>
           <div className="rebirth-info" style={{ fontSize: '14px', color: '#e9d5ff' }}>
             Get {formatNumberGerman(totalRebirthPoints)} Rebirth Points
-            {runeRpBonus > 0 && (
+            {(runeRpBonus > 0 || achievementRpBonus > 0) && (
               <span style={{ fontSize: '0.9em', color: '#c4b5fd', display: 'block' }}>
-                (+{formatNumberGerman(runeRpBonus * 100)}% from runes)
+                {runeRpBonus > 0 && `+${formatNumberGerman(runeRpBonus * 100)}% from runes`}
+                {runeRpBonus > 0 && achievementRpBonus > 0 && ', '}
+                {achievementRpBonus > 0 && `+${formatNumberGerman(achievementRpBonus * 100)}% from achievements`}
               </span>
             )}
           </div>

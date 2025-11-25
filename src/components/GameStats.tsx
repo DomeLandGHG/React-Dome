@@ -57,6 +57,15 @@ const GameStats = ({ gameState }: GameStatsProps) => {
 
   // Calculate all multipliers exactly like in the game logic
   const calculateActualValues = () => {
+    // Achievement bonuses
+    const totalAchievementTiers = gameState.achievements.reduce((sum, a) => sum + (a.tier || 0), 0);
+    const achievementMoneyBonus = totalAchievementTiers * 0.01; // 1% per tier
+    const achievementMoneyMultiplier = 1 + achievementMoneyBonus;
+    const achievementRpBonus = totalAchievementTiers * 0.01;
+    const achievementRpMultiplier = 1 + achievementRpBonus;
+    const hasGemUnlock = gameState.rebirth_upgradeAmounts[2] > 0;
+    const achievementGemBonus = hasGemUnlock ? totalAchievementTiers * 0.001 : 0; // 0.1% per tier
+    
     // Rebirth Upgrade 0 multiplier (Total Clicks multiplier)
     let clickMultiplier = 1;
     if (gameState.rebirth_upgradeAmounts[0] > 0) {
@@ -79,6 +88,7 @@ const GameStats = ({ gameState }: GameStatsProps) => {
     });
 
     const runeMultiplier = 1 + totalMoneyBonus;
+    const rpRuneMultiplier = 1 + totalRpBonus;
 
     // Rebirth Upgrade 4 multiplier (Rebirth Points money boost)
     let rebirthPointMultiplier = 1;
@@ -88,9 +98,9 @@ const GameStats = ({ gameState }: GameStatsProps) => {
       rebirthPointMultiplier = 1 + bonus;
     }
 
-    // Calculate final values
-    const perClickTotal = gameState.moneyPerClick * clickMultiplier * runeMultiplier * rebirthPointMultiplier;
-    const perTickTotal = gameState.moneyPerTick * clickMultiplier * runeMultiplier * rebirthPointMultiplier;
+    // Calculate final values with achievement bonuses
+    const perClickTotal = gameState.moneyPerClick * clickMultiplier * runeMultiplier * rebirthPointMultiplier * achievementMoneyMultiplier;
+    const perTickTotal = gameState.moneyPerTick * clickMultiplier * runeMultiplier * rebirthPointMultiplier * achievementMoneyMultiplier;
 
     return { 
       perClickTotal, 
@@ -100,7 +110,12 @@ const GameStats = ({ gameState }: GameStatsProps) => {
       totalGemBonus,
       clickMultiplier,
       runeMultiplier,
-      rebirthPointMultiplier
+      rpRuneMultiplier,
+      rebirthPointMultiplier,
+      achievementMoneyMultiplier,
+      achievementRpMultiplier,
+      achievementGemBonus,
+      totalAchievementTiers
     };
   };
 
@@ -113,7 +128,7 @@ const GameStats = ({ gameState }: GameStatsProps) => {
   const calculateGemChance = () => {
     if (!showGems) return 0;
     const baseGemChance = 0.005; // 0.5% base chance
-    const bonusGemChance = values.totalGemBonus;
+    const bonusGemChance = values.totalGemBonus + values.achievementGemBonus;
     return baseGemChance + bonusGemChance;
   };
   
@@ -331,6 +346,23 @@ const GameStats = ({ gameState }: GameStatsProps) => {
                   }}>
                     <span>⚡ RP Multiplier (Level {gameState.rebirth_upgradeAmounts[4]}):</span>
                     <span style={{ color: '#a855f7', fontWeight: 'bold' }}>×{formatNumberGerman(values.rebirthPointMultiplier, 2)}</span>
+                  </div>
+                )}
+                
+                {values.achievementMoneyMultiplier > 1 && (
+                  <div style={{
+                    color: '#e2e8f0',
+                    fontSize: '12px',
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                    padding: '6px 8px',
+                    background: 'rgba(251, 191, 36, 0.1)',
+                    borderRadius: '6px',
+                    border: '1px solid rgba(251, 191, 36, 0.3)'
+                  }}>
+                    <span>🏆 Achievement Bonus ({values.totalAchievementTiers} Tiers):</span>
+                    <span style={{ color: '#fbbf24', fontWeight: 'bold' }}>×{formatNumberGerman(values.achievementMoneyMultiplier, 2)}</span>
                   </div>
                 )}
                 
