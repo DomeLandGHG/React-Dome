@@ -2,9 +2,13 @@ interface SettingsMenuProps {
   isOpen: boolean;
   onClose: () => void;
   onReset: () => void;
+  onOpenAnimationSettings: () => void;
+  disableMoneyEffects: boolean;
+  disableDiamondEffects: boolean;
+  disablePackAnimations: boolean;
 }
 
-const SettingsMenu = ({ isOpen, onClose, onReset }: SettingsMenuProps) => {
+const SettingsMenu = ({ isOpen, onClose, onReset, onOpenAnimationSettings, disableMoneyEffects, disableDiamondEffects, disablePackAnimations }: SettingsMenuProps) => {
   if (!isOpen) return null;
 
   const handleReset = () => {
@@ -98,6 +102,90 @@ const SettingsMenu = ({ isOpen, onClose, onReset }: SettingsMenuProps) => {
           flexDirection: 'column',
           gap: '16px'
         }}>
+          {/* Animations Section */}
+          <div style={{
+            background: 'rgba(100, 116, 139, 0.1)',
+            border: '2px solid rgba(100, 116, 139, 0.3)',
+            borderRadius: '12px',
+            padding: '16px'
+          }}>
+            <h3 style={{
+              color: '#a0a0c0',
+              fontSize: '16px',
+              fontWeight: 'bold',
+              margin: '0 0 12px 0'
+            }}>
+              🎬 Animationen
+            </h3>
+            <div style={{
+              display: 'flex',
+              gap: '8px',
+              marginBottom: '12px',
+              flexWrap: 'wrap'
+            }}>
+              <span style={{
+                padding: '4px 12px',
+                borderRadius: '6px',
+                fontSize: '13px',
+                background: disablePackAnimations ? 'rgba(220, 38, 38, 0.2)' : 'rgba(34, 197, 94, 0.2)',
+                color: disablePackAnimations ? '#fca5a5' : '#86efac',
+                border: `1px solid ${disablePackAnimations ? 'rgba(220, 38, 38, 0.4)' : 'rgba(34, 197, 94, 0.4)'}`,
+              }}>
+                📦 Packs: {disablePackAnimations ? 'AUS' : 'AN'}
+              </span>
+              <span style={{
+                padding: '4px 12px',
+                borderRadius: '6px',
+                fontSize: '13px',
+                background: disableMoneyEffects ? 'rgba(220, 38, 38, 0.2)' : 'rgba(34, 197, 94, 0.2)',
+                color: disableMoneyEffects ? '#fca5a5' : '#86efac',
+                border: `1px solid ${disableMoneyEffects ? 'rgba(220, 38, 38, 0.4)' : 'rgba(34, 197, 94, 0.4)'}`,
+              }}>
+                💰 Geld: {disableMoneyEffects ? 'AUS' : 'AN'}
+              </span>
+              <span style={{
+                padding: '4px 12px',
+                borderRadius: '6px',
+                fontSize: '13px',
+                background: disableDiamondEffects ? 'rgba(220, 38, 38, 0.2)' : 'rgba(34, 197, 94, 0.2)',
+                color: disableDiamondEffects ? '#fca5a5' : '#86efac',
+                border: `1px solid ${disableDiamondEffects ? 'rgba(220, 38, 38, 0.4)' : 'rgba(34, 197, 94, 0.4)'}`,
+              }}>
+                💎 Diamanten: {disableDiamondEffects ? 'AUS' : 'AN'}
+              </span>
+            </div>
+            <button
+              onClick={() => {
+                onOpenAnimationSettings();
+                onClose();
+              }}
+              style={{
+                background: 'linear-gradient(135deg, #4a9eff, #357abd)',
+                color: 'white',
+                border: '2px solid #2563eb',
+                padding: '12px 20px',
+                borderRadius: '10px',
+                cursor: 'pointer',
+                fontSize: '14px',
+                fontWeight: 'bold',
+                transition: 'all 0.3s ease',
+                boxShadow: '0 4px 12px rgba(74, 158, 255, 0.4)',
+                textShadow: '0 1px 2px rgba(0, 0, 0, 0.3)',
+                width: '100%'
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.transform = 'translateY(-2px)';
+                e.currentTarget.style.boxShadow = '0 6px 16px rgba(74, 158, 255, 0.6)';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.transform = 'none';
+                e.currentTarget.style.boxShadow = '0 4px 12px rgba(74, 158, 255, 0.4)';
+              }}
+            >
+              ⚙️ Animationen Anpassen
+            </button>
+          </div>
+
           {/* Reset Section */}
           <div style={{
             background: 'rgba(220, 38, 38, 0.1)',
@@ -148,24 +236,6 @@ const SettingsMenu = ({ isOpen, onClose, onReset }: SettingsMenuProps) => {
             >
               ⚠️ Reset All Progress
             </button>
-          </div>
-
-          {/* Placeholder for future settings */}
-          <div style={{
-            background: 'rgba(100, 116, 139, 0.1)',
-            border: '2px solid rgba(100, 116, 139, 0.3)',
-            borderRadius: '12px',
-            padding: '16px',
-            textAlign: 'center'
-          }}>
-            <p style={{
-              color: '#94a3b8',
-              fontSize: '14px',
-              margin: 0,
-              fontStyle: 'italic'
-            }}>
-              More settings coming soon...
-            </p>
           </div>
         </div>
       </div>

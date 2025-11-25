@@ -16,10 +16,13 @@ import MobileTabNavigation from './components/MobileTabNavigation';
 import SettingsMenu from './components/SettingsMenu';
 import OfflineProgressModal from './components/OfflineProgressModal';
 import DevModal from './components/DevModal';
+import { SettingsModal } from './components/SettingsModal';
 import ElementalTraderModal from './components/ElementalTraderModal';
+import ElementalPrestigeModal from './components/ElementalPrestigeModal';
+import { PackOpeningAnimation, type PackResult } from './components/PackOpeningAnimation';
 import { formatNumberGerman } from './types/German_number';
 import { RUNES_1, RUNES_2, type Rune } from './types/Runes';
-import { TRADER_OFFERS, type TraderOffer } from './types/ElementalTrader';
+import { TRADER_OFFERS, type TraderOffer, generateRandomOffers } from './types/ElementalTrader';
 import './App.css';
 
 function App() {
@@ -30,8 +33,59 @@ function App() {
   const [isFlashing, setIsFlashing] = useState(false);
   const [hoveredRune, setHoveredRune] = useState<number | null>(null);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  const [isAnimationSettingsOpen, setIsAnimationSettingsOpen] = useState(false);
   const [isDevOpen, setIsDevOpen] = useState(false);
   const [isTraderOpen, setIsTraderOpen] = useState(false);
+  const [isPrestigeOpen, setIsPrestigeOpen] = useState(false);
+  const [packResults, setPackResults] = useState<PackResult[] | null>(null);
+  
+  // Handle multi-pack purchase with animation
+  const handleBuyRunePacks = React.useCallback((count: number) => {
+    try {
+      console.log('Buying', count, 'packs...');
+      const results: PackResult[] = [];
+      
+      // Call openRunePack with count parameter and request results
+      const packOpenResults = openRunePack(count, true);
+      console.log('Pack open results:', packOpenResults);
+      
+      if (packOpenResults && Array.isArray(packOpenResults) && packOpenResults.length > 0) {
+        // Convert results to PackResult format
+        packOpenResults.forEach((result: any) => {
+          if (result && result.rarity && typeof result.bonus === 'number') {
+            results.push({
+              rarity: result.rarity as any,
+              bonus: result.bonus,
+              bonusType: result.bonusType,
+              producing: result.producing,
+              bonuses: result.bonuses || [],
+              elementType: result.elementType
+            });
+          }
+        });
+        
+        console.log('Converted results:', results);
+        
+        // Show pack opening animation only if enabled and we have valid results
+        if (results.length > 0 && !gameState.disablePackAnimations) {
+          console.log('Setting pack results to show animation');
+          setPackResults(results);
+        } else if (gameState.disablePackAnimations) {
+          console.log('Pack animations disabled, skipping animation');
+        } else {
+          console.log('No valid results to show');
+        }
+      } else {
+        console.log('No pack results or empty array');
+      }
+    } catch (error) {
+      console.error('Error buying rune packs:', error);
+    }
+  }, [openRunePack, gameState.disablePackAnimations]);
+  
+  const closePackAnimation = React.useCallback(() => {
+    setPackResults(null);
+  }, []);
   
   // Trader auto-refresh timer
   React.useEffect(() => {
@@ -44,7 +98,6 @@ function App() {
 
     // Initialize trader if not yet done
     if (!gameState.traderOffers || gameState.traderOffers.length === 0) {
-      const { generateRandomOffers } = require('./types/ElementalTrader');
       const newOffers = generateRandomOffers(3);
       const refreshInterval = Math.random() * (10 * 60 * 1000) + (5 * 60 * 1000); // 5-15 minutes
       
@@ -59,7 +112,6 @@ function App() {
 
     // Check if it's time to refresh
     if (now >= nextRefresh) {
-      const { generateRandomOffers } = require('./types/ElementalTrader');
       const newOffers = generateRandomOffers(3);
       const refreshInterval = Math.random() * (10 * 60 * 1000) + (5 * 60 * 1000); // 5-15 minutes
       
@@ -77,7 +129,6 @@ function App() {
       const nextRefreshTime = gameState.traderNextRefresh || 0;
       
       if (currentTime >= nextRefreshTime) {
-        const { generateRandomOffers } = require('./types/ElementalTrader');
         const newOffers = generateRandomOffers(3);
         const refreshInterval = Math.random() * (10 * 60 * 1000) + (5 * 60 * 1000); // 5-15 minutes
         
@@ -202,6 +253,36 @@ function App() {
   const getCurrentTraderOffers = (): TraderOffer[] => {
     const offerIds = gameState.traderOffers || [];
     return TRADER_OFFERS.filter(o => offerIds.includes(o.id));
+  };
+
+  // Handle elemental prestige
+  const handleElementalPrestige = (elementId: number) => {
+    const prestigeLevels = gameState.elementalPrestige || {
+      air: 0,
+      earth: 0,
+      water: 0,
+      fire: 0,
+      light: 0,
+      dark: 0
+    };
+
+    // Reset element resource to 0 and increase prestige level
+    const newResources = [...gameState.elementalResources];
+    newResources[elementId] = 0;
+
+    const elementNames = ['air', 'earth', 'water', 'fire', 'light', 'dark'] as const;
+    const elementName = elementNames[elementId];
+
+    const newPrestige = {
+      ...prestigeLevels,
+      [elementName]: prestigeLevels[elementName] + 1
+    };
+
+    setGameState({
+      ...gameState,
+      elementalResources: newResources,
+      elementalPrestige: newPrestige
+    });
   };
 
   // Console Commands für Developer/Cheat Funktionen
@@ -559,6 +640,22 @@ function App() {
         isOpen={isSettingsOpen}
         onClose={() => setIsSettingsOpen(false)}
         onReset={resetGame}
+        onOpenAnimationSettings={() => setIsAnimationSettingsOpen(true)}
+        disableMoneyEffects={gameState.disableMoneyEffects || false}
+        disableDiamondEffects={gameState.disableDiamondEffects || false}
+        disablePackAnimations={gameState.disablePackAnimations || false}
+      />
+
+      {/* Animation Settings Modal */}
+      <SettingsModal
+        isOpen={isAnimationSettingsOpen}
+        onClose={() => setIsAnimationSettingsOpen(false)}
+        disableMoneyEffects={gameState.disableMoneyEffects || false}
+        disableDiamondEffects={gameState.disableDiamondEffects || false}
+        disablePackAnimations={gameState.disablePackAnimations || false}
+        onToggleMoneyEffects={(disabled) => setGameState(prev => ({ ...prev, disableMoneyEffects: disabled }))}
+        onToggleDiamondEffects={(disabled) => setGameState(prev => ({ ...prev, disableDiamondEffects: disabled }))}
+        onTogglePackAnimations={(disabled) => setGameState(prev => ({ ...prev, disablePackAnimations: disabled }))}
       />
       
       {/* Offline Progress Modal */}
@@ -588,6 +685,14 @@ function App() {
         offers={getCurrentTraderOffers()}
         gameState={gameState}
         onAcceptOffer={handleAcceptTraderOffer}
+      />
+
+      {/* Elemental Prestige Modal */}
+      <ElementalPrestigeModal
+        isOpen={isPrestigeOpen}
+        onClose={() => setIsPrestigeOpen(false)}
+        gameState={gameState}
+        onPrestige={handleElementalPrestige}
       />
 
       <main className="game-container">
@@ -652,81 +757,86 @@ function App() {
               <div style={{ fontSize: '12px', color: '#3b82f6', marginTop: '4px' }}>Gems you own</div>
             </div>
 
-            {/* Buy Pack Button */}
-            <div style={{ marginBottom: '24px' }}>
-              <button
-                onClick={openRunePack}
-                disabled={
-                  gameState.currentRuneType === 'basic' 
-                    ? gameState.gems < 5 
-                    : gameState.money < 10000000
-                }
-                style={{
-                  width: '100%',
-                  padding: '16px',
-                  fontSize: '16px',
-                  fontWeight: 'bold',
-                  background: (
-                    gameState.currentRuneType === 'basic' 
-                      ? gameState.gems >= 5 
-                      : gameState.money >= 10000000
-                  )
-                    ? 'linear-gradient(135deg, #1d4ed8 0%, #3b82f6 50%, #60a5fa 100%)'
-                    : 'linear-gradient(135deg, #374151, #4b5563)',
-                  color: 'white',
-                  border: 'none',
-                  borderRadius: '12px',
-                  cursor: (
-                    gameState.currentRuneType === 'basic' 
-                      ? gameState.gems >= 5 
-                      : gameState.money >= 10000000
-                  ) ? 'pointer' : 'not-allowed',
-                  transition: 'all 0.3s ease',
-                  boxShadow: (
-                    gameState.currentRuneType === 'basic' 
-                      ? gameState.gems >= 5 
-                      : gameState.money >= 10000000
-                  )
-                    ? '0 6px 20px rgba(59, 130, 246, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.2)'
-                    : '0 2px 8px rgba(0, 0, 0, 0.3)',
-                  transform: (
-                    gameState.currentRuneType === 'basic' 
-                      ? gameState.gems >= 5 
-                      : gameState.money >= 10000000
-                  ) ? 'none' : 'scale(0.95)',
-                  opacity: (
-                    gameState.currentRuneType === 'basic' 
-                      ? gameState.gems >= 5 
-                      : gameState.money >= 10000000
-                  ) ? 1 : 0.6
-                }}
-                onMouseEnter={(e) => {
-                  const canAfford = gameState.currentRuneType === 'basic' 
-                    ? gameState.gems >= 5 
-                    : gameState.money >= 10000000;
-                  if (canAfford) {
-                    e.currentTarget.style.transform = 'translateY(-2px)';
-                    e.currentTarget.style.boxShadow = '0 8px 25px rgba(59, 130, 246, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.2)';
-                  }
-                }}
-                onMouseLeave={(e) => {
-                  const canAfford = gameState.currentRuneType === 'basic' 
-                    ? gameState.gems >= 5 
-                    : gameState.money >= 10000000;
-                  if (canAfford) {
-                    e.currentTarget.style.transform = 'none';
-                    e.currentTarget.style.boxShadow = '0 6px 20px rgba(59, 130, 246, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.2)';
-                  }
-                }}
-              >
-                ✨ {gameState.currentRuneType === 'basic' ? 'Basic' : 'Elemental'} Rune-Pack ✨<br/>
-                <span style={{ fontSize: '14px', opacity: 0.9 }}>
-                  {gameState.currentRuneType === 'basic' 
-                    ? '💎 5 Gems' 
-                    : '💰 10M Money'
-                  }
-                </span>
-              </button>
+            {/* Multi-Pack Purchase Buttons */}
+            <div style={{ 
+              marginBottom: '24px',
+              background: 'rgba(147, 51, 234, 0.1)',
+              borderRadius: '12px',
+              padding: '16px',
+              border: '1px solid rgba(147, 51, 234, 0.3)'
+            }}>
+              <h3 style={{
+                color: '#9333ea',
+                fontSize: '16px',
+                fontWeight: 'bold',
+                textShadow: '0 0 8px rgba(147, 51, 234, 0.5)',
+                marginBottom: '12px',
+                textAlign: 'center'
+              }}>
+                📦 {gameState.currentRuneType === 'basic' ? 'Basic' : 'Elemental'} Rune Packs
+              </h3>
+              <div style={{
+                display: 'flex',
+                gap: '8px',
+                justifyContent: 'center',
+                flexDirection: 'column'
+              }}>
+                {[1, 5, 10].map(count => {
+                  const costPerPack = gameState.currentRuneType === 'basic' ? 5 : 250000;
+                  const totalCost = costPerPack * count;
+                  const currency = gameState.currentRuneType === 'basic' ? gameState.gems : gameState.money;
+                  const canAfford = currency >= totalCost;
+                  
+                  return (
+                    <button
+                      key={count}
+                      onClick={() => handleBuyRunePacks(count)}
+                      disabled={!canAfford}
+                      style={{
+                        padding: '14px 20px',
+                        background: canAfford 
+                          ? 'linear-gradient(135deg, #9333ea 0%, #7e22ce 100%)'
+                          : 'linear-gradient(135deg, #6b7280 0%, #4b5563 100%)',
+                        border: canAfford 
+                          ? '2px solid #a855f7'
+                          : '2px solid #6b7280',
+                        borderRadius: '8px',
+                        color: 'white',
+                        fontSize: '15px',
+                        fontWeight: 'bold',
+                        cursor: canAfford ? 'pointer' : 'not-allowed',
+                        boxShadow: canAfford 
+                          ? '0 4px 12px rgba(147, 51, 234, 0.4)'
+                          : '0 2px 6px rgba(0, 0, 0, 0.2)',
+                        transition: 'all 0.2s ease',
+                        opacity: canAfford ? 1 : 0.5,
+                        width: '100%'
+                      }}
+                      onMouseEnter={(e) => {
+                        if (canAfford) {
+                          e.currentTarget.style.transform = 'translateY(-2px)';
+                          e.currentTarget.style.boxShadow = '0 6px 16px rgba(147, 51, 234, 0.6)';
+                        }
+                      }}
+                      onMouseLeave={(e) => {
+                        if (canAfford) {
+                          e.currentTarget.style.transform = 'translateY(0)';
+                          e.currentTarget.style.boxShadow = '0 4px 12px rgba(147, 51, 234, 0.4)';
+                        }
+                      }}
+                    >
+                      <div style={{ fontSize: '16px', marginBottom: '4px' }}>
+                        ✨ {count}x Pack{count > 1 ? 's' : ''} ✨
+                      </div>
+                      <div style={{ fontSize: '13px', opacity: 0.9 }}>
+                        {gameState.currentRuneType === 'basic' 
+                          ? `💎 ${totalCost} Gems`
+                          : `💰 ${formatNumberGerman(totalCost)}$`}
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
             </div>
 
             {/* Secret Rune Craft Button - nur sichtbar wenn alle Runen vorhanden */}
@@ -838,6 +948,41 @@ function App() {
                 {currentRunes.map((rune: Rune, index: number) => {
                   const runeAmount = currentRuneAmounts[index];
                   const individualBonuses = [];
+                  
+                  // Calculate modified drop rate with Fire Prestige (only for basic runes)
+                  const isBasicRunes = gameState.currentRuneType === 'basic';
+                  const firePrestigeLevel = gameState.elementalPrestige?.fire || 0;
+                  const luckBonus = isBasicRunes && firePrestigeLevel > 0 ? 1 + (firePrestigeLevel * 0.01) : 1;
+                  
+                  let displayedDropRate = rune.dropRate / 10; // Convert to percentage
+                  
+                  // Secret Rune never drops from packs
+                  if (rune.dropRate === 0) {
+                    displayedDropRate = 0;
+                  } else if (isBasicRunes && luckBonus > 1) {
+                    // Calculate modified rate like in openRunePack
+                    const runesWithDrops = currentRunes.filter(r => r.dropRate > 0);
+                    const maxIndex = runesWithDrops.length - 1;
+                    
+                    // Find this rune's position among droppable runes
+                    const droppableIndex = runesWithDrops.findIndex(r => r.id === rune.id);
+                    const rarityFactor = droppableIndex / maxIndex;
+                    const luckFactor = (rarityFactor * 2) - 0.5;
+                    const adjustment = (luckBonus - 1) * luckFactor * 2.0;
+                    const modifiedRate = Math.max(1, rune.dropRate * (1 + adjustment));
+                    
+                    // Normalize to get actual percentage
+                    const allModifiedRates = currentRunes.map((r, i) => {
+                      if (r.dropRate === 0) return 0;
+                      const dIndex = runesWithDrops.findIndex(rd => rd.id === r.id);
+                      const rf = dIndex / maxIndex;
+                      const lf = (rf * 2) - 0.5;
+                      const adj = (luckBonus - 1) * lf * 2.0;
+                      return Math.max(1, r.dropRate * (1 + adj));
+                    });
+                    const totalRate = allModifiedRates.reduce((sum, rate) => sum + rate, 0);
+                    displayedDropRate = (modifiedRate / totalRate) * 100;
+                  }
                   
                   if (rune.moneyBonus && runeAmount > 0) {
                     individualBonuses.push(`💰 +${formatNumberGerman((rune.moneyBonus * runeAmount) * 100, 2)}% Money`);
@@ -977,7 +1122,18 @@ function App() {
                       textAlign: 'right',
                       zIndex: 1
                     }}>
-                      <div>{(rune.dropRate / 10).toFixed(1)}%</div>
+                      <div>
+                        {displayedDropRate.toFixed(1)}%
+                        {isBasicRunes && luckBonus > 1 && rune.dropRate > 0 && (
+                          <span style={{ 
+                            fontSize: '10px', 
+                            color: index === 0 ? '#60a5fa' : '#fb923c',
+                            marginLeft: '4px'
+                          }}>
+                            {index === 0 ? '❄️' : '🔥'}
+                          </span>
+                        )}
+                      </div>
                       <div style={{ fontSize: '10px', opacity: 0.7 }}>Drop Rate</div>
                     </div>
                     
@@ -1386,6 +1542,140 @@ function App() {
               </button>
             </div>
           )}
+
+          {/* Elemental Prestige Active Bonuses Display */}
+          {hasElementalRunes && gameState.elementalPrestige && Object.values(gameState.elementalPrestige).some(level => level > 0) && (
+            <div style={{
+              marginTop: '16px',
+              marginBottom: '8px',
+              background: 'rgba(59, 130, 246, 0.1)',
+              borderRadius: '8px',
+              padding: '12px',
+              border: '1px solid rgba(59, 130, 246, 0.3)'
+            }}>
+              <div style={{
+                fontSize: '12px',
+                fontWeight: 'bold',
+                color: '#60a5fa',
+                marginBottom: '8px',
+                textAlign: 'center'
+              }}>
+                ⚡ Active Prestige Bonuses
+              </div>
+              <div style={{
+                display: 'flex',
+                flexWrap: 'wrap',
+                gap: '6px',
+                justifyContent: 'center',
+                fontSize: '11px'
+              }}>
+                {gameState.elementalPrestige.air > 0 && (
+                  <div style={{ 
+                    background: 'rgba(125, 211, 252, 0.2)', 
+                    padding: '4px 8px', 
+                    borderRadius: '4px',
+                    border: '1px solid rgba(125, 211, 252, 0.4)',
+                    color: '#7dd3fc'
+                  }}>
+                    💨 +{(gameState.elementalPrestige.air * 0.5).toFixed(1)}% Speed
+                  </div>
+                )}
+                {gameState.elementalPrestige.earth > 0 && (
+                  <div style={{ 
+                    background: 'rgba(134, 239, 172, 0.2)', 
+                    padding: '4px 8px', 
+                    borderRadius: '4px',
+                    border: '1px solid rgba(134, 239, 172, 0.4)',
+                    color: '#86efac'
+                  }}>
+                    🌍 +{(gameState.elementalPrestige.earth * 2).toFixed(0)}% Income
+                  </div>
+                )}
+                {gameState.elementalPrestige.water > 0 && (
+                  <div style={{ 
+                    background: 'rgba(96, 165, 250, 0.2)', 
+                    padding: '4px 8px', 
+                    borderRadius: '4px',
+                    border: '1px solid rgba(96, 165, 250, 0.4)',
+                    color: '#60a5fa'
+                  }}>
+                    💧 +{(gameState.elementalPrestige.water * 1).toFixed(0)}% Click
+                  </div>
+                )}
+                {gameState.elementalPrestige.fire > 0 && (
+                  <div style={{ 
+                    background: 'rgba(251, 146, 60, 0.2)', 
+                    padding: '4px 8px', 
+                    borderRadius: '4px',
+                    border: '1px solid rgba(251, 146, 60, 0.4)',
+                    color: '#fb923c'
+                  }}>
+                    🔥 +{(gameState.elementalPrestige.fire * 1).toFixed(0)}% Luck
+                  </div>
+                )}
+                {gameState.elementalPrestige.light > 0 && (
+                  <div style={{ 
+                    background: 'rgba(253, 224, 71, 0.2)', 
+                    padding: '4px 8px', 
+                    borderRadius: '4px',
+                    border: '1px solid rgba(253, 224, 71, 0.4)',
+                    color: '#fde047'
+                  }}>
+                    ✨ +{(gameState.elementalPrestige.light * 1).toFixed(0)}% RP
+                  </div>
+                )}
+                {gameState.elementalPrestige.dark > 0 && (
+                  <div style={{ 
+                    background: 'rgba(167, 139, 250, 0.2)', 
+                    padding: '4px 8px', 
+                    borderRadius: '4px',
+                    border: '1px solid rgba(167, 139, 250, 0.4)',
+                    color: '#a78bfa'
+                  }}>
+                    🌑 -{((1 - (1 / (1 + gameState.elementalPrestige.dark * 0.01))) * 100).toFixed(0)}% Cost
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* Elemental Prestige Button - appears when player has elemental runes */}
+          {hasElementalRunes && (
+            <div className="Prestige-Button" style={{ marginTop: '16px', marginBottom: '16px' }}>
+              <button
+                onClick={() => setIsPrestigeOpen(true)}
+                style={{
+                  width: '100%',
+                  padding: '14px 16px',
+                  background: 'linear-gradient(135deg, #fbbf24 0%, #f59e0b 50%, #d97706 100%)',
+                  color: 'white',
+                  border: '2px solid #b45309',
+                  borderRadius: '12px',
+                  cursor: 'pointer',
+                  fontSize: '16px',
+                  fontWeight: 'bold',
+                  textShadow: '0 0 10px rgba(0,0,0,0.5)',
+                  boxShadow: '0 4px 12px rgba(251, 191, 36, 0.4)',
+                  transition: 'all 0.3s ease',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '8px'
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.transform = 'translateY(-2px)';
+                  e.currentTarget.style.boxShadow = '0 6px 20px rgba(251, 191, 36, 0.6)';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.transform = 'none';
+                  e.currentTarget.style.boxShadow = '0 4px 12px rgba(251, 191, 36, 0.4)';
+                }}
+              >
+                <span style={{ fontSize: '20px' }}>✨</span>
+                <span>Elemental Ascension</span>
+              </button>
+            </div>
+          )}
           
           <div className="click-area">
             <MoneyButton 
@@ -1692,51 +1982,74 @@ function App() {
                   <div style={{ fontSize: '12px', color: '#3b82f6', marginTop: '4px' }}>Gems you own</div>
                 </div>
 
-                {/* Buy Pack Button */}
-                <div style={{ marginBottom: '24px' }}>
-                  <button
-                    onClick={openRunePack}
-                    disabled={
-                      gameState.currentRuneType === 'basic' 
-                        ? gameState.gems < 5 
-                        : gameState.money < 10000000
-                    }
-                    style={{
-                      width: '100%',
-                      padding: '16px',
-                      fontSize: '16px',
-                      fontWeight: 'bold',
-                      background: (
-                        gameState.currentRuneType === 'basic' 
-                          ? gameState.gems >= 5 
-                          : gameState.money >= 10000000
-                      )
-                        ? 'linear-gradient(135deg, #1d4ed8 0%, #3b82f6 50%, #60a5fa 100%)'
-                        : 'linear-gradient(135deg, #374151, #4b5563)',
-                      color: 'white',
-                      border: 'none',
-                      borderRadius: '12px',
-                      cursor: (
-                        gameState.currentRuneType === 'basic' 
-                          ? gameState.gems >= 5 
-                          : gameState.money >= 10000000
-                      ) ? 'pointer' : 'not-allowed',
-                      transition: 'all 0.3s ease',
-                      opacity: (
-                        gameState.currentRuneType === 'basic' 
-                          ? gameState.gems >= 5 
-                          : gameState.money >= 10000000
-                      ) ? 1 : 0.6
-                    }}
-                  >
-                    ✨ {gameState.currentRuneType === 'basic' ? 'Basic' : 'Elemental'} Rune-Pack ✨<br/>
-                    <span style={{ fontSize: '14px', opacity: 0.9 }}>
-                      {gameState.currentRuneType === 'basic' 
-                        ? '💎 5 Gems' 
-                        : '💰 10M Money'
-                      }
-                    </span>
-                  </button>
+                {/* Multi-Pack Purchase Buttons - Mobile */}
+                <div style={{ 
+                  marginBottom: '24px',
+                  background: 'rgba(147, 51, 234, 0.1)',
+                  borderRadius: '12px',
+                  padding: '16px',
+                  border: '1px solid rgba(147, 51, 234, 0.3)'
+                }}>
+                  <h3 style={{
+                    color: '#9333ea',
+                    fontSize: '16px',
+                    fontWeight: 'bold',
+                    textShadow: '0 0 8px rgba(147, 51, 234, 0.5)',
+                    marginBottom: '12px',
+                    textAlign: 'center'
+                  }}>
+                    📦 {gameState.currentRuneType === 'basic' ? 'Basic' : 'Elemental'} Rune Packs
+                  </h3>
+                  <div style={{
+                    display: 'flex',
+                    gap: '8px',
+                    justifyContent: 'center',
+                    flexDirection: 'column'
+                  }}>
+                    {[1, 5, 10].map(count => {
+                      const costPerPack = gameState.currentRuneType === 'basic' ? 5 : 250000;
+                      const totalCost = costPerPack * count;
+                      const currency = gameState.currentRuneType === 'basic' ? gameState.gems : gameState.money;
+                      const canAfford = currency >= totalCost;
+                      
+                      return (
+                        <button
+                          key={count}
+                          onClick={() => handleBuyRunePacks(count)}
+                          disabled={!canAfford}
+                          style={{
+                            padding: '14px 20px',
+                            background: canAfford 
+                              ? 'linear-gradient(135deg, #9333ea 0%, #7e22ce 100%)'
+                              : 'linear-gradient(135deg, #6b7280 0%, #4b5563 100%)',
+                            border: canAfford 
+                              ? '2px solid #a855f7'
+                              : '2px solid #6b7280',
+                            borderRadius: '8px',
+                            color: 'white',
+                            fontSize: '15px',
+                            fontWeight: 'bold',
+                            cursor: canAfford ? 'pointer' : 'not-allowed',
+                            boxShadow: canAfford 
+                              ? '0 4px 12px rgba(147, 51, 234, 0.4)'
+                              : '0 2px 6px rgba(0, 0, 0, 0.2)',
+                            transition: 'all 0.2s ease',
+                            opacity: canAfford ? 1 : 0.5,
+                            width: '100%'
+                          }}
+                        >
+                          <div style={{ fontSize: '16px', marginBottom: '4px' }}>
+                            ✨ {count}x Pack{count > 1 ? 's' : ''} ✨
+                          </div>
+                          <div style={{ fontSize: '13px', opacity: 0.9 }}>
+                            {gameState.currentRuneType === 'basic' 
+                              ? `💎 ${totalCost} Gems`
+                              : `💰 ${formatNumberGerman(totalCost)}$`}
+                          </div>
+                        </button>
+                      );
+                    })}
+                  </div>
                 </div>
 
                 {/* Secret Rune Craft Button - Mobile */}
@@ -2014,6 +2327,14 @@ function App() {
       <footer className="app-footer">
         <p>React Money Clicker v0.0.6 | Your progress is automatically saved!</p>
       </footer>
+      
+      {/* Pack Opening Animation */}
+      {packResults && (
+        <PackOpeningAnimation 
+          results={packResults}
+          onComplete={closePackAnimation}
+        />
+      )}
       
       {/* Tooltip Animation CSS */}
       <style>{`

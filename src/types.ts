@@ -21,6 +21,7 @@ export interface GameState {
   achievements: Array<{ id: number; tier: number }>; // Array of unlocked achievements with their tier
   disableMoneyEffects?: boolean; // whether to disable money floating animations
   disableDiamondEffects?: boolean; // whether to disable diamond floating animations
+  disablePackAnimations?: boolean; // whether to disable pack opening animations
   includeDevStats?: boolean; // whether to include dev command stats in statistics display (default: false)
   lastSaveTime?: number; // timestamp of last save for offline progress (in milliseconds)
   
@@ -28,6 +29,16 @@ export interface GameState {
   traderOffers?: string[]; // IDs of current trader offers
   traderLastRefresh?: number; // timestamp of last trader refresh
   traderNextRefresh?: number; // timestamp when trader will refresh next
+  
+  // Elemental Prestige
+  elementalPrestige?: {
+    air: number;
+    earth: number;
+    water: number;
+    fire: number;
+    light: number;
+    dark: number;
+  };
   
   // Statistics
   stats: {
@@ -141,8 +152,17 @@ export const INITIAL_GAME_STATE: GameState = {
   achievements: [],
   disableMoneyEffects: false,
   disableDiamondEffects: false,
+  disablePackAnimations: false,
   includeDevStats: false,
   lastSaveTime: Date.now(),
+  elementalPrestige: {
+    air: 0,
+    earth: 0,
+    water: 0,
+    fire: 0,
+    light: 0,
+    dark: 0
+  },
   stats: {
     allTimeMoneyEarned: 0,
     moneyFromClicks: 0,

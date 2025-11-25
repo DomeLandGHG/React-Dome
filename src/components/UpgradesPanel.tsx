@@ -94,6 +94,7 @@ const UpgradesPanel = ({ gameState, buyUpgrade, buyMaxUpgrades }: UpgradesPanelP
           <div style={{ fontSize: '12px', color: '#22c55e', marginTop: '4px' }}>Available Money</div>
         </div>
       </div>
+      
       <div className="upgrades-list" style={{
         display: 'flex',
         flexDirection: 'column',

@@ -6,10 +6,47 @@ import { RUNES_1, RUNES_2 } from './types/Runes';
 import { UPGRADES } from './types/Upgrade';
 import { REBIRTHUPGRADES } from './types/Rebirth_Upgrade';
 import { ACHIEVEMENTS } from './types/Achievement';
+import { ELEMENTAL_PRESTIGE_CONFIG } from './types/ElementalPrestige';
 
 export const useGameLogic = () => {
   const [gameState, setGameState] = useState<GameState>(() => loadGameState());
   const [offlineProgress, setOfflineProgress] = useState<{ time: number; money: number } | null>(null);
+
+  // Calculate Elemental Prestige Bonuses
+  const calculateElementalBonuses = useCallback((elementalPrestige: any) => {
+    if (!elementalPrestige) return {
+      clickPowerBonus: 1,
+      autoIncomeBonus: 1,
+      autoSpeedBonus: 1,
+      rpGainBonus: 1,
+      runePackLuckBonus: 1,
+      upgradeDiscountBonus: 1
+    };
+
+    let clickPowerBonus = 1;
+    let autoIncomeBonus = 1;
+    let autoSpeedBonus = 1;
+    let rpGainBonus = 1;
+    let runePackLuckBonus = 1;
+    let upgradeDiscountBonus = 1;
+
+    ELEMENTAL_PRESTIGE_CONFIG.forEach(config => {
+      const level = elementalPrestige[config.elementName.toLowerCase()] || 0;
+      if (level > 0) {
+        const bonus = 1 + (config.bonusPerLevel * level / 100);
+        switch (config.bonusType) {
+          case 'clickPower': clickPowerBonus *= bonus; break;
+          case 'autoIncome': autoIncomeBonus *= bonus; break;
+          case 'autoSpeed': autoSpeedBonus *= bonus; break;
+          case 'rpGain': rpGainBonus *= bonus; break;
+          case 'runePackLuck': runePackLuckBonus *= bonus; break;
+          case 'upgradeDiscount': upgradeDiscountBonus *= bonus; break;
+        }
+      }
+    });
+
+    return { clickPowerBonus, autoIncomeBonus, autoSpeedBonus, rpGainBonus, runePackLuckBonus, upgradeDiscountBonus };
+  }, []);
 
   // Calculate offline progress on initial load
   useEffect(() => {
@@ -78,7 +115,9 @@ export const useGameLogic = () => {
           rebirthPointMultiplier = 1 + bonus;
         }
         
-        const actualMoneyPerTick = gameState.moneyPerTick * clickMultiplier * runeMultiplier * rebirthPointMultiplier * achievementMoneyMultiplier;
+        const elementalBonuses = calculateElementalBonuses(gameState.elementalPrestige);
+        
+        const actualMoneyPerTick = gameState.moneyPerTick * clickMultiplier * runeMultiplier * rebirthPointMultiplier * achievementMoneyMultiplier * elementalBonuses.autoIncomeBonus;
         const moneyEarned = (actualMoneyPerTick * offlineTime) * 0.5; // 50% offline efficiency
         const adjustedClicks = Math.floor(offlineClicks * 0.5); // 50% offline efficiency
         
@@ -247,6 +286,11 @@ export const useGameLogic = () => {
   // Auto money generation & Rebirth-Upgrade: +1 Click per Tick & Elemental Rune Production
   useEffect(() => {
     if (gameState.moneyPerTick > 0 || gameState.rebirth_upgradeAmounts[1] > 0 || gameState.elementalRunes.some(amount => amount > 0)) {
+      // Calculate tick speed with Air Prestige bonus
+      const elementalBonuses = calculateElementalBonuses(gameState.elementalPrestige);
+      const baseTickInterval = 1000; // 1 second
+      const tickInterval = Math.max(100, Math.floor(baseTickInterval / elementalBonuses.autoSpeedBonus)); // Min 100ms
+      
       const interval = setInterval(() => {
         setGameState(prev => {
           // Achievement bonuses
@@ -406,7 +450,10 @@ export const useGameLogic = () => {
         rebirthPointMultiplier = 1 + bonus;
       }
       
-      const moneyEarned = prev.moneyPerClick * multiplier * runeMoneyMultiplier * rebirthPointMultiplier * achievementBonuses.moneyMultiplier;
+      // Elemental Prestige Boni
+      const elementalBonuses = calculateElementalBonuses(prev.elementalPrestige);
+      
+      const moneyEarned = prev.moneyPerClick * multiplier * runeMoneyMultiplier * rebirthPointMultiplier * achievementBonuses.moneyMultiplier * elementalBonuses.clickPowerBonus;
       
       const newState = {
         ...prev,
@@ -469,6 +516,11 @@ export const useGameLogic = () => {
       
       // Normale Upgrade-Logik
       if (prev.money >= currentPrice && currentAmount < maxAmount) {
+        const elementalBonuses = calculateElementalBonuses(prev.elementalPrestige);
+        const discountedPrice = Math.floor(currentPrice / elementalBonuses.upgradeDiscountBonus);
+        
+        if (prev.money < discountedPrice) return prev;
+        
         const newUpgradePrices = [...prev.upgradePrices];
         const newUpgradeAmounts = [...prev.upgradeAmounts];
         
@@ -501,7 +553,7 @@ export const useGameLogic = () => {
 
         return {
           ...prev,
-          money: prev.money - currentPrice,
+          money: prev.money - discountedPrice,
           moneyPerClick: newMoneyPerClick,
           moneyPerTick: newMoneyPerTick,
           upgradePrices: newUpgradePrices,
@@ -509,7 +561,7 @@ export const useGameLogic = () => {
           stats: {
             ...prev.stats,
             totalUpgradesPurchased: prev.stats.totalUpgradesPurchased + 1,
-            allTimeMoneySpent: prev.stats.allTimeMoneySpent + currentPrice,
+            allTimeMoneySpent: prev.stats.allTimeMoneySpent + discountedPrice,
           },
         };
       }
@@ -622,7 +674,8 @@ export const useGameLogic = () => {
       
       const baseRebirthPoints = Math.floor(prev.money / 1000);
       const runeRpMultiplier = 1 + totalRpBonus;
-      const rpEarned = Math.floor(baseRebirthPoints * runeRpMultiplier * achievementBonuses.rpMultiplier);
+      const elementalBonuses = calculateElementalBonuses(prev.elementalPrestige);
+      const rpEarned = Math.floor(baseRebirthPoints * runeRpMultiplier * achievementBonuses.rpMultiplier * elementalBonuses.rpGainBonus);
       const newRebirthPoints = prev.rebirthPoints + rpEarned;
       
       // Unlock "First Rebirth" achievement (ID 1) if not already unlocked
@@ -871,40 +924,105 @@ export const useGameLogic = () => {
     });
   }, []);
 
-  const openRunePack = useCallback(() => {
-    // Check if player can afford the pack based on rune type
-    const canAfford = gameState.currentRuneType === 'basic' 
-      ? gameState.gems >= 5 
-      : gameState.money >= 10000000; // 10 million for elemental packs
+  const openRunePack = useCallback((count: number = 1, returnResults: boolean = false): any => {
+    // Check if player can afford the pack(s) based on rune type
+    const costPerPack = gameState.currentRuneType === 'basic' ? 5 : 250000;
+    const currency = gameState.currentRuneType === 'basic' ? gameState.gems : gameState.money;
+    const canAfford = currency >= costPerPack * count;
     
-    if (!canAfford) return;
+    if (!canAfford) return returnResults ? [] : undefined;
 
-    setGameState(prev => {
-      const currentRunes = prev.currentRuneType === 'basic' ? RUNES_1 : RUNES_2;
-      const newRunes = prev.currentRuneType === 'basic' ? [...prev.runes] : [...prev.elementalRunes];
-      
-      // Roll for a rune (out of 1000)
+    const currentRunes = gameState.currentRuneType === 'basic' ? RUNES_1 : RUNES_2;
+    const elementalBonuses = calculateElementalBonuses(gameState.elementalPrestige);
+    const luckBonus = elementalBonuses.runePackLuckBonus;
+    const resultsToReturn: Array<{ rarity: string; bonus: number; index: number }> = [];
+
+    // Generate results BEFORE setState
+    for (let packIndex = 0; packIndex < count; packIndex++) {
       const roll = Math.floor(Math.random() * 1000);
       let droppedRune = -1;
       
-      // Check from most common to rarest (cumulative)
+      // Apply luck bonus ONLY for basic runes (not elemental)
+      const isBasicRunes = gameState.currentRuneType === 'basic';
+      const modifiedRates = currentRunes.map((rune, index) => {
+        // Secret Rune (dropRate = 0) should never drop from packs
+        if (rune.dropRate === 0) return 0;
+        
+        if (isBasicRunes && luckBonus > 1) {
+          // rarityFactor: 0 for common, increases to 1 for highest rarity
+          const maxIndex = currentRunes.filter(r => r.dropRate > 0).length - 1;
+          const rarityFactor = index / maxIndex;
+          
+          // Common (index 0) gets penalty, higher rarities get bonus
+          // Factor ranges from -0.5 (common) to +1.5 (legendary/mythic)
+          const luckFactor = (rarityFactor * 2) - 0.5;
+          const adjustment = (luckBonus - 1) * luckFactor * 2.0; // Increased from 0.3 to 2.0 for visible effect
+          
+          return Math.max(1, rune.dropRate * (1 + adjustment));
+        }
+        return rune.dropRate;
+      });
+      
+      // Normalize rates to sum to 1000
+      const totalRate = modifiedRates.reduce((sum, rate) => sum + rate, 0);
+      const normalizedRates = modifiedRates.map(rate => (rate / totalRate) * 1000);
+      
       let cumulativeRate = 0;
       for (let i = 0; i < currentRunes.length; i++) {
-        cumulativeRate += currentRunes[i].dropRate;
+        cumulativeRate += normalizedRates[i];
         if (roll < cumulativeRate) {
           droppedRune = i;
           break;
         }
       }
       
-      // If we got a rune, add it
-      if (droppedRune !== -1) {
-        newRunes[droppedRune]++;
+      if (droppedRune !== -1 && returnResults) {
+        const runeData = currentRunes[droppedRune];
+        const bonuses: string[] = [];
+        
+        // Sammle alle Boni der Rune
+        if (runeData.moneyBonus) {
+          bonuses.push(`💰 +${(runeData.moneyBonus * 100).toFixed(2)}% Money`);
+        }
+        if (runeData.rpBonus) {
+          bonuses.push(`🔄 +${(runeData.rpBonus * 100).toFixed(2)}% RP`);
+        }
+        if (runeData.gemBonus) {
+          bonuses.push(`💎 +${(runeData.gemBonus * 100).toFixed(4)}% Gems`);
+        }
+        if (runeData.tickBonus) {
+          bonuses.push(`⚡ -${runeData.tickBonus}ms Tick Speed`);
+        }
+        if (runeData.producing && runeData.produceAmount) {
+          bonuses.push(`${runeData.produceAmount} ${runeData.producing}/tick`);
+        }
+        
+        resultsToReturn.push({
+          rarity: runeData.name,
+          bonus: runeData.moneyBonus || runeData.rpBonus || runeData.gemBonus || runeData.produceAmount || 0,
+          index: droppedRune,
+          bonusType: runeData.producing ? 'producing' : (runeData.moneyBonus ? 'money' : (runeData.rpBonus ? 'rp' : (runeData.gemBonus ? 'gem' : 'money'))),
+          producing: runeData.producing,
+          bonuses: bonuses,
+          elementType: runeData.producing
+        });
       }
+    }
+
+    setGameState(prev => {
+      const currentRunes = prev.currentRuneType === 'basic' ? RUNES_1 : RUNES_2;
+      const newRunes = prev.currentRuneType === 'basic' ? [...prev.runes] : [...prev.elementalRunes];
       
-      // Track obtained rune
       let updatedStats = { ...prev.stats };
-      if (droppedRune !== -1) {
+      let newShowElementalStats = prev.showElementalStats;
+      let newElementalRunesUnlocked = prev.elementalRunesUnlocked;
+
+      // Apply results to state
+      resultsToReturn.forEach(result => {
+        const droppedRune = result.index;
+        newRunes[droppedRune]++;
+          
+        // Track obtained rune
         if (prev.currentRuneType === 'basic') {
           const runeNames = ['common', 'uncommon', 'rare', 'epic', 'legendary', 'mythic'] as const;
           const obtainedRuneName = runeNames[droppedRune];
@@ -926,23 +1044,22 @@ export const useGameLogic = () => {
             },
           };
         }
-      }
-      
-      // Check if we should show elemental stats (first elemental rune obtained)
-      let newShowElementalStats = prev.showElementalStats;
-      let newElementalRunesUnlocked = prev.elementalRunesUnlocked;
-      if (prev.currentRuneType === 'elemental' && droppedRune !== -1) {
-        if (!prev.showElementalStats) {
-          newShowElementalStats = true;
+        
+        // Check if we should show elemental stats (first elemental rune obtained)
+        if (prev.currentRuneType === 'elemental') {
+          if (!newShowElementalStats) {
+            newShowElementalStats = true;
+          }
+          if (!newElementalRunesUnlocked) {
+            newElementalRunesUnlocked = true;
+          }
         }
-        if (!prev.elementalRunesUnlocked) {
-          newElementalRunesUnlocked = true;
-        }
-      }
+      });
       
       // Deduct the appropriate cost
-      const newGems = prev.currentRuneType === 'basic' ? prev.gems - 5 : prev.gems;
-      const newMoney = prev.currentRuneType === 'elemental' ? prev.money - 10000000 : prev.money;
+      const totalCost = costPerPack * count;
+      const newGems = prev.currentRuneType === 'basic' ? prev.gems - totalCost : prev.gems;
+      const newMoney = prev.currentRuneType === 'elemental' ? prev.money - totalCost : prev.money;
       
       return {
         ...prev,
@@ -955,20 +1072,22 @@ export const useGameLogic = () => {
         stats: {
           ...updatedStats,
           baseRunePacksPurchased: prev.currentRuneType === 'basic' 
-            ? updatedStats.baseRunePacksPurchased + 1 
+            ? updatedStats.baseRunePacksPurchased + count
             : updatedStats.baseRunePacksPurchased,
           elementalRunePacksPurchased: prev.currentRuneType === 'elemental' 
-            ? updatedStats.elementalRunePacksPurchased + 1 
+            ? updatedStats.elementalRunePacksPurchased + count
             : updatedStats.elementalRunePacksPurchased,
           allTimeGemsSpent: prev.currentRuneType === 'basic' 
-            ? updatedStats.allTimeGemsSpent + 5 
+            ? updatedStats.allTimeGemsSpent + totalCost
             : updatedStats.allTimeGemsSpent,
           allTimeMoneySpent: prev.currentRuneType === 'elemental' 
-            ? updatedStats.allTimeMoneySpent + 10000000 
+            ? updatedStats.allTimeMoneySpent + totalCost
             : updatedStats.allTimeMoneySpent,
         },
       };
     });
+
+    return returnResults ? resultsToReturn : undefined;
   }, [gameState.gems, gameState.money, gameState.currentRuneType]);
 
   const switchRuneType = useCallback(() => {

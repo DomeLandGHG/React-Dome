@@ -1,0 +1,101 @@
+export interface ElementalPrestige {
+  air: number;
+  earth: number;
+  water: number;
+  fire: number;
+  light: number;
+  dark: number;
+}
+
+export interface ElementalPrestigeRequirement {
+  elementId: 0 | 1 | 2 | 3 | 4 | 5;
+  elementName: string;
+  baseRequirement: number; // Base amount needed for first prestige
+  scalingFactor: number; // Multiplier for each subsequent prestige
+  bonusType: 'autoSpeed' | 'autoIncome' | 'clickPower' | 'runePackLuck' | 'rpGain' | 'upgradeDiscount';
+  bonusPerLevel: number; // Bonus percentage per prestige level
+  icon: string;
+  color: string;
+}
+
+export const ELEMENTAL_PRESTIGE_CONFIG: ElementalPrestigeRequirement[] = [
+  {
+    elementId: 0,
+    elementName: 'Air',
+    baseRequirement: 100000,
+    scalingFactor: 2.5,
+    bonusType: 'autoSpeed',
+    bonusPerLevel: 0.5, // +0.5% Auto-Speed per level
+    icon: '💨',
+    color: '#7dd3fc'
+  },
+  {
+    elementId: 1,
+    elementName: 'Earth',
+    baseRequirement: 100000,
+    scalingFactor: 2.5,
+    bonusType: 'autoIncome',
+    bonusPerLevel: 2, // +2% Auto-Income per level
+    icon: '🌍',
+    color: '#86efac'
+  },
+  {
+    elementId: 2,
+    elementName: 'Water',
+    baseRequirement: 100000,
+    scalingFactor: 2.5,
+    bonusType: 'clickPower',
+    bonusPerLevel: 1, // +1% Click-Power per level
+    icon: '💧',
+    color: '#60a5fa'
+  },
+  {
+    elementId: 3,
+    elementName: 'Fire',
+    baseRequirement: 100000,
+    scalingFactor: 2.5,
+    bonusType: 'runePackLuck',
+    bonusPerLevel: 1, // +1% Rune-Pack-Luck per level
+    icon: '🔥',
+    color: '#fb923c'
+  },
+  {
+    elementId: 4,
+    elementName: 'Light',
+    baseRequirement: 100000,
+    scalingFactor: 2.5,
+    bonusType: 'rpGain',
+    bonusPerLevel: 1, // +1% RP-Gain per level
+    icon: '✨',
+    color: '#fde047'
+  },
+  {
+    elementId: 5,
+    elementName: 'Dark',
+    baseRequirement: 100000,
+    scalingFactor: 2.5,
+    bonusType: 'upgradeDiscount',
+    bonusPerLevel: 1, // +1% Upgrade-Discount per level
+    icon: '🌑',
+    color: '#a78bfa'
+  }
+];
+
+export const calculatePrestigeRequirement = (elementId: number, currentLevel: number): number => {
+  const config = ELEMENTAL_PRESTIGE_CONFIG[elementId];
+  if (!config) return 0;
+  
+  return Math.floor(config.baseRequirement * Math.pow(config.scalingFactor, currentLevel));
+};
+
+export const getBonusDescription = (bonusType: string): string => {
+  switch (bonusType) {
+    case 'autoSpeed': return 'Auto-Speed';
+    case 'autoIncome': return 'Auto-Income';
+    case 'clickPower': return 'Click Power';
+    case 'runePackLuck': return 'Rune Pack Luck';
+    case 'rpGain': return 'RP Gain';
+    case 'upgradeDiscount': return 'Upgrade Discount';
+    default: return 'Unknown';
+  }
+};

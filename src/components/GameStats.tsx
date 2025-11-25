@@ -4,6 +4,7 @@ import type { GameState } from '../types';
 import { formatNumberGerman } from '../types/German_number';
 import { RUNES_1 } from '../types/Runes';
 import { REBIRTHUPGRADES } from '../types/Rebirth_Upgrade';
+import { ELEMENTAL_PRESTIGE_CONFIG } from '../types/ElementalPrestige';
 
 
 interface GameStatsProps {
@@ -98,9 +99,34 @@ const GameStats = ({ gameState }: GameStatsProps) => {
       rebirthPointMultiplier = 1 + bonus;
     }
 
-    // Calculate final values with achievement bonuses
-    const perClickTotal = gameState.moneyPerClick * clickMultiplier * runeMultiplier * rebirthPointMultiplier * achievementMoneyMultiplier;
-    const perTickTotal = gameState.moneyPerTick * clickMultiplier * runeMultiplier * rebirthPointMultiplier * achievementMoneyMultiplier;
+    // Elemental Prestige Bonuses
+    let clickPowerBonus = 1;
+    let autoIncomeBonus = 1;
+    let autoSpeedBonus = 1;
+    let rpGainBonus = 1;
+    let runePackLuckBonus = 1;
+    let upgradeDiscountBonus = 1;
+
+    if (gameState.elementalPrestige) {
+      ELEMENTAL_PRESTIGE_CONFIG.forEach(config => {
+        const level = gameState.elementalPrestige[config.elementName.toLowerCase()] || 0;
+        if (level > 0) {
+          const bonus = 1 + (config.bonusPerLevel * level / 100);
+          switch (config.bonusType) {
+            case 'clickPower': clickPowerBonus *= bonus; break;
+            case 'autoIncome': autoIncomeBonus *= bonus; break;
+            case 'autoSpeed': autoSpeedBonus *= bonus; break;
+            case 'rpGain': rpGainBonus *= bonus; break;
+            case 'runePackLuck': runePackLuckBonus *= bonus; break;
+            case 'upgradeDiscount': upgradeDiscountBonus *= bonus; break;
+          }
+        }
+      });
+    }
+
+    // Calculate final values with achievement bonuses and elemental prestige
+    const perClickTotal = gameState.moneyPerClick * clickMultiplier * runeMultiplier * rebirthPointMultiplier * achievementMoneyMultiplier * clickPowerBonus;
+    const perTickTotal = gameState.moneyPerTick * clickMultiplier * runeMultiplier * rebirthPointMultiplier * achievementMoneyMultiplier * autoIncomeBonus;
 
     return { 
       perClickTotal, 
@@ -115,7 +141,13 @@ const GameStats = ({ gameState }: GameStatsProps) => {
       achievementMoneyMultiplier,
       achievementRpMultiplier,
       achievementGemBonus,
-      totalAchievementTiers
+      totalAchievementTiers,
+      clickPowerBonus,
+      autoIncomeBonus,
+      autoSpeedBonus,
+      rpGainBonus,
+      runePackLuckBonus,
+      upgradeDiscountBonus
     };
   };
 
@@ -363,6 +395,40 @@ const GameStats = ({ gameState }: GameStatsProps) => {
                   }}>
                     <span>🏆 Achievement Bonus ({values.totalAchievementTiers} Tiers):</span>
                     <span style={{ color: '#fbbf24', fontWeight: 'bold' }}>×{formatNumberGerman(values.achievementMoneyMultiplier, 2)}</span>
+                  </div>
+                )}
+                
+                {hoveredStat === 'click' && values.clickPowerBonus > 1 && (
+                  <div style={{
+                    color: '#e2e8f0',
+                    fontSize: '12px',
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                    padding: '6px 8px',
+                    background: 'rgba(96, 165, 250, 0.1)',
+                    borderRadius: '6px',
+                    border: '1px solid rgba(96, 165, 250, 0.3)'
+                  }}>
+                    <span>💧 Elemental Prestige (Water):</span>
+                    <span style={{ color: '#60a5fa', fontWeight: 'bold' }}>×{formatNumberGerman(values.clickPowerBonus, 2)}</span>
+                  </div>
+                )}
+                
+                {hoveredStat === 'tick' && values.autoIncomeBonus > 1 && (
+                  <div style={{
+                    color: '#e2e8f0',
+                    fontSize: '12px',
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                    padding: '6px 8px',
+                    background: 'rgba(134, 239, 172, 0.1)',
+                    borderRadius: '6px',
+                    border: '1px solid rgba(134, 239, 172, 0.3)'
+                  }}>
+                    <span>🌍 Elemental Prestige (Earth):</span>
+                    <span style={{ color: '#86efac', fontWeight: 'bold' }}>×{formatNumberGerman(values.autoIncomeBonus, 2)}</span>
                   </div>
                 )}
                 
