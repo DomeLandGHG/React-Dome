@@ -24,6 +24,11 @@ export interface GameState {
   includeDevStats?: boolean; // whether to include dev command stats in statistics display (default: false)
   lastSaveTime?: number; // timestamp of last save for offline progress (in milliseconds)
   
+  // Elemental Trader
+  traderOffers?: string[]; // IDs of current trader offers
+  traderLastRefresh?: number; // timestamp of last trader refresh
+  traderNextRefresh?: number; // timestamp when trader will refresh next
+  
   // Statistics
   stats: {
     allTimeMoneyEarned: number;

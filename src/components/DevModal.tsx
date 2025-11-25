@@ -2,6 +2,7 @@ import { useState, useRef, useEffect } from 'react';
 import type { GameState } from '../types';
 import { RUNES_1, RUNES_2 } from '../types/Runes';
 import { ACHIEVEMENTS } from '../types/Achievement';
+import { TRADER_OFFERS, generateRandomOffers } from '../types/ElementalTrader';
 
 interface DevModalProps {
   isOpen: boolean;
@@ -10,9 +11,10 @@ interface DevModalProps {
   setGameState: React.Dispatch<React.SetStateAction<GameState>>;
   devSimulateOfflineTime: (minutes: number) => void;
   setOfflineProgress: (progress: { time: number; money: number; clicks?: number } | null) => void;
+  onOpenTrader?: () => void;
 }
 
-const DevModal = ({ isOpen, onClose, gameState, setGameState, setOfflineProgress }: DevModalProps) => {
+const DevModal = ({ isOpen, onClose, gameState, setGameState, setOfflineProgress, onOpenTrader }: DevModalProps) => {
   const [commandInput, setCommandInput] = useState('');
   const [commandHistory, setCommandHistory] = useState<string[]>([]);
   const [showHelp, setShowHelp] = useState(false);
@@ -43,6 +45,9 @@ const DevModal = ({ isOpen, onClose, gameState, setGameState, setOfflineProgress
     { cmd: 'setAchievementTier(id, tier)', desc: 'Set achievement tier (id: 0-8)' },
     { cmd: 'addRune(id, amount)', desc: 'Add base rune (id: 0-6)' },
     { cmd: 'addElementalRune(id, amount)', desc: 'Add elemental rune (id: 0-5)' },
+    { cmd: 'addElement(id, amount)', desc: 'Add elemental resource (id: 0-5)' },
+    { cmd: 'refreshTrader()', desc: 'Refresh trader offers' },
+    { cmd: 'showTrader()', desc: 'Show current trader offers' },
     { cmd: '.help()', desc: 'Show all available commands' },
     { cmd: '.achievements()', desc: 'Show achievement list with IDs' },
     { cmd: '.clear()', desc: 'Clear command history' },
@@ -317,6 +322,44 @@ const DevModal = ({ isOpen, onClose, gameState, setGameState, setOfflineProgress
           return { ...prev, elementalRunes: newElementalRunes };
         });
         setCommandHistory(prev => [...prev, `✅ Added ${amount}x ${RUNES_2[id].name}`]);
+        return;
+      }
+
+      const addElementMatch = trimmedCmd.match(/^addElement\(([^,]+),\s*([^)]+)\)$/);
+      if (addElementMatch) {
+        const id = parseInt(addElementMatch[1]);
+        const amount = parseInt(addElementMatch[2]);
+        if (isNaN(id) || isNaN(amount) || id < 0 || id > 5) throw new Error('Invalid element id (0-5) or amount');
+        
+        setGameState(prev => {
+          const newResources = [...prev.elementalResources];
+          newResources[id] += amount;
+          return { ...prev, elementalResources: newResources };
+        });
+        setCommandHistory(prev => [...prev, `✅ Added ${amount} ${RUNES_2[id].name} resources`]);
+        return;
+      }
+
+      if (trimmedCmd === 'refreshTrader()') {
+        const newOffers = generateRandomOffers(3);
+        setGameState(prev => ({
+          ...prev,
+          traderOffers: newOffers.map(o => o.id),
+          traderLastRefresh: Date.now(),
+          traderNextRefresh: Date.now() + (10 * 60 * 1000) // 10 minutes
+        }));
+        setCommandHistory(prev => [...prev, `✅ Trader offers refreshed (${newOffers.length} new offers)`]);
+        return;
+      }
+
+      if (trimmedCmd === 'showTrader()') {
+        const currentOfferIds = gameState.traderOffers || [];
+        const currentOffers = TRADER_OFFERS.filter(o => currentOfferIds.includes(o.id));
+        if (currentOffers.length === 0) {
+          setCommandHistory(prev => [...prev, `⚠️ No trader offers available. Use refreshTrader() first.`]);
+        } else {
+          setCommandHistory(prev => [...prev, `📜 Current trader offers: ${currentOffers.map(o => o.id).join(', ')}`]);
+        }
         return;
       }
 
@@ -701,6 +744,15 @@ const DevModal = ({ isOpen, onClose, gameState, setGameState, setOfflineProgress
             <button onClick={() => handleDevButton('simulateOffline(minutes)', 'Simulate Offline (minutes)')} style={buttonStyle}>💤 Offline Time</button>
             <button onClick={() => handleDevButton('setAllAchievements(tier)', 'Set All Achievements')} style={buttonStyle}>🏆 Set Achievements</button>
             <button onClick={() => setShowRunesPage(true)} style={{...buttonStyle, background: 'linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%)', borderColor: '#6d28d9'}}>📜 Runes Manager</button>
+            <button 
+              onClick={() => {
+                executeCommand('refreshTrader()');
+                if (onOpenTrader) onOpenTrader();
+              }} 
+              style={{...buttonStyle, background: 'linear-gradient(135deg, #a855f7 0%, #9333ea 100%)', borderColor: '#7e22ce'}}
+            >
+              ⚡ Open Trader
+            </button>
             <button onClick={() => executeCommand('resetGame()')} style={{...buttonStyle, background: 'linear-gradient(135deg, #dc2626 0%, #991b1b 100%)', borderColor: '#7f1d1d'}}>🔥 Reset Game</button>
           </div>
         </div>

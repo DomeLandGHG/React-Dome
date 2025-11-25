@@ -16,8 +16,10 @@ import MobileTabNavigation from './components/MobileTabNavigation';
 import SettingsMenu from './components/SettingsMenu';
 import OfflineProgressModal from './components/OfflineProgressModal';
 import DevModal from './components/DevModal';
+import ElementalTraderModal from './components/ElementalTraderModal';
 import { formatNumberGerman } from './types/German_number';
 import { RUNES_1, RUNES_2, type Rune } from './types/Runes';
+import { TRADER_OFFERS, type TraderOffer } from './types/ElementalTrader';
 import './App.css';
 
 function App() {
@@ -29,6 +31,67 @@ function App() {
   const [hoveredRune, setHoveredRune] = useState<number | null>(null);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [isDevOpen, setIsDevOpen] = useState(false);
+  const [isTraderOpen, setIsTraderOpen] = useState(false);
+  
+  // Trader auto-refresh timer
+  React.useEffect(() => {
+    // Only start timer if player has at least one elemental rune
+    const hasAnyElementalRune = gameState.elementalRunes.some(amount => amount > 0);
+    if (!hasAnyElementalRune) return;
+
+    const now = Date.now();
+    const nextRefresh = gameState.traderNextRefresh || 0;
+
+    // Initialize trader if not yet done
+    if (!gameState.traderOffers || gameState.traderOffers.length === 0) {
+      const { generateRandomOffers } = require('./types/ElementalTrader');
+      const newOffers = generateRandomOffers(3);
+      const refreshInterval = Math.random() * (10 * 60 * 1000) + (5 * 60 * 1000); // 5-15 minutes
+      
+      setGameState(prev => ({
+        ...prev,
+        traderOffers: newOffers.map((o: any) => o.id),
+        traderLastRefresh: now,
+        traderNextRefresh: now + refreshInterval
+      }));
+      return;
+    }
+
+    // Check if it's time to refresh
+    if (now >= nextRefresh) {
+      const { generateRandomOffers } = require('./types/ElementalTrader');
+      const newOffers = generateRandomOffers(3);
+      const refreshInterval = Math.random() * (10 * 60 * 1000) + (5 * 60 * 1000); // 5-15 minutes
+      
+      setGameState(prev => ({
+        ...prev,
+        traderOffers: newOffers.map((o: any) => o.id),
+        traderLastRefresh: now,
+        traderNextRefresh: now + refreshInterval
+      }));
+    }
+
+    // Set up interval to check every minute
+    const interval = setInterval(() => {
+      const currentTime = Date.now();
+      const nextRefreshTime = gameState.traderNextRefresh || 0;
+      
+      if (currentTime >= nextRefreshTime) {
+        const { generateRandomOffers } = require('./types/ElementalTrader');
+        const newOffers = generateRandomOffers(3);
+        const refreshInterval = Math.random() * (10 * 60 * 1000) + (5 * 60 * 1000); // 5-15 minutes
+        
+        setGameState(prev => ({
+          ...prev,
+          traderOffers: newOffers.map((o: any) => o.id),
+          traderLastRefresh: currentTime,
+          traderNextRefresh: currentTime + refreshInterval
+        }));
+      }
+    }, 60000); // Check every minute
+
+    return () => clearInterval(interval);
+  }, [gameState.elementalRunes, gameState.traderNextRefresh]);
   
   // Check if rebirth is unlocked
   const isRebirthUnlocked = gameState.rebirthPoints > 0 || gameState.rebirth_upgradeAmounts.some(amount => amount > 0);
@@ -95,6 +158,50 @@ function App() {
     setIsFlashing(true);
     performRebirth();
     setTimeout(() => setIsFlashing(false), 800);
+  };
+
+  // Handle trader offer acceptance
+  const handleAcceptTraderOffer = (offer: TraderOffer) => {
+    const currentAmount = gameState.elementalResources[offer.elementType] || 0;
+    
+    if (currentAmount < offer.elementAmount) {
+      console.error('Not enough resources');
+      return;
+    }
+
+    // Deduct element cost
+    const newResources = [...gameState.elementalResources];
+    newResources[offer.elementType] -= offer.elementAmount;
+
+    // Apply reward
+    let newState = { ...gameState, elementalResources: newResources };
+
+    switch (offer.rewardType) {
+      case 'gems':
+        newState.gems += offer.rewardAmount;
+        break;
+      case 'rp':
+        newState.rebirthPoints += offer.rewardAmount;
+        break;
+      case 'money':
+        newState.money += offer.rewardAmount;
+        break;
+      case 'rune':
+        if (offer.rewardRuneId !== undefined) {
+          const newRunes = [...newState.runes];
+          newRunes[offer.rewardRuneId] += offer.rewardAmount;
+          newState.runes = newRunes;
+        }
+        break;
+    }
+
+    setGameState(newState);
+  };
+
+  // Get current trader offers
+  const getCurrentTraderOffers = (): TraderOffer[] => {
+    const offerIds = gameState.traderOffers || [];
+    return TRADER_OFFERS.filter(o => offerIds.includes(o.id));
   };
 
   // Console Commands für Developer/Cheat Funktionen
@@ -471,6 +578,16 @@ function App() {
         setGameState={setGameState}
         devSimulateOfflineTime={devSimulateOfflineTime}
         setOfflineProgress={setOfflineProgress}
+        onOpenTrader={() => setIsTraderOpen(true)}
+      />
+
+      {/* Elemental Trader Modal */}
+      <ElementalTraderModal
+        isOpen={isTraderOpen}
+        onClose={() => setIsTraderOpen(false)}
+        offers={getCurrentTraderOffers()}
+        gameState={gameState}
+        onAcceptOffer={handleAcceptTraderOffer}
       />
 
       <main className="game-container">
@@ -1217,6 +1334,56 @@ function App() {
                   📊
                 </button>
               </div>
+            </div>
+          )}
+
+          {/* Elemental Trader Button - appears when player has elemental runes */}
+          {hasElementalRunes && (
+            <div className="Trader-Button" style={{ marginTop: '16px', marginBottom: '16px' }}>
+              <button
+                onClick={() => setIsTraderOpen(true)}
+                style={{
+                  width: '100%',
+                  padding: '14px 16px',
+                  background: 'linear-gradient(135deg, #a855f7 0%, #9333ea 50%, #7e22ce 100%)',
+                  color: 'white',
+                  border: '2px solid #6b21a8',
+                  borderRadius: '12px',
+                  cursor: 'pointer',
+                  fontSize: '16px',
+                  fontWeight: 'bold',
+                  textShadow: '0 0 10px rgba(0,0,0,0.5)',
+                  boxShadow: '0 4px 12px rgba(168, 85, 247, 0.4)',
+                  transition: 'all 0.3s ease',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '8px',
+                  position: 'relative',
+                  overflow: 'hidden'
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.transform = 'translateY(-2px)';
+                  e.currentTarget.style.boxShadow = '0 6px 20px rgba(168, 85, 247, 0.6)';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.transform = 'none';
+                  e.currentTarget.style.boxShadow = '0 4px 12px rgba(168, 85, 247, 0.4)';
+                }}
+              >
+                <span style={{ fontSize: '20px' }}>⚡</span>
+                <span>Elemental Trader</span>
+                <span style={{
+                  fontSize: '12px',
+                  opacity: 0.9,
+                  background: 'rgba(0,0,0,0.3)',
+                  padding: '2px 8px',
+                  borderRadius: '6px',
+                  marginLeft: 'auto'
+                }}>
+                  {gameState.traderOffers && gameState.traderOffers.length > 0 ? `${gameState.traderOffers.length} offers` : 'New!'}
+                </span>
+              </button>
             </div>
           )}
           
