@@ -12,7 +12,7 @@ interface ActionButtonsProps {
   gameState: GameState;
 }
 
-const ActionButtons = ({ money, onRebirth, onReset, gameState /* onCheat, moneyPerClick */}: ActionButtonsProps) => {
+const ActionButtons = ({ money, onRebirth, gameState /* onCheat, moneyPerClick */}: ActionButtonsProps) => {
   const canRebirth = money >= 1000;
   const baseRebirthPoints = Math.floor(money / 1000);
   
@@ -37,7 +37,7 @@ const ActionButtons = ({ money, onRebirth, onReset, gameState /* onCheat, moneyP
   const runeRpMultiplier = 1 + runeRpBonus;
   
   // Calculate elemental prestige RP bonus
-  const elementalBonuses = calculateElementalBonuses(gameState.elementalPrestige);
+  const elementalBonuses = calculateElementalBonuses(gameState.elementalPrestige || null);
   const elementalRpBonus = elementalBonuses.rpGainBonus - 1; // Convert multiplier to bonus percentage
   
   const totalRebirthPoints = Math.floor(baseRebirthPoints * runeRpMultiplier * achievementRpMultiplier * elementalBonuses.rpGainBonus);

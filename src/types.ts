@@ -65,6 +65,8 @@ export interface GameState {
     allTimeGemsSpent: number;
     onlineTime: number; // Total time spent online (in seconds)
     offlineTime: number; // Total time spent offline (in seconds)
+    highestMoneyInSingleRebirth: number; // Highest money reached in a single rebirth
+    fastestRebirthTime: number; // Fastest rebirth time in seconds
     allTimeElementsProduced: {
       air: number;
       earth: number;
@@ -223,6 +225,8 @@ export const INITIAL_GAME_STATE: GameState = {
       light: 0,
       dark: 0,
     },
+    highestMoneyInSingleRebirth: 0,
+    fastestRebirthTime: 0,
     devStats: {
       moneyAdded: 0,
       rebirthPointsAdded: 0,

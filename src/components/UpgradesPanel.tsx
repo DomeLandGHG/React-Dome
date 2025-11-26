@@ -64,7 +64,7 @@ const UpgradesPanel = ({ gameState, buyUpgrade, buyMaxUpgrades }: UpgradesPanelP
   // Calculate upgrade discount from Darkness event and Elemental Prestige
   const activeEvent = gameState.activeEvent ? EVENT_CONFIG.find(e => e.id === gameState.activeEvent) : null;
   const eventUpgradeDiscount = activeEvent?.effects.upgradeDiscount || 0;
-  const elementalBonuses = calculateElementalBonuses(gameState.elementalPrestige);
+  const elementalBonuses = calculateElementalBonuses(gameState.elementalPrestige || null);
   const totalDiscount = elementalBonuses.upgradeDiscountBonus * (1 - eventUpgradeDiscount);
   
   return (

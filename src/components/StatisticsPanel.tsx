@@ -1,6 +1,7 @@
 import React from 'react';
 import type { GameState } from '../types';
 import { formatNumberGerman } from '../types/German_number';
+import { ACHIEVEMENTS } from '../types/Achievement';
 
 interface StatisticsPanelProps {
   gameState: GameState;
@@ -98,7 +99,7 @@ const StatisticsPanel: React.FC<StatisticsPanelProps> = ({ gameState, onToggleDe
       stats: [
         { label: 'Highest Money (Single Rebirth)', value: formatNumberGerman(stats.highestMoneyInSingleRebirth || 0) + '$' },
         { label: 'Fastest Rebirth', value: stats.fastestRebirthTime ? formatTime(stats.fastestRebirthTime) : 'N/A' },
-        { label: 'Total Achievements Unlocked', value: formatNumberGerman(gameState.achievements.filter(a => a.unlocked).length) + ' / ' + formatNumberGerman(gameState.achievements.length) },
+        { label: 'Total Achievements Unlocked', value: formatNumberGerman(gameState.achievements.filter(a => a.tier > 0).length) + ' / ' + formatNumberGerman(ACHIEVEMENTS.length) },
       ]
     },
     {

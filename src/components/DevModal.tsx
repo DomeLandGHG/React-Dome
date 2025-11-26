@@ -11,7 +11,7 @@ interface DevModalProps {
   gameState: GameState;
   setGameState: React.Dispatch<React.SetStateAction<GameState>>;
   devSimulateOfflineTime: (minutes: number) => void;
-  setOfflineProgress: (progress: { time: number; money: number; clicks?: number } | null) => void;
+  setOfflineProgress: (progress: { time: number; money: number; clicks: number } | null) => void;
   onOpenTrader?: () => void;
 }
 

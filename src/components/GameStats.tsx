@@ -110,7 +110,7 @@ const GameStats = ({ gameState }: GameStatsProps) => {
 
     if (gameState.elementalPrestige) {
       ELEMENTAL_PRESTIGE_CONFIG.forEach(config => {
-        const level = gameState.elementalPrestige[config.elementName.toLowerCase()] || 0;
+        const level = gameState.elementalPrestige?.[config.elementName.toLowerCase() as keyof typeof gameState.elementalPrestige] || 0;
         if (level > 0) {
           const bonus = 1 + (config.bonusPerLevel * level / 100);
           switch (config.bonusType) {

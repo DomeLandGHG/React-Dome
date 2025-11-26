@@ -6,18 +6,12 @@ import { RUNES_1, RUNES_2 } from './types/Runes';
 import { UPGRADES } from './types/Upgrade';
 import { REBIRTHUPGRADES } from './types/Rebirth_Upgrade';
 import { ACHIEVEMENTS } from './types/Achievement';
-import { ELEMENTAL_PRESTIGE_CONFIG, calculateElementalBonuses } from './types/ElementalPrestige';
-import { EVENT_CONFIG, getRandomEvent, getUnlockedElements, type ElementalEvent } from './types/ElementalEvent';
+import { calculateElementalBonuses } from './types/ElementalPrestige';
+import { EVENT_CONFIG, getRandomEvent, getUnlockedElements } from './types/ElementalEvent';
 
 export const useGameLogic = () => {
   const [gameState, setGameState] = useState<GameState>(() => loadGameState());
-  const [offlineProgress, setOfflineProgress] = useState<{ time: number; money: number } | null>(null);
-
-  // Get current active event
-  const getActiveEvent = useCallback((): ElementalEvent | null => {
-    if (!gameState.activeEvent) return null;
-    return EVENT_CONFIG.find(e => e.id === gameState.activeEvent) || null;
-  }, [gameState.activeEvent]);
+  const [offlineProgress, setOfflineProgress] = useState<{ time: number; money: number; clicks: number } | null>(null);
 
   // Calculate offline progress on initial load
   useEffect(() => {
@@ -86,7 +80,7 @@ export const useGameLogic = () => {
           rebirthPointMultiplier = 1 + bonus;
         }
         
-        const elementalBonuses = calculateElementalBonuses(gameState.elementalPrestige);
+        const elementalBonuses = calculateElementalBonuses(gameState.elementalPrestige || null);
         
         const actualMoneyPerTick = gameState.moneyPerTick * clickMultiplier * runeMultiplier * rebirthPointMultiplier * achievementMoneyMultiplier * elementalBonuses.autoIncomeBonus;
         const moneyEarned = (actualMoneyPerTick * offlineTime) * 0.5; // 50% offline efficiency
@@ -268,14 +262,7 @@ export const useGameLogic = () => {
   // Auto money generation & Rebirth-Upgrade: +1 Click per Tick & Elemental Rune Production
   useEffect(() => {
     if (gameState.moneyPerTick > 0 || gameState.rebirth_upgradeAmounts[1] > 0 || gameState.elementalRunes.some(amount => amount > 0)) {
-      // Calculate tick speed with Air Prestige bonus and Solar Flare event
-      const elementalBonuses = calculateElementalBonuses(gameState.elementalPrestige);
-      const activeEvent = gameState.activeEvent ? EVENT_CONFIG.find(e => e.id === gameState.activeEvent) : null;
-      const eventAutoSpeedMultiplier = activeEvent?.effects.autoSpeedMultiplier || 1;
-      
-      const baseTickInterval = 1000; // 1 second
-      const tickInterval = Math.max(100, Math.floor(baseTickInterval / (elementalBonuses.autoSpeedBonus * eventAutoSpeedMultiplier))); // Min 100ms
-      
+      // Auto tick interval
       const interval = setInterval(() => {
         setGameState(prev => {
           // Achievement bonuses
@@ -535,7 +522,7 @@ export const useGameLogic = () => {
       }
       
       // Elemental Prestige Boni
-      const elementalBonuses = calculateElementalBonuses(prev.elementalPrestige);
+      const elementalBonuses = calculateElementalBonuses(prev.elementalPrestige || null);
       
       const eventClickPowerMultiplier = activeEvent?.effects.clickPowerMultiplier || 1;
       const moneyEarned = prev.moneyPerClick * multiplier * runeMoneyMultiplier * rebirthPointMultiplier * achievementBonuses.moneyMultiplier * elementalBonuses.clickPowerBonus * eventClickPowerMultiplier;
@@ -605,7 +592,7 @@ export const useGameLogic = () => {
         const activeEvent = prev.activeEvent ? EVENT_CONFIG.find(e => e.id === prev.activeEvent) : null;
         const eventUpgradeDiscount = activeEvent?.effects.upgradeDiscount || 0;
         
-        const elementalBonuses = calculateElementalBonuses(prev.elementalPrestige);
+        const elementalBonuses = calculateElementalBonuses(prev.elementalPrestige || null);
         const totalDiscount = elementalBonuses.upgradeDiscountBonus * (1 - eventUpgradeDiscount);
         const discountedPrice = Math.floor(currentPrice * totalDiscount);
         
@@ -764,7 +751,7 @@ export const useGameLogic = () => {
       
       const baseRebirthPoints = Math.floor(prev.money / 1000);
       const runeRpMultiplier = 1 + totalRpBonus;
-      const elementalBonuses = calculateElementalBonuses(prev.elementalPrestige);
+      const elementalBonuses = calculateElementalBonuses(prev.elementalPrestige || null);
       const rpEarned = Math.floor(baseRebirthPoints * runeRpMultiplier * achievementBonuses.rpMultiplier * elementalBonuses.rpGainBonus);
       const newRebirthPoints = prev.rebirthPoints + rpEarned;
       
@@ -1023,7 +1010,7 @@ export const useGameLogic = () => {
     if (!canAfford) return returnResults ? [] : undefined;
 
     const currentRunes = gameState.currentRuneType === 'basic' ? RUNES_1 : RUNES_2;
-    const elementalBonuses = calculateElementalBonuses(gameState.elementalPrestige);
+    const elementalBonuses = calculateElementalBonuses(gameState.elementalPrestige || null);
     const luckBonus = elementalBonuses.runePackLuckBonus;
     const resultsToReturn: Array<{ rarity: string; bonus: number; index: number }> = [];
 
@@ -1090,17 +1077,12 @@ export const useGameLogic = () => {
         resultsToReturn.push({
           rarity: runeData.name,
           bonus: runeData.moneyBonus || runeData.rpBonus || runeData.gemBonus || runeData.produceAmount || 0,
-          index: droppedRune,
-          bonusType: runeData.producing ? 'producing' : (runeData.moneyBonus ? 'money' : (runeData.rpBonus ? 'rp' : (runeData.gemBonus ? 'gem' : 'money'))),
-          producing: runeData.producing,
-          bonuses: bonuses,
-          elementType: runeData.producing
+          index: droppedRune
         });
       }
     }
 
     setGameState(prev => {
-      const currentRunes = prev.currentRuneType === 'basic' ? RUNES_1 : RUNES_2;
       const newRunes = prev.currentRuneType === 'basic' ? [...prev.runes] : [...prev.elementalRunes];
       
       let updatedStats = { ...prev.stats };
@@ -1339,7 +1321,8 @@ export const useGameLogic = () => {
         ...prev.stats,
         allTimeMoneyEarned: prev.stats.allTimeMoneyEarned + offlineProgress.money,
         moneyFromTicks: prev.stats.moneyFromTicks + offlineProgress.money,
-        totalClicks: prev.stats.totalClicks + (offlineProgress.clicks || 0),
+        allTimeClicksTotal: prev.stats.allTimeClicksTotal + (offlineProgress.clicks || 0),
+        clicksFromTicks: prev.stats.clicksFromTicks + (offlineProgress.clicks || 0),
       },
     }));
     
