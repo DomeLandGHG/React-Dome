@@ -614,42 +614,44 @@ function App() {
           }}>⚙️</span>
         </button>
 
-        {/* Dev Icon (next to Settings) - Hidden on Mobile */}
-        <button
-          onClick={() => setIsDevOpen(true)}
-          className="desktop-only-button"
-          style={{
-            position: 'absolute',
-            top: '20px',
-            right: '78px',
-            background: 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)',
-            border: '2px solid #b45309',
-            borderRadius: '12px',
-            width: '48px',
-            height: '48px',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            cursor: 'pointer',
-            transition: 'all 0.3s ease',
-            boxShadow: '0 4px 12px rgba(245, 158, 11, 0.4)',
-            backdropFilter: 'blur(10px)'
-          }}
-          onMouseEnter={(e) => {
-            e.currentTarget.style.transform = 'scale(1.1)';
-            e.currentTarget.style.boxShadow = '0 6px 16px rgba(245, 158, 11, 0.6)';
-          }}
-          onMouseLeave={(e) => {
-            e.currentTarget.style.transform = 'none';
-            e.currentTarget.style.boxShadow = '0 4px 12px rgba(245, 158, 11, 0.4)';
-          }}
-        >
-          <span style={{
-            fontSize: '28px',
-            color: 'white',
-            filter: 'drop-shadow(0 2px 4px rgba(0, 0, 0, 0.3))'
-          }}>🛠️</span>
-        </button>
+        {/* Dev Icon (next to Settings) - Only in Development Mode */}
+        {import.meta.env.DEV && (
+          <button
+            onClick={() => setIsDevOpen(true)}
+            className="desktop-only-button"
+            style={{
+              position: 'absolute',
+              top: '20px',
+              right: '78px',
+              background: 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)',
+              border: '2px solid #b45309',
+              borderRadius: '12px',
+              width: '48px',
+              height: '48px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              cursor: 'pointer',
+              transition: 'all 0.3s ease',
+              boxShadow: '0 4px 12px rgba(245, 158, 11, 0.4)',
+              backdropFilter: 'blur(10px)'
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.transform = 'scale(1.1)';
+              e.currentTarget.style.boxShadow = '0 6px 16px rgba(245, 158, 11, 0.6)';
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.transform = 'none';
+              e.currentTarget.style.boxShadow = '0 4px 12px rgba(245, 158, 11, 0.4)';
+            }}
+          >
+            <span style={{
+              fontSize: '28px',
+              color: 'white',
+              filter: 'drop-shadow(0 2px 4px rgba(0, 0, 0, 0.3))'
+            }}>🛠️</span>
+          </button>
+        )}
       </header>
       
       {/* Settings Menu */}

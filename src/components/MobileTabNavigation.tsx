@@ -17,7 +17,7 @@ const MobileTabNavigation = ({ activeTab, onTabChange, hasGems, hasRebirth, hasE
     ...(hasElementalRunes ? [{ id: 'trader' as const, label: '⚡ Trader', icon: '⚡' }] : []),
     ...(hasElementalRunes ? [{ id: 'prestige' as const, label: '🌟 Prestige', icon: '🌟' }] : []),
     { id: 'settings' as const, label: '⚙️ Settings', icon: '⚙️' },
-    { id: 'dev' as const, label: '🛠️ Dev', icon: '🛠️' },
+    ...(import.meta.env.DEV ? [{ id: 'dev' as const, label: '🛠️ Dev', icon: '🛠️' }] : []),
   ];
 
   return (
