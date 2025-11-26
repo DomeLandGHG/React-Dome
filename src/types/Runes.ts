@@ -27,7 +27,7 @@ export const RUNES_1: Rune[] = [  //Basic Rune
     rarity: 'Uncommon',
     color: '#10B981', // Green
     dropRate: 300, // 30%
-    moneyBonus: 0.10, // +10% money
+    moneyBonus: 0.18, // +18% money (3x Common = 15% → +3% craft bonus)
   },
   {    //id:2
     id: 2,
@@ -35,8 +35,9 @@ export const RUNES_1: Rune[] = [  //Basic Rune
     rarity: 'Rare',
     color: '#3B82F6', // Blue
     dropRate: 140, // 14%
-    rpBonus: 0.05, // +5% RP
-    moneyBonus: 0.15, // +15% money
+    rpBonus: 0.05, // +5% RP (neuer bonus)
+    moneyBonus: 0.40, // +40% money (3x Uncommon = 54% → weniger wegen RP bonus)
+    gemBonus: 0.0005, // +0.05% gem chance
   },
   {    //id:3
     id: 3,
@@ -44,8 +45,9 @@ export const RUNES_1: Rune[] = [  //Basic Rune
     rarity: 'Epic',
     color: '#8B5CF6', // Purple
     dropRate: 50, // 5%
-    rpBonus: 0.10, // +10% RP
-    moneyBonus: 0.20, // +20% money
+    rpBonus: 0.20, // +20% RP (3x Rare = 15% → +5% bonus)
+    moneyBonus: 0.80, // +80% money (3x Rare = 120% → weniger wegen RP+Gem)
+    gemBonus: 0.001, // +0.1% gem chance (3x Rare = 0.15% → weniger)
   },
   {    //id:4
     id: 4,
@@ -53,9 +55,9 @@ export const RUNES_1: Rune[] = [  //Basic Rune
     rarity: 'Legendary',
     color: '#F59E0B', // Orange
     dropRate: 9, // 0.9%
-    rpBonus: 0.15, // +15% RP
-    moneyBonus: 0.30, // +30% money
-    gemBonus: 0.0001, // +0.01% gem chance (higher chance but more reasonable)
+    rpBonus: 0.75, // +75% RP (3x Epic = 60% → +15% bonus)
+    moneyBonus: 1.50, // +150% money (3x Epic = 240% → weniger wegen starke RP+Gem)
+    gemBonus: 0.005, // +0.5% gem chance (3x Epic = 0.3% → +0.2% bonus)
   },
   {    //id:5
     id: 5,
@@ -63,9 +65,9 @@ export const RUNES_1: Rune[] = [  //Basic Rune
     rarity: 'Mythic',
     color: '#EF4444', // Red
     dropRate: 1, // 0.1%
-    rpBonus: 0.25, // +25% RP
-    moneyBonus: 0.50, // +50% money
-    gemBonus: 0.001, // +0.1% gem chance (highest gem chance boost)
+    rpBonus: 2.50, // +250% RP (3x Legendary = 225% → +25% bonus)
+    moneyBonus: 3.00, // +300% money (3x Legendary = 450% → weniger wegen massive RP+Gem)
+    gemBonus: 0.02, // +2% gem chance (3x Legendary = 1.5% → +0.5% bonus)
   },
   {    //id:6
     id: 6,

@@ -1,6 +1,7 @@
 import type { GameState } from '../types';
 import { formatNumberGerman } from '../types/German_number';
 import { RUNES_1 } from '../types/Runes';
+import { calculateElementalBonuses } from '../types/ElementalPrestige';
 
 interface ActionButtonsProps {
   money: number;
@@ -34,7 +35,12 @@ const ActionButtons = ({ money, onRebirth, onReset, gameState /* onCheat, moneyP
   
   const runeRpBonus = calculateRuneRpBonus();
   const runeRpMultiplier = 1 + runeRpBonus;
-  const totalRebirthPoints = Math.floor(baseRebirthPoints * runeRpMultiplier * achievementRpMultiplier);
+  
+  // Calculate elemental prestige RP bonus
+  const elementalBonuses = calculateElementalBonuses(gameState.elementalPrestige);
+  const elementalRpBonus = elementalBonuses.rpGainBonus - 1; // Convert multiplier to bonus percentage
+  
+  const totalRebirthPoints = Math.floor(baseRebirthPoints * runeRpMultiplier * achievementRpMultiplier * elementalBonuses.rpGainBonus);
 
   return (
     <div className="action-buttons">
@@ -70,51 +76,18 @@ const ActionButtons = ({ money, onRebirth, onReset, gameState /* onCheat, moneyP
           <div style={{ fontSize: '18px', marginBottom: '4px' }}>🔄 REBIRTH</div>
           <div className="rebirth-info" style={{ fontSize: '14px', color: '#e9d5ff' }}>
             Get {formatNumberGerman(totalRebirthPoints)} Rebirth Points
-            {(runeRpBonus > 0 || achievementRpBonus > 0) && (
+            {(runeRpBonus > 0 || achievementRpBonus > 0 || elementalRpBonus > 0) && (
               <span style={{ fontSize: '0.9em', color: '#c4b5fd', display: 'block' }}>
                 {runeRpBonus > 0 && `+${formatNumberGerman(runeRpBonus * 100)}% from runes`}
-                {runeRpBonus > 0 && achievementRpBonus > 0 && ', '}
+                {runeRpBonus > 0 && (achievementRpBonus > 0 || elementalRpBonus > 0) && ', '}
                 {achievementRpBonus > 0 && `+${formatNumberGerman(achievementRpBonus * 100)}% from achievements`}
+                {achievementRpBonus > 0 && elementalRpBonus > 0 && ', '}
+                {elementalRpBonus > 0 && `+${formatNumberGerman(elementalRpBonus * 100)}% from prestige`}
               </span>
             )}
           </div>
         </button>
       )}
-      
-      <button 
-        className="reset-button"
-        onClick={() => {
-          if (window.confirm('Are you sure you want to reset all progress? This cannot be undone!')) {
-            onReset();
-          }
-        }}
-        type="button"
-        style={{
-          background: 'linear-gradient(135deg, #dc2626, #ef4444)',
-          color: 'white',
-          border: '2px solid #b91c1c',
-          padding: '12px 20px',
-          borderRadius: '12px',
-          cursor: 'pointer',
-          fontSize: '14px',
-          fontWeight: 'bold',
-          transition: 'all 0.3s ease',
-          boxShadow: '0 4px 12px rgba(220, 38, 38, 0.4)',
-          textShadow: '0 1px 2px rgba(0, 0, 0, 0.3)',
-          width: '100%'
-        }}
-        onMouseEnter={(e) => {
-          e.currentTarget.style.transform = 'translateY(-1px)';
-          e.currentTarget.style.boxShadow = '0 6px 16px rgba(220, 38, 38, 0.6)';
-        }}
-        onMouseLeave={(e) => {
-          e.currentTarget.style.transform = 'none';
-          e.currentTarget.style.boxShadow = '0 4px 12px rgba(220, 38, 38, 0.4)';
-        }}
-      >
-        ⚠️ Reset All
-      </button>
-      
     </div>
   );
 };

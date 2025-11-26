@@ -21,7 +21,29 @@ export interface GameState {
   achievements: Array<{ id: number; tier: number }>; // Array of unlocked achievements with their tier
   disableMoneyEffects?: boolean; // whether to disable money floating animations
   disableDiamondEffects?: boolean; // whether to disable diamond floating animations
+  disablePackAnimations?: boolean; // whether to disable pack opening animations
   includeDevStats?: boolean; // whether to include dev command stats in statistics display (default: false)
+  lastSaveTime?: number; // timestamp of last save for offline progress (in milliseconds)
+  
+  // Elemental Trader
+  traderOffers?: string[]; // IDs of current trader offers
+  traderLastRefresh?: number; // timestamp of last trader refresh
+  traderNextRefresh?: number; // timestamp when trader will refresh next
+  
+  // Elemental Prestige
+  elementalPrestige?: {
+    air: number;
+    earth: number;
+    water: number;
+    fire: number;
+    light: number;
+    dark: number;
+  };
+  
+  // Elemental Events
+  activeEvent?: string | null; // ID of currently active event (fireStorm, earthquake, etc.)
+  eventEndTime?: number | null; // timestamp when current event ends
+  nextEventTime?: number | null; // timestamp when next event should start
   
   // Statistics
   stats: {
@@ -41,6 +63,8 @@ export interface GameState {
     allTimeMoneySpent: number;
     allTimeRebirthPointsSpent: number;
     allTimeGemsSpent: number;
+    onlineTime: number; // Total time spent online (in seconds)
+    offlineTime: number; // Total time spent offline (in seconds)
     allTimeElementsProduced: {
       air: number;
       earth: number;
@@ -80,6 +104,7 @@ export interface GameState {
       rebirthPointsAdded: number;
       gemsAdded: number;
       clicksAdded: number;
+      offlineTimeAdded: number; // Simulated offline time in seconds
       runesAdded: {
         common: number;
         uncommon: number;
@@ -132,7 +157,20 @@ export const INITIAL_GAME_STATE: GameState = {
   achievements: [],
   disableMoneyEffects: false,
   disableDiamondEffects: false,
+  disablePackAnimations: false,
   includeDevStats: false,
+  lastSaveTime: Date.now(),
+  elementalPrestige: {
+    air: 0,
+    earth: 0,
+    water: 0,
+    fire: 0,
+    light: 0,
+    dark: 0
+  },
+  activeEvent: null,
+  eventEndTime: null,
+  nextEventTime: null,
   stats: {
     allTimeMoneyEarned: 0,
     moneyFromClicks: 0,
@@ -150,6 +188,8 @@ export const INITIAL_GAME_STATE: GameState = {
     allTimeMoneySpent: 0,
     allTimeRebirthPointsSpent: 0,
     allTimeGemsSpent: 0,
+    onlineTime: 0,
+    offlineTime: 0,
     allTimeElementsProduced: {
       air: 0,
       earth: 0,
@@ -188,6 +228,7 @@ export const INITIAL_GAME_STATE: GameState = {
       rebirthPointsAdded: 0,
       gemsAdded: 0,
       clicksAdded: 0,
+      offlineTimeAdded: 0,
       runesAdded: {
         common: 0,
         uncommon: 0,

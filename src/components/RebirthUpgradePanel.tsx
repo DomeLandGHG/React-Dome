@@ -69,9 +69,10 @@ const RebirthUpgradeButton = ({
 interface RebirthPanelProps {
   gameState: GameState;
   buyRebirthUpgrade: (index: number) => void;
+  buyMaxRebirthUpgrades: (index: number) => void;
 }
 
-const RebirthPanel = ({ gameState, buyRebirthUpgrade }: RebirthPanelProps) => {
+const RebirthPanel = ({ gameState, buyRebirthUpgrade, buyMaxRebirthUpgrades }: RebirthPanelProps) => {
     return (
         <div className="rebirth-upgrade-panel" style={{
           background: 'rgba(147, 51, 234, 0.1)',
@@ -160,20 +161,58 @@ const RebirthPanel = ({ gameState, buyRebirthUpgrade }: RebirthPanelProps) => {
               }
               
               return (
-                <RebirthUpgradeButton
-                  key={upgrade.id}
-                  name={displayName}
-                  price={displayPrice}
-                  priceText={priceText}
-                  amount={gameState.rebirth_upgradeAmounts[index]}
-                  maxAmount={gameState.rebirth_maxUpgradeAmounts[index]}
-                  canAfford={canAfford && !isDisabled}
-                  isMaxed={gameState.rebirth_upgradeAmounts[index] >= gameState.rebirth_maxUpgradeAmounts[index]}
-                  onClick={() => !isDisabled && buyRebirthUpgrade(index)}
-                  bonus={bonus}
-                  upgradeId={upgrade.id}
-                  upgradeType={upgrade.type}
-                />
+                <div key={upgrade.id} style={{ position: 'relative' }}>
+                  <RebirthUpgradeButton
+                    name={displayName}
+                    price={displayPrice}
+                    priceText={priceText}
+                    amount={gameState.rebirth_upgradeAmounts[index]}
+                    maxAmount={gameState.rebirth_maxUpgradeAmounts[index]}
+                    canAfford={canAfford && !isDisabled}
+                    isMaxed={gameState.rebirth_upgradeAmounts[index] >= gameState.rebirth_maxUpgradeAmounts[index]}
+                    onClick={() => !isDisabled && buyRebirthUpgrade(index)}
+                    bonus={bonus}
+                    upgradeId={upgrade.id}
+                    upgradeType={upgrade.type}
+                  />
+                  {gameState.rebirth_maxUpgradeAmounts[index] > 1 && gameState.rebirth_upgradeAmounts[index] < gameState.rebirth_maxUpgradeAmounts[index] && (
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        if (!isDisabled) buyMaxRebirthUpgrades(index);
+                      }}
+                      disabled={isDisabled}
+                      style={{
+                        position: 'absolute',
+                        top: '8px',
+                        right: '8px',
+                        padding: '4px 10px',
+                        background: 'linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%)',
+                        border: '2px solid #d97706',
+                        borderRadius: '12px',
+                        color: '#78350f',
+                        fontSize: '11px',
+                        fontWeight: 'bold',
+                        cursor: 'pointer',
+                        boxShadow: '0 2px 6px rgba(251, 191, 36, 0.4)',
+                        transition: 'all 0.2s ease',
+                        textTransform: 'uppercase',
+                        letterSpacing: '0.5px',
+                        zIndex: 10
+                      }}
+                      onMouseEnter={(e) => {
+                        e.currentTarget.style.transform = 'scale(1.1)';
+                        e.currentTarget.style.boxShadow = '0 3px 10px rgba(251, 191, 36, 0.6)';
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.transform = 'scale(1)';
+                        e.currentTarget.style.boxShadow = '0 2px 6px rgba(251, 191, 36, 0.4)';
+                      }}
+                    >
+                      max
+                    </button>
+                  )}
+                </div>
               );
             })}
           </div>

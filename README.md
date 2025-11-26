@@ -28,6 +28,7 @@ Money Clicker ist ein komplexes Incremental Game mit mehreren Progression-Ebenen
 - **Phase 3**: Gem-System und Runen
 - **Phase 4**: Elementare Runen und Crafting
 - **Phase 5**: Achievement-System und Meta-Progression
+- **Phase 6**: Elemental Ascension und Events
 
 ---
 
@@ -141,6 +142,58 @@ Money Clicker ist ein komplexes Incremental Game mit mehreren Progression-Ebenen
 - **Gem Collector** - Gems sammeln
 - **Element Producer** - Elemente produzieren
 - **Rune Collector** - Rune Packs kaufen
+
+---
+
+### ✨ Elemental Ascension (90+ Minuten)
+**Elemental Prestige-System:**
+
+#### Elemental Ascension freischalten
+- Sammle genug Elemental Runes für jedes Element
+- Öffne **Elemental Ascension** Panel (verfügbar nach Gem Powers)
+- Führe Prestige für einzelne Elemente durch
+
+**Anforderungen pro Element:**
+- **Air**: 10+ Air Runes
+- **Earth**: 10+ Earth Runes
+- **Water**: 10+ Water Runes
+- **Fire**: 10+ Fire Runes
+- **Light**: 15+ Light Runes
+- **Dark**: 15+ Dark Runes
+
+**Elemental Prestige Effekte:**
+- Verliert ALLE Runen des jeweiligen Elements
+- Erhält permanenten Bonus für dieses Element
+- Prestige-Level steigt um 1
+- Kosten steigen mit jedem Level: `10 × (Level + 1)`
+
+**Permanente Boni:**
+- 💨 **Air**: +0.5% Tick Speed pro Level
+- 🌍 **Earth**: +2% Money Income pro Level
+- 💧 **Water**: +1% Click Power pro Level
+- 🔥 **Fire**: +1% Rune Drop Luck pro Level
+- ✨ **Light**: +1% RP Gain pro Level
+- 🌑 **Dark**: +0.2% Gem Chance pro Level
+
+#### Elemental Trader
+- Erscheint nach erstem Prestige
+- Tausche Elemental Runes zwischen Elementen
+- 3 zufällige Angebote gleichzeitig
+- Refresh alle 5 Minuten (oder mit Gems)
+- Beispiel: 5 Air → 3 Fire
+
+#### Elemental Events
+- Zufällige Events mit Element-Boni
+- Dauer: 30-60 Sekunden
+- **Fire Storm**: 2× Rune Drop Rate
+- **Earthquake**: 3× Money Income
+- **Tidal Wave**: 2× Click Power
+- **Solar Flare**: 2× Tick Speed
+- **Eclipse**: 3× Gem Chance
+- **Aurora**: 2× RP Gain
+
+**Neue Achievements:**
+- **Ascension Master** - Elemental Prestiges durchführen
 
 ---
 
@@ -314,20 +367,25 @@ Mythic:    +100% Money, +50% RP, +20% Gems
 
 ### Achievement-Liste
 
-| ID | Name | Icon | Beschreibung | Base | Mult | Bonus |
-|----|------|------|--------------|------|------|-------|
-| 0 | Money Maker | 💰 | Reach X$ | 1K | ×1000 | +1% Money |
-| 1 | Rebirth Master | 🔄 | Reach X RP | 10 | ×10 | +1% RP |
-| 2 | Gem Collector | 💎 | Reach X Gems | 10 | ×10 | +0.1% Gem Chance |
-| 3 | Click Master | 👆 | Reach X Clicks | 100 | ×100 | +1% Money |
-| 4 | Upgrade Enthusiast | 📈 | Reach X Upgrades | 5 | ×5 | +1% Money |
-| 5 | Element Producer | ⚡ | Reach X Elements | 100 | ×100 | +1% Elements |
-| 6 | Rune Collector | 📜 | Reach X Packs | 10 | ×10 | +1% Elements |
+| ID | Name | Icon | Beschreibung | Base | Mult | Max Tier | Bonus |
+|----|------|------|--------------|------|------|----------|-------|
+| 0 | Money Maker | 💰 | Reach X$ | 1K | ×2 | 100 | +1% Money |
+| 1 | Rebirth Master | 🔄 | Reach X RP | 10 | ×2 | 100 | +1% RP |
+| 2 | Gem Collector | 💎 | Reach X Gems | 10 | ×2 | 100 | +0.1% Gem Chance |
+| 3 | Click Master | 👆 | Reach X Clicks | 100 | ×2 | 100 | +1% Money |
+| 4 | Upgrade Enthusiast | 📈 | Reach X Upgrades | 5 | ×2 | 100 | +1% Money |
+| 5 | Element Producer | ⚡ | Reach X Elements | 100 | ×2 | 100 | +1% Elements |
+| 6 | Rune Collector | 📜 | Reach X Packs | 5 | ×2 | 100 | +1% Elements |
+| 7 | Active Player | ⏰ | Play for X hours | 1h | +1h | 50 | +1% Money |
+| 8 | Idle Master | 💤 | Accumulate X offline | 1h | +1h | 50 | +1% Money |
+| 9 | Ascension Master | ✨ | Perform X Ascensions | 1 | +1 | 100 | +1% Money |
 
 **Unlock-Bedingungen:**
 - Money Maker, Rebirth Master, Click Master, Upgrade Enthusiast: **Immer sichtbar**
 - Gem Collector: **Nach Gem Unlock**
 - Element Producer, Rune Collector: **Nach Gem Powers**
+- Active Player, Idle Master: **Immer sichtbar (Zeit-basiert)**
+- Ascension Master: **Nach erstem Elemental Prestige**
 
 ### Tier-System
 
@@ -398,24 +456,34 @@ Requirement = Base × Multiplier^(Tier - 1)
    - Total Upgrades
    - Total Rebirth Upgrades
 
-7. **💸 All Time Spending**
+7. **🏆 Records**
+   - Highest Money (Single Rebirth)
+   - Fastest Rebirth Time
+   - Total Achievements Unlocked
+
+8. **💸 All Time Spending**
    - Money Spent
    - Rebirth Points Spent
    - Gems Spent *(nach Gem Unlock)*
 
-8. **⚡ All Time Elements Produced** *(nach Gem Powers)*
+9. **⏰ Play Time**
+   - Online Time
+   - Offline Time
+   - Total Time
+
+10. **⚡ All Time Elements Produced** *(nach Gem Powers)*
    - Total Elements
    - Air, Earth, Water, Fire, Light, Dark
 
-9. **🎴 Runes Obtained** *(nach Gem Powers)*
+11. **🎴 Runes Obtained** *(nach Gem Powers)*
    - Total Basic Runes
    - Common, Uncommon, Rare, Epic, Legendary, Mythic
 
-10. **⚡ Elemental Runes Obtained** *(nach Gem Powers)*
+12. **⚡ Elemental Runes Obtained** *(nach Gem Powers)*
     - Total Elemental Runes
     - Air, Earth, Water, Fire, Light, Dark
 
-11. **🛠️ Runes Crafted** *(nach Gem Powers)*
+13. **🛠️ Runes Crafted** *(nach Gem Powers)*
     - Total Runes Crafted
     - Common, Uncommon, Rare, Epic, Legendary, Mythic, Secret
 
@@ -587,10 +655,13 @@ React-Dome/
 - Main (GameStats + Money Button)
 - Upgrades
 - Rebirth (nach Unlock)
+- Gems (nach Gem Unlock)
 - Achievements (nach Rebirth)
 - Statistics (nach Rebirth)
-- Runes (nach Gem Powers)
+- Settings (Animation Controls, Version Display)
 - Dev (nur Dev-Modus)
+- Trader (nach erstem Elemental Prestige)
+- Prestige (nach Gem Powers - Elemental Ascension)
 
 ✅ **Visual Feedback**
 - Gradient Backgrounds
@@ -598,6 +669,14 @@ React-Dome/
 - Progress Bars
 - Tooltips mit Bonus-Breakdown
 - Dynamische Icons
+- Event Notifications
+- Pack Opening Animations
+
+✅ **Settings Menu**
+- Game Version Display (v1.0.0)
+- Animation Controls (Pack, Money, Diamond Effects)
+- Reset All Progress
+- Mobile & Desktop Responsive
 
 ✅ **Accessibility**
 - Deutsche Zahlenformatierung (1.000 statt 1,000)
@@ -679,6 +758,15 @@ Deployed zu: `https://domelandghg.github.io/React-Dome`
 4. Balance zwischen Gems und RP
 5. Merge All für Effizienz
 
+### Elemental Prestige Optimierung
+1. Prestigiere **Earth** zuerst (+2% Money)
+2. Dann **Light** für mehr RP
+3. **Dark** für bessere Gem Drops
+4. **Air** für schnellere Ticks
+5. Nutze **Trader** für Rune-Balance
+6. Events geben temporäre Mega-Boni
+7. Fire Prestige erhöht Rune Drop Rates
+
 ### Achievement-Strategie
 - **Money Maker**: Wird passiv durch Spielen erreicht
 - **Rebirth Master**: Multiple Rebirths durchführen
@@ -724,6 +812,10 @@ Deployed zu: `https://domelandghg.github.io/React-Dome`
 - ✅ Alle Upgrades maximiert
 - ✅ Millionen von $ verdient
 - ✅ 100+ RP gesammelt
+- ✅ Elemental Prestige Level 5+ für alle Elemente
+- ✅ Elemental Events gemeistert
+- ✅ Trader erfolgreich genutzt
+- ✅ 10+ Ascension Master Achievement Tiers
 
 ---
 
@@ -743,7 +835,11 @@ Rune Merging: 3:1 Ratio (3→1→1/3)
 - Gem Unlock: 30-45 min
 - Gem Powers: 45-60 min
 - Erste Secret Rune: 1-2 Stunden
-- 50 Achievement Tiers: 3-5 Stunden
+- Erstes Elemental Prestige: 1.5-2 Stunden
+- Elemental Trader freigeschaltet: 1.5-2 Stunden
+- Erstes Elemental Event: 2-3 Stunden
+- 50 Achievement Tiers: 4-6 Stunden
+- Alle Elemente Prestige Level 10+: 8-12 Stunden
 - "Endgame": Unbegrenzt
 
 ---

@@ -13,17 +13,138 @@ import AchievementsPanel from './components/AchievementsPanel';
 import StatisticsPanel from './components/StatisticsPanel';
 import ActionButtons from './components/ActionButtons';
 import MobileTabNavigation from './components/MobileTabNavigation';
+import SettingsMenu from './components/SettingsMenu';
+import OfflineProgressModal from './components/OfflineProgressModal';
+import DevModal from './components/DevModal';
+import { SettingsModal } from './components/SettingsModal';
+import { EventNotification } from './components/EventNotification';
+import ElementalTraderModal from './components/ElementalTraderModal';
+import ElementalPrestigeModal from './components/ElementalPrestigeModal';
+import { PackOpeningAnimation, type PackResult } from './components/PackOpeningAnimation';
 import { formatNumberGerman } from './types/German_number';
 import { RUNES_1, RUNES_2, type Rune } from './types/Runes';
+import { TRADER_OFFERS, type TraderOffer, generateRandomOffers } from './types/ElementalTrader';
+import { EVENT_CONFIG } from './types/ElementalEvent';
 import './App.css';
 
 function App() {
-  const { gameState, clickMoney, buyUpgrade, buyRebirthUpgrade, performRebirth, resetGame, cheatMoney, devAddMoney, devAddMoneyDirect, devAddRebirthPoint, devAddGem, devAddClick, devAddRune, devAddElementalRune, openRunePack, mergeRunes, mergeAllRunes, switchRuneType, toggleElementalStats, toggleMoneyEffects, toggleDiamondEffects, toggleDevStats, craftSecretRune } = useGameLogic();
+  const { gameState, setGameState, offlineProgress, setOfflineProgress, claimOfflineProgress, clickMoney, buyUpgrade, buyMaxUpgrades, buyRebirthUpgrade, buyMaxRebirthUpgrades, performRebirth, resetGame, cheatMoney, devAddMoney, devAddMoneyDirect, devAddRebirthPoint, devAddGem, devAddClick, devAddRune, devAddElementalRune, openRunePack, mergeRunes, mergeAllRunes, switchRuneType, toggleElementalStats, toggleMoneyEffects, toggleDiamondEffects, toggleDevStats, devSimulateOfflineTime, craftSecretRune } = useGameLogic();
   const [activePanel, setActivePanel] = useState<'upgrades' | 'rebirth' | 'achievements'>('upgrades');
   const [secondPanelView, setSecondPanelView] = useState<'achievements' | 'statistics'>('achievements');
-  const [mobileActiveTab, setMobileActiveTab] = useState<'stats' | 'upgrades' | 'rebirth' | 'gems' | 'achievements' | 'statistics' | 'dev'>('stats');
+  const [mobileActiveTab, setMobileActiveTab] = useState<'stats' | 'upgrades' | 'rebirth' | 'gems' | 'achievements' | 'statistics' | 'settings' | 'dev' | 'trader' | 'prestige'>('stats');
   const [isFlashing, setIsFlashing] = useState(false);
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  const [isAnimationSettingsOpen, setIsAnimationSettingsOpen] = useState(false);
   const [hoveredRune, setHoveredRune] = useState<number | null>(null);
+  const [isDevOpen, setIsDevOpen] = useState(false);
+  const [isTraderOpen, setIsTraderOpen] = useState(false);
+  const [isPrestigeOpen, setIsPrestigeOpen] = useState(false);
+  const [packResults, setPackResults] = useState<PackResult[] | null>(null);
+  
+  // Handle multi-pack purchase with animation
+  const handleBuyRunePacks = React.useCallback((count: number) => {
+    try {
+      console.log('Buying', count, 'packs...');
+      const results: PackResult[] = [];
+      
+      // Call openRunePack with count parameter and request results
+      const packOpenResults = openRunePack(count, true);
+      console.log('Pack open results:', packOpenResults);
+      
+      if (packOpenResults && Array.isArray(packOpenResults) && packOpenResults.length > 0) {
+        // Convert results to PackResult format
+        packOpenResults.forEach((result: any) => {
+          if (result && result.rarity && typeof result.bonus === 'number') {
+            results.push({
+              rarity: result.rarity as any,
+              bonus: result.bonus,
+              bonusType: result.bonusType,
+              producing: result.producing,
+              bonuses: result.bonuses || [],
+              elementType: result.elementType
+            });
+          }
+        });
+        
+        console.log('Converted results:', results);
+        
+        // Show pack opening animation only if enabled and we have valid results
+        if (results.length > 0 && !gameState.disablePackAnimations) {
+          console.log('Setting pack results to show animation');
+          setPackResults(results);
+        } else if (gameState.disablePackAnimations) {
+          console.log('Pack animations disabled, skipping animation');
+        } else {
+          console.log('No valid results to show');
+        }
+      } else {
+        console.log('No pack results or empty array');
+      }
+    } catch (error) {
+      console.error('Error buying rune packs:', error);
+    }
+  }, [openRunePack, gameState.disablePackAnimations]);
+  
+  const closePackAnimation = React.useCallback(() => {
+    setPackResults(null);
+  }, []);
+  
+  // Trader auto-refresh timer
+  React.useEffect(() => {
+    // Only start timer if player has at least one elemental rune
+    const hasAnyElementalRune = gameState.elementalRunes.some(amount => amount > 0);
+    if (!hasAnyElementalRune) return;
+
+    const now = Date.now();
+    const nextRefresh = gameState.traderNextRefresh || 0;
+
+    // Initialize trader if not yet done
+    if (!gameState.traderOffers || gameState.traderOffers.length === 0) {
+      const newOffers = generateRandomOffers(3);
+      const refreshInterval = Math.random() * (10 * 60 * 1000) + (5 * 60 * 1000); // 5-15 minutes
+      
+      setGameState(prev => ({
+        ...prev,
+        traderOffers: newOffers.map((o: any) => o.id),
+        traderLastRefresh: now,
+        traderNextRefresh: now + refreshInterval
+      }));
+      return;
+    }
+
+    // Check if it's time to refresh
+    if (now >= nextRefresh) {
+      const newOffers = generateRandomOffers(3);
+      const refreshInterval = Math.random() * (10 * 60 * 1000) + (5 * 60 * 1000); // 5-15 minutes
+      
+      setGameState(prev => ({
+        ...prev,
+        traderOffers: newOffers.map((o: any) => o.id),
+        traderLastRefresh: now,
+        traderNextRefresh: now + refreshInterval
+      }));
+    }
+
+    // Set up interval to check every minute
+    const interval = setInterval(() => {
+      const currentTime = Date.now();
+      const nextRefreshTime = gameState.traderNextRefresh || 0;
+      
+      if (currentTime >= nextRefreshTime) {
+        const newOffers = generateRandomOffers(3);
+        const refreshInterval = Math.random() * (10 * 60 * 1000) + (5 * 60 * 1000); // 5-15 minutes
+        
+        setGameState(prev => ({
+          ...prev,
+          traderOffers: newOffers.map((o: any) => o.id),
+          traderLastRefresh: currentTime,
+          traderNextRefresh: currentTime + refreshInterval
+        }));
+      }
+    }, 60000); // Check every minute
+
+    return () => clearInterval(interval);
+  }, [gameState.elementalRunes, gameState.traderNextRefresh]);
   
   // Check if rebirth is unlocked
   const isRebirthUnlocked = gameState.rebirthPoints > 0 || gameState.rebirth_upgradeAmounts.some(amount => amount > 0);
@@ -90,6 +211,80 @@ function App() {
     setIsFlashing(true);
     performRebirth();
     setTimeout(() => setIsFlashing(false), 800);
+  };
+
+  // Handle trader offer acceptance
+  const handleAcceptTraderOffer = (offer: TraderOffer) => {
+    const currentAmount = gameState.elementalResources[offer.elementType] || 0;
+    
+    if (currentAmount < offer.elementAmount) {
+      console.error('Not enough resources');
+      return;
+    }
+
+    // Deduct element cost
+    const newResources = [...gameState.elementalResources];
+    newResources[offer.elementType] -= offer.elementAmount;
+
+    // Apply reward
+    let newState = { ...gameState, elementalResources: newResources };
+
+    switch (offer.rewardType) {
+      case 'gems':
+        newState.gems += offer.rewardAmount;
+        break;
+      case 'rp':
+        newState.rebirthPoints += offer.rewardAmount;
+        break;
+      case 'money':
+        newState.money += offer.rewardAmount;
+        break;
+      case 'rune':
+        if (offer.rewardRuneId !== undefined) {
+          const newRunes = [...newState.runes];
+          newRunes[offer.rewardRuneId] += offer.rewardAmount;
+          newState.runes = newRunes;
+        }
+        break;
+    }
+
+    setGameState(newState);
+  };
+
+  // Get current trader offers
+  const getCurrentTraderOffers = (): TraderOffer[] => {
+    const offerIds = gameState.traderOffers || [];
+    return TRADER_OFFERS.filter(o => offerIds.includes(o.id));
+  };
+
+  // Handle elemental prestige
+  const handleElementalPrestige = (elementId: number) => {
+    const prestigeLevels = gameState.elementalPrestige || {
+      air: 0,
+      earth: 0,
+      water: 0,
+      fire: 0,
+      light: 0,
+      dark: 0
+    };
+
+    // Reset element resource to 0 and increase prestige level
+    const newResources = [...gameState.elementalResources];
+    newResources[elementId] = 0;
+
+    const elementNames = ['air', 'earth', 'water', 'fire', 'light', 'dark'] as const;
+    const elementName = elementNames[elementId];
+
+    const newPrestige = {
+      ...prestigeLevels,
+      [elementName]: prestigeLevels[elementName] + 1
+    };
+
+    setGameState({
+      ...gameState,
+      elementalResources: newResources,
+      elementalPrestige: newPrestige
+    });
   };
 
   // Console Commands für Developer/Cheat Funktionen
@@ -347,8 +542,14 @@ function App() {
     };
   }, [gameState, devAddMoney, devAddMoneyDirect, devAddRebirthPoint, devAddGem, devAddClick, devAddRune, devAddElementalRune, performRebirth, resetGame, toggleMoneyEffects, toggleDiamondEffects]);
 
+  // Get active event background
+  const activeEvent = gameState.activeEvent ? EVENT_CONFIG.find(e => e.id === gameState.activeEvent) : null;
+  const appStyle = activeEvent 
+    ? { background: activeEvent.backgroundGradient, transition: 'background 2s ease' }
+    : {};
+
   return (
-    <div className="app">
+    <div className="app" style={appStyle}>
       {/* Flash overlay for rebirth effect */}
       {isFlashing && (
         <div style={{
@@ -363,10 +564,152 @@ function App() {
           animation: 'rebirthFlash 0.8s ease-out forwards'
         }} />
       )}
+      
+      {/* Event Notification */}
+      <EventNotification 
+        eventId={gameState.activeEvent as any}
+        eventEndTime={gameState.eventEndTime || null}
+      />
+      
       <header className="app-header">
         <h1>💰 Money Clicker</h1>
         <p>Click to earn money, buy upgrades, and grow your fortune!</p>
+        
+        {/* Settings Button (Top Right) - Hidden on Mobile */}
+        <button
+          onClick={() => setIsSettingsOpen(true)}
+          className="desktop-only-button"
+          style={{
+            position: 'absolute',
+            top: '20px',
+            right: '20px',
+            background: 'rgba(255, 255, 255, 0.1)',
+            border: '2px solid rgba(255, 255, 255, 0.3)',
+            borderRadius: '12px',
+            width: '48px',
+            height: '48px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            cursor: 'pointer',
+            transition: 'all 0.3s ease',
+            boxShadow: '0 4px 12px rgba(0, 0, 0, 0.2)',
+            backdropFilter: 'blur(10px)'
+          }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.background = 'rgba(255, 255, 255, 0.2)';
+            e.currentTarget.style.transform = 'rotate(90deg) scale(1.1)';
+            e.currentTarget.style.boxShadow = '0 6px 16px rgba(0, 0, 0, 0.3)';
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.background = 'rgba(255, 255, 255, 0.1)';
+            e.currentTarget.style.transform = 'none';
+            e.currentTarget.style.boxShadow = '0 4px 12px rgba(0, 0, 0, 0.2)';
+          }}
+        >
+          <span style={{
+            fontSize: '28px',
+            color: 'white',
+            filter: 'drop-shadow(0 2px 4px rgba(0, 0, 0, 0.3))'
+          }}>⚙️</span>
+        </button>
+
+        {/* Dev Icon (next to Settings) - Hidden on Mobile */}
+        <button
+          onClick={() => setIsDevOpen(true)}
+          className="desktop-only-button"
+          style={{
+            position: 'absolute',
+            top: '20px',
+            right: '78px',
+            background: 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)',
+            border: '2px solid #b45309',
+            borderRadius: '12px',
+            width: '48px',
+            height: '48px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            cursor: 'pointer',
+            transition: 'all 0.3s ease',
+            boxShadow: '0 4px 12px rgba(245, 158, 11, 0.4)',
+            backdropFilter: 'blur(10px)'
+          }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.transform = 'scale(1.1)';
+            e.currentTarget.style.boxShadow = '0 6px 16px rgba(245, 158, 11, 0.6)';
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.transform = 'none';
+            e.currentTarget.style.boxShadow = '0 4px 12px rgba(245, 158, 11, 0.4)';
+          }}
+        >
+          <span style={{
+            fontSize: '28px',
+            color: 'white',
+            filter: 'drop-shadow(0 2px 4px rgba(0, 0, 0, 0.3))'
+          }}>🛠️</span>
+        </button>
       </header>
+      
+      {/* Settings Menu */}
+      <SettingsMenu 
+        isOpen={isSettingsOpen}
+        onClose={() => setIsSettingsOpen(false)}
+        onReset={resetGame}
+        onOpenAnimationSettings={() => setIsAnimationSettingsOpen(true)}
+        disableMoneyEffects={gameState.disableMoneyEffects || false}
+        disableDiamondEffects={gameState.disableDiamondEffects || false}
+        disablePackAnimations={gameState.disablePackAnimations || false}
+      />
+
+      {/* Animation Settings Modal */}
+      <SettingsModal
+        isOpen={isAnimationSettingsOpen}
+        onClose={() => setIsAnimationSettingsOpen(false)}
+        disableMoneyEffects={gameState.disableMoneyEffects || false}
+        disableDiamondEffects={gameState.disableDiamondEffects || false}
+        disablePackAnimations={gameState.disablePackAnimations || false}
+        onToggleMoneyEffects={(disabled) => setGameState(prev => ({ ...prev, disableMoneyEffects: disabled }))}
+        onToggleDiamondEffects={(disabled) => setGameState(prev => ({ ...prev, disableDiamondEffects: disabled }))}
+        onTogglePackAnimations={(disabled) => setGameState(prev => ({ ...prev, disablePackAnimations: disabled }))}
+      />
+      
+      {/* Offline Progress Modal */}
+      <OfflineProgressModal
+        isOpen={offlineProgress !== null}
+        onClose={claimOfflineProgress}
+        offlineTime={offlineProgress?.time || 0}
+        moneyEarned={offlineProgress?.money || 0}
+      />
+
+      {/* Dev Modal */}
+      <DevModal
+        isOpen={isDevOpen}
+        onClose={() => setIsDevOpen(false)}
+        gameState={gameState}
+        setGameState={setGameState}
+        devSimulateOfflineTime={devSimulateOfflineTime}
+        setOfflineProgress={setOfflineProgress}
+        onOpenTrader={() => setIsTraderOpen(true)}
+      />
+
+      {/* Elemental Trader Modal */}
+      <ElementalTraderModal
+        isOpen={isTraderOpen}
+        onClose={() => setIsTraderOpen(false)}
+        offers={getCurrentTraderOffers()}
+        gameState={gameState}
+        onAcceptOffer={handleAcceptTraderOffer}
+      />
+
+      {/* Elemental Prestige Modal */}
+      <ElementalPrestigeModal
+        isOpen={isPrestigeOpen}
+        onClose={() => setIsPrestigeOpen(false)}
+        gameState={gameState}
+        onPrestige={handleElementalPrestige}
+      />
 
       <main className="game-container">
         {/* Desktop Layout */}
@@ -430,81 +773,96 @@ function App() {
               <div style={{ fontSize: '12px', color: '#3b82f6', marginTop: '4px' }}>Gems you own</div>
             </div>
 
-            {/* Buy Pack Button */}
-            <div style={{ marginBottom: '24px' }}>
-              <button
-                onClick={openRunePack}
-                disabled={
-                  gameState.currentRuneType === 'basic' 
-                    ? gameState.gems < 5 
-                    : gameState.money < 10000000
-                }
-                style={{
-                  width: '100%',
-                  padding: '16px',
-                  fontSize: '16px',
-                  fontWeight: 'bold',
-                  background: (
-                    gameState.currentRuneType === 'basic' 
-                      ? gameState.gems >= 5 
-                      : gameState.money >= 10000000
-                  )
-                    ? 'linear-gradient(135deg, #1d4ed8 0%, #3b82f6 50%, #60a5fa 100%)'
-                    : 'linear-gradient(135deg, #374151, #4b5563)',
-                  color: 'white',
-                  border: 'none',
-                  borderRadius: '12px',
-                  cursor: (
-                    gameState.currentRuneType === 'basic' 
-                      ? gameState.gems >= 5 
-                      : gameState.money >= 10000000
-                  ) ? 'pointer' : 'not-allowed',
-                  transition: 'all 0.3s ease',
-                  boxShadow: (
-                    gameState.currentRuneType === 'basic' 
-                      ? gameState.gems >= 5 
-                      : gameState.money >= 10000000
-                  )
-                    ? '0 6px 20px rgba(59, 130, 246, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.2)'
-                    : '0 2px 8px rgba(0, 0, 0, 0.3)',
-                  transform: (
-                    gameState.currentRuneType === 'basic' 
-                      ? gameState.gems >= 5 
-                      : gameState.money >= 10000000
-                  ) ? 'none' : 'scale(0.95)',
-                  opacity: (
-                    gameState.currentRuneType === 'basic' 
-                      ? gameState.gems >= 5 
-                      : gameState.money >= 10000000
-                  ) ? 1 : 0.6
-                }}
-                onMouseEnter={(e) => {
-                  const canAfford = gameState.currentRuneType === 'basic' 
-                    ? gameState.gems >= 5 
-                    : gameState.money >= 10000000;
-                  if (canAfford) {
-                    e.currentTarget.style.transform = 'translateY(-2px)';
-                    e.currentTarget.style.boxShadow = '0 8px 25px rgba(59, 130, 246, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.2)';
-                  }
-                }}
-                onMouseLeave={(e) => {
-                  const canAfford = gameState.currentRuneType === 'basic' 
-                    ? gameState.gems >= 5 
-                    : gameState.money >= 10000000;
-                  if (canAfford) {
-                    e.currentTarget.style.transform = 'none';
-                    e.currentTarget.style.boxShadow = '0 6px 20px rgba(59, 130, 246, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.2)';
-                  }
-                }}
-              >
-                ✨ {gameState.currentRuneType === 'basic' ? 'Basic' : 'Elemental'} Rune-Pack ✨<br/>
-                <span style={{ fontSize: '14px', opacity: 0.9 }}>
-                  {gameState.currentRuneType === 'basic' 
-                    ? '💎 5 Gems' 
-                    : '💰 10M Money'
-                  }
-                </span>
-              </button>
+            {/* Multi-Pack Purchase Buttons */}
+            <div style={{ 
+              marginBottom: '24px',
+              background: 'rgba(147, 51, 234, 0.1)',
+              borderRadius: '12px',
+              padding: '16px',
+              border: '1px solid rgba(147, 51, 234, 0.3)'
+            }}>
+              <h3 style={{
+                color: '#9333ea',
+                fontSize: '16px',
+                fontWeight: 'bold',
+                textShadow: '0 0 8px rgba(147, 51, 234, 0.5)',
+                marginBottom: '12px',
+                textAlign: 'center'
+              }}>
+                📦 {gameState.currentRuneType === 'basic' ? 'Basic' : 'Elemental'} Rune Packs
+              </h3>
+              <div style={{
+                display: 'flex',
+                gap: '8px',
+                justifyContent: 'center',
+                flexDirection: 'column'
+              }}>
+                {[1, 5, 10, 'max'].map(count => {
+                  const isMax = count === 'max';
+                  const costPerPack = gameState.currentRuneType === 'basic' ? 5 : 250000;
+                  const currency = gameState.currentRuneType === 'basic' ? gameState.gems : gameState.money;
+                  const maxCount = isMax ? Math.floor(currency / costPerPack) : (count as number);
+                  const totalCost = costPerPack * maxCount;
+                  const canAfford = currency >= totalCost && maxCount > 0;
+                  
+                  return (
+                    <button
+                      key={count}
+                      onClick={() => handleBuyRunePacks(maxCount)}
+                      disabled={!canAfford}
+                      style={{
+                        padding: '14px 20px',
+                        background: canAfford 
+                          ? (isMax 
+                            ? 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)'
+                            : 'linear-gradient(135deg, #9333ea 0%, #7e22ce 100%)')
+                          : 'linear-gradient(135deg, #6b7280 0%, #4b5563 100%)',
+                        border: canAfford 
+                          ? (isMax ? '2px solid #fbbf24' : '2px solid #a855f7')
+                          : '2px solid #6b7280',
+                        borderRadius: '8px',
+                        color: 'white',
+                        fontSize: '15px',
+                        fontWeight: 'bold',
+                        cursor: canAfford ? 'pointer' : 'not-allowed',
+                        boxShadow: canAfford 
+                          ? (isMax 
+                            ? '0 4px 12px rgba(245, 158, 11, 0.4)'
+                            : '0 4px 12px rgba(147, 51, 234, 0.4)')
+                          : '0 2px 6px rgba(0, 0, 0, 0.2)',
+                        transition: 'all 0.2s ease',
+                        opacity: canAfford ? 1 : 0.5,
+                        width: '100%'
+                      }}
+                      onMouseEnter={(e) => {
+                        if (canAfford) {
+                          e.currentTarget.style.transform = 'translateY(-2px)';
+                          e.currentTarget.style.boxShadow = isMax 
+                            ? '0 6px 16px rgba(245, 158, 11, 0.6)'
+                            : '0 6px 16px rgba(147, 51, 234, 0.6)';
+                        }
+                      }}
+                      onMouseLeave={(e) => {
+                        if (canAfford) {
+                          e.currentTarget.style.transform = 'translateY(0)';
+                          e.currentTarget.style.boxShadow = isMax
+                            ? '0 4px 12px rgba(245, 158, 11, 0.4)'
+                            : '0 4px 12px rgba(147, 51, 234, 0.4)';
+                        }
+                      }}
+                    >
+                      <div style={{ fontSize: '16px', marginBottom: '4px' }}>
+                        ✨ {isMax ? `${maxCount}x Packs (MAX)` : `${count}x Pack${typeof count === 'number' && count > 1 ? 's' : ''}`} ✨
+                      </div>
+                      <div style={{ fontSize: '13px', opacity: 0.9 }}>
+                        {gameState.currentRuneType === 'basic' 
+                          ? `💎 ${totalCost} Gems`
+                          : `💰 ${formatNumberGerman(totalCost)}$`}
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
             </div>
 
             {/* Secret Rune Craft Button - nur sichtbar wenn alle Runen vorhanden */}
@@ -616,6 +974,41 @@ function App() {
                 {currentRunes.map((rune: Rune, index: number) => {
                   const runeAmount = currentRuneAmounts[index];
                   const individualBonuses = [];
+                  
+                  // Calculate modified drop rate with Fire Prestige (only for basic runes)
+                  const isBasicRunes = gameState.currentRuneType === 'basic';
+                  const firePrestigeLevel = gameState.elementalPrestige?.fire || 0;
+                  const luckBonus = isBasicRunes && firePrestigeLevel > 0 ? 1 + (firePrestigeLevel * 0.01) : 1;
+                  
+                  let displayedDropRate = rune.dropRate / 10; // Convert to percentage
+                  
+                  // Secret Rune never drops from packs
+                  if (rune.dropRate === 0) {
+                    displayedDropRate = 0;
+                  } else if (isBasicRunes && luckBonus > 1) {
+                    // Calculate modified rate like in openRunePack
+                    const runesWithDrops = currentRunes.filter(r => r.dropRate > 0);
+                    const maxIndex = runesWithDrops.length - 1;
+                    
+                    // Find this rune's position among droppable runes
+                    const droppableIndex = runesWithDrops.findIndex(r => r.id === rune.id);
+                    const rarityFactor = droppableIndex / maxIndex;
+                    const luckFactor = (rarityFactor * 2) - 0.5;
+                    const adjustment = (luckBonus - 1) * luckFactor * 2.0;
+                    const modifiedRate = Math.max(1, rune.dropRate * (1 + adjustment));
+                    
+                    // Normalize to get actual percentage
+                    const allModifiedRates = currentRunes.map((r) => {
+                      if (r.dropRate === 0) return 0;
+                      const dIndex = runesWithDrops.findIndex(rd => rd.id === r.id);
+                      const rf = dIndex / maxIndex;
+                      const lf = (rf * 2) - 0.5;
+                      const adj = (luckBonus - 1) * lf * 2.0;
+                      return Math.max(1, r.dropRate * (1 + adj));
+                    });
+                    const totalRate = allModifiedRates.reduce((sum, rate) => sum + rate, 0);
+                    displayedDropRate = (modifiedRate / totalRate) * 100;
+                  }
                   
                   if (rune.moneyBonus && runeAmount > 0) {
                     individualBonuses.push(`💰 +${formatNumberGerman((rune.moneyBonus * runeAmount) * 100, 2)}% Money`);
@@ -755,11 +1148,22 @@ function App() {
                       textAlign: 'right',
                       zIndex: 1
                     }}>
-                      <div>{(rune.dropRate / 10).toFixed(1)}%</div>
+                      <div>
+                        {displayedDropRate.toFixed(1)}%
+                        {isBasicRunes && luckBonus > 1 && rune.dropRate > 0 && (
+                          <span style={{ 
+                            fontSize: '10px', 
+                            color: index === 0 ? '#60a5fa' : '#fb923c',
+                            marginLeft: '4px'
+                          }}>
+                            {index === 0 ? '❄️' : '🔥'}
+                          </span>
+                        )}
+                      </div>
                       <div style={{ fontSize: '10px', opacity: 0.7 }}>Drop Rate</div>
                     </div>
                     
-                    {/* Custom Tooltip */}
+                    {/* Hover Tooltip - Desktop only */}
                     {hoveredRune === index && runeAmount > 0 && individualBonuses.length > 0 && (
                       <div style={{
                         position: 'absolute',
@@ -773,8 +1177,8 @@ function App() {
                         boxShadow: `0 8px 32px rgba(0, 0, 0, 0.4), 0 0 20px ${rune.color}40`,
                         zIndex: 1000,
                         minWidth: '200px',
-                        animation: 'tooltipFadeIn 0.2s ease-out',
-                        backdropFilter: 'blur(10px)'
+                        backdropFilter: 'blur(10px)',
+                        pointerEvents: 'none'
                       }}>
                         <div style={{
                           color: rune.color,
@@ -791,19 +1195,13 @@ function App() {
                             color: '#e2e8f0',
                             fontSize: '12px',
                             marginBottom: '4px',
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: '8px',
                             padding: '4px 8px',
                             background: 'rgba(255, 255, 255, 0.1)',
-                            borderRadius: '6px',
-                            border: '1px solid rgba(255, 255, 255, 0.2)'
+                            borderRadius: '6px'
                           }}>
                             {bonus}
                           </div>
                         ))}
-                        
-                        {/* Tooltip Arrow */}
                         <div style={{
                           position: 'absolute',
                           bottom: '-8px',
@@ -1114,6 +1512,190 @@ function App() {
               </div>
             </div>
           )}
+
+          {/* Elemental Trader Button - appears when player has elemental runes */}
+          {hasElementalRunes && (
+            <div className="Trader-Button" style={{ marginTop: '16px', marginBottom: '16px' }}>
+              <button
+                onClick={() => setIsTraderOpen(true)}
+                style={{
+                  width: '100%',
+                  padding: '14px 16px',
+                  background: 'linear-gradient(135deg, #a855f7 0%, #9333ea 50%, #7e22ce 100%)',
+                  color: 'white',
+                  border: '2px solid #6b21a8',
+                  borderRadius: '12px',
+                  cursor: 'pointer',
+                  fontSize: '16px',
+                  fontWeight: 'bold',
+                  textShadow: '0 0 10px rgba(0,0,0,0.5)',
+                  boxShadow: '0 4px 12px rgba(168, 85, 247, 0.4)',
+                  transition: 'all 0.3s ease',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '8px',
+                  position: 'relative',
+                  overflow: 'hidden'
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.transform = 'translateY(-2px)';
+                  e.currentTarget.style.boxShadow = '0 6px 20px rgba(168, 85, 247, 0.6)';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.transform = 'none';
+                  e.currentTarget.style.boxShadow = '0 4px 12px rgba(168, 85, 247, 0.4)';
+                }}
+              >
+                <span style={{ fontSize: '20px' }}>⚡</span>
+                <span>Elemental Trader</span>
+                <span style={{
+                  fontSize: '12px',
+                  opacity: 0.9,
+                  background: 'rgba(0,0,0,0.3)',
+                  padding: '2px 8px',
+                  borderRadius: '6px',
+                  marginLeft: 'auto'
+                }}>
+                  {gameState.traderOffers && gameState.traderOffers.length > 0 ? `${gameState.traderOffers.length} offers` : 'New!'}
+                </span>
+              </button>
+            </div>
+          )}
+
+          {/* Elemental Prestige Active Bonuses Display */}
+          {hasElementalRunes && gameState.elementalPrestige && Object.values(gameState.elementalPrestige).some(level => level > 0) && (
+            <div style={{
+              marginTop: '16px',
+              marginBottom: '8px',
+              background: 'rgba(59, 130, 246, 0.1)',
+              borderRadius: '8px',
+              padding: '12px',
+              border: '1px solid rgba(59, 130, 246, 0.3)'
+            }}>
+              <div style={{
+                fontSize: '12px',
+                fontWeight: 'bold',
+                color: '#60a5fa',
+                marginBottom: '8px',
+                textAlign: 'center'
+              }}>
+                ⚡ Active Prestige Bonuses
+              </div>
+              <div style={{
+                display: 'flex',
+                flexWrap: 'wrap',
+                gap: '6px',
+                justifyContent: 'center',
+                fontSize: '11px'
+              }}>
+                {gameState.elementalPrestige.air > 0 && (
+                  <div style={{ 
+                    background: 'rgba(125, 211, 252, 0.2)', 
+                    padding: '4px 8px', 
+                    borderRadius: '4px',
+                    border: '1px solid rgba(125, 211, 252, 0.4)',
+                    color: '#7dd3fc'
+                  }}>
+                    💨 +{(gameState.elementalPrestige.air * 0.5).toFixed(1)}% Speed
+                  </div>
+                )}
+                {gameState.elementalPrestige.earth > 0 && (
+                  <div style={{ 
+                    background: 'rgba(134, 239, 172, 0.2)', 
+                    padding: '4px 8px', 
+                    borderRadius: '4px',
+                    border: '1px solid rgba(134, 239, 172, 0.4)',
+                    color: '#86efac'
+                  }}>
+                    🌍 +{(gameState.elementalPrestige.earth * 2).toFixed(0)}% Income
+                  </div>
+                )}
+                {gameState.elementalPrestige.water > 0 && (
+                  <div style={{ 
+                    background: 'rgba(96, 165, 250, 0.2)', 
+                    padding: '4px 8px', 
+                    borderRadius: '4px',
+                    border: '1px solid rgba(96, 165, 250, 0.4)',
+                    color: '#60a5fa'
+                  }}>
+                    💧 +{(gameState.elementalPrestige.water * 1).toFixed(0)}% Click
+                  </div>
+                )}
+                {gameState.elementalPrestige.fire > 0 && (
+                  <div style={{ 
+                    background: 'rgba(251, 146, 60, 0.2)', 
+                    padding: '4px 8px', 
+                    borderRadius: '4px',
+                    border: '1px solid rgba(251, 146, 60, 0.4)',
+                    color: '#fb923c'
+                  }}>
+                    🔥 +{(gameState.elementalPrestige.fire * 1).toFixed(0)}% Luck
+                  </div>
+                )}
+                {gameState.elementalPrestige.light > 0 && (
+                  <div style={{ 
+                    background: 'rgba(253, 224, 71, 0.2)', 
+                    padding: '4px 8px', 
+                    borderRadius: '4px',
+                    border: '1px solid rgba(253, 224, 71, 0.4)',
+                    color: '#fde047'
+                  }}>
+                    ✨ +{(gameState.elementalPrestige.light * 1).toFixed(0)}% RP
+                  </div>
+                )}
+                {gameState.elementalPrestige.dark > 0 && (
+                  <div style={{ 
+                    background: 'rgba(167, 139, 250, 0.2)', 
+                    padding: '4px 8px', 
+                    borderRadius: '4px',
+                    border: '1px solid rgba(167, 139, 250, 0.4)',
+                    color: '#a78bfa'
+                  }}>
+                    🌑 -{((1 - (1 / (1 + gameState.elementalPrestige.dark * 0.01))) * 100).toFixed(0)}% Cost
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* Elemental Prestige Button - appears when player has elemental runes */}
+          {hasElementalRunes && (
+            <div className="Prestige-Button" style={{ marginTop: '16px', marginBottom: '16px' }}>
+              <button
+                onClick={() => setIsPrestigeOpen(true)}
+                style={{
+                  width: '100%',
+                  padding: '14px 16px',
+                  background: 'linear-gradient(135deg, #fbbf24 0%, #f59e0b 50%, #d97706 100%)',
+                  color: 'white',
+                  border: '2px solid #b45309',
+                  borderRadius: '12px',
+                  cursor: 'pointer',
+                  fontSize: '16px',
+                  fontWeight: 'bold',
+                  textShadow: '0 0 10px rgba(0,0,0,0.5)',
+                  boxShadow: '0 4px 12px rgba(251, 191, 36, 0.4)',
+                  transition: 'all 0.3s ease',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '8px'
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.transform = 'translateY(-2px)';
+                  e.currentTarget.style.boxShadow = '0 6px 20px rgba(251, 191, 36, 0.6)';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.transform = 'none';
+                  e.currentTarget.style.boxShadow = '0 4px 12px rgba(251, 191, 36, 0.4)';
+                }}
+              >
+                <span style={{ fontSize: '20px' }}>✨</span>
+                <span>Elemental Ascension</span>
+              </button>
+            </div>
+          )}
           
           <div className="click-area">
             <MoneyButton 
@@ -1140,17 +1722,20 @@ function App() {
           {activePanel === 'upgrades' ? (
             <UpgradesPanel 
               gameState={gameState} 
-              buyUpgrade={buyUpgrade} 
+              buyUpgrade={buyUpgrade}
+              buyMaxUpgrades={buyMaxUpgrades}
             />
           ) : (gameState.rebirthPoints > 0 || gameState.rebirth_upgradeAmounts.some(amount => amount > 0)) ? (
             <RebirthPanel
               gameState={gameState}
               buyRebirthUpgrade={buyRebirthUpgrade}
+              buyMaxRebirthUpgrades={buyMaxRebirthUpgrades}
             />
           ) : (
             <UpgradesPanel 
               gameState={gameState} 
-              buyUpgrade={buyUpgrade} 
+              buyUpgrade={buyUpgrade}
+              buyMaxUpgrades={buyMaxUpgrades}
             />
           )}
         </div>
@@ -1188,7 +1773,7 @@ function App() {
             onTabChange={setMobileActiveTab}
             hasGems={bothUnlocksOwned}
             hasRebirth={isRebirthUnlocked}
-            showDev={import.meta.env.DEV}
+            hasElementalRunes={hasElementalRunes}
           />
 
           <div className="mobile-tab-content">
@@ -1339,6 +1924,14 @@ function App() {
                   </div>
                 )}
                 
+                {/* Event Notification - Fixed above MoneyButton */}
+                {gameState.activeEvent && (
+                  <EventNotification 
+                    eventId={gameState.activeEvent as any}
+                    eventEndTime={gameState.eventEndTime || null}
+                  />
+                )}
+                
                 <div className="mobile-click-area" style={{ position: 'relative', zIndex: 1 }}>
                   <MoneyButton 
                     onClick={clickMoney} 
@@ -1363,7 +1956,8 @@ function App() {
             {mobileActiveTab === 'upgrades' && (
               <UpgradesPanel 
                 gameState={gameState} 
-                buyUpgrade={buyUpgrade} 
+                buyUpgrade={buyUpgrade}
+                buyMaxUpgrades={buyMaxUpgrades}
               />
             )}
 
@@ -1371,6 +1965,7 @@ function App() {
               <RebirthPanel
                 gameState={gameState}
                 buyRebirthUpgrade={buyRebirthUpgrade}
+                buyMaxRebirthUpgrades={buyMaxRebirthUpgrades}
               />
             )}
 
@@ -1382,6 +1977,49 @@ function App() {
 
             {mobileActiveTab === 'statistics' && isRebirthUnlocked && (
               <StatisticsPanel gameState={gameState} onToggleDevStats={toggleDevStats} />
+            )}
+
+            {mobileActiveTab === 'settings' && (
+              <SettingsMenu 
+                isOpen={true}
+                onClose={() => setMobileActiveTab('stats')}
+                onReset={resetGame}
+                onOpenAnimationSettings={() => setIsAnimationSettingsOpen(true)}
+                disableMoneyEffects={gameState.disableMoneyEffects || false}
+                disableDiamondEffects={gameState.disableDiamondEffects || false}
+                disablePackAnimations={gameState.disablePackAnimations || false}
+              />
+            )}
+
+            {mobileActiveTab === 'dev' && (
+              <DevModal 
+                isOpen={true}
+                onClose={() => setMobileActiveTab('stats')}
+                gameState={gameState}
+                setGameState={setGameState}
+                devSimulateOfflineTime={devSimulateOfflineTime}
+                setOfflineProgress={setOfflineProgress}
+                onOpenTrader={() => setIsTraderOpen(true)}
+              />
+            )}
+
+            {mobileActiveTab === 'trader' && hasElementalRunes && (
+              <ElementalTraderModal 
+                isOpen={true}
+                onClose={() => setMobileActiveTab('stats')}
+                offers={getCurrentTraderOffers()}
+                gameState={gameState}
+                onAcceptOffer={handleAcceptTraderOffer}
+              />
+            )}
+
+            {mobileActiveTab === 'prestige' && hasElementalRunes && (
+              <ElementalPrestigeModal 
+                isOpen={true}
+                onClose={() => setMobileActiveTab('stats')}
+                gameState={gameState}
+                onPrestige={handleElementalPrestige}
+              />
             )}
 
             {mobileActiveTab === 'gems' && bothUnlocksOwned && (
@@ -1416,51 +2054,80 @@ function App() {
                   <div style={{ fontSize: '12px', color: '#3b82f6', marginTop: '4px' }}>Gems you own</div>
                 </div>
 
-                {/* Buy Pack Button */}
-                <div style={{ marginBottom: '24px' }}>
-                  <button
-                    onClick={openRunePack}
-                    disabled={
-                      gameState.currentRuneType === 'basic' 
-                        ? gameState.gems < 5 
-                        : gameState.money < 10000000
-                    }
-                    style={{
-                      width: '100%',
-                      padding: '16px',
-                      fontSize: '16px',
-                      fontWeight: 'bold',
-                      background: (
-                        gameState.currentRuneType === 'basic' 
-                          ? gameState.gems >= 5 
-                          : gameState.money >= 10000000
-                      )
-                        ? 'linear-gradient(135deg, #1d4ed8 0%, #3b82f6 50%, #60a5fa 100%)'
-                        : 'linear-gradient(135deg, #374151, #4b5563)',
-                      color: 'white',
-                      border: 'none',
-                      borderRadius: '12px',
-                      cursor: (
-                        gameState.currentRuneType === 'basic' 
-                          ? gameState.gems >= 5 
-                          : gameState.money >= 10000000
-                      ) ? 'pointer' : 'not-allowed',
-                      transition: 'all 0.3s ease',
-                      opacity: (
-                        gameState.currentRuneType === 'basic' 
-                          ? gameState.gems >= 5 
-                          : gameState.money >= 10000000
-                      ) ? 1 : 0.6
-                    }}
-                  >
-                    ✨ {gameState.currentRuneType === 'basic' ? 'Basic' : 'Elemental'} Rune-Pack ✨<br/>
-                    <span style={{ fontSize: '14px', opacity: 0.9 }}>
-                      {gameState.currentRuneType === 'basic' 
-                        ? '💎 5 Gems' 
-                        : '💰 10M Money'
-                      }
-                    </span>
-                  </button>
+                {/* Multi-Pack Purchase Buttons - Mobile */}
+                <div style={{ 
+                  marginBottom: '24px',
+                  background: 'rgba(147, 51, 234, 0.1)',
+                  borderRadius: '12px',
+                  padding: '16px',
+                  border: '1px solid rgba(147, 51, 234, 0.3)'
+                }}>
+                  <h3 style={{
+                    color: '#9333ea',
+                    fontSize: '16px',
+                    fontWeight: 'bold',
+                    textShadow: '0 0 8px rgba(147, 51, 234, 0.5)',
+                    marginBottom: '12px',
+                    textAlign: 'center'
+                  }}>
+                    📦 {gameState.currentRuneType === 'basic' ? 'Basic' : 'Elemental'} Rune Packs
+                  </h3>
+                  <div style={{
+                    display: 'flex',
+                    gap: '8px',
+                    justifyContent: 'center',
+                    flexDirection: 'column'
+                  }}>
+                    {[1, 5, 10, 'max'].map(count => {
+                      const isMax = count === 'max';
+                      const costPerPack = gameState.currentRuneType === 'basic' ? 5 : 250000;
+                      const currency = gameState.currentRuneType === 'basic' ? gameState.gems : gameState.money;
+                      const maxCount = isMax ? Math.floor(currency / costPerPack) : (count as number);
+                      const totalCost = costPerPack * maxCount;
+                      const canAfford = currency >= totalCost && maxCount > 0;
+                      
+                      return (
+                        <button
+                          key={count}
+                          onClick={() => handleBuyRunePacks(maxCount)}
+                          disabled={!canAfford}
+                          style={{
+                            padding: '14px 20px',
+                            background: canAfford 
+                              ? (isMax 
+                                ? 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)'
+                                : 'linear-gradient(135deg, #9333ea 0%, #7e22ce 100%)')
+                              : 'linear-gradient(135deg, #6b7280 0%, #4b5563 100%)',
+                            border: canAfford 
+                              ? (isMax ? '2px solid #fbbf24' : '2px solid #a855f7')
+                              : '2px solid #6b7280',
+                            borderRadius: '8px',
+                            color: 'white',
+                            fontSize: '15px',
+                            fontWeight: 'bold',
+                            cursor: canAfford ? 'pointer' : 'not-allowed',
+                            boxShadow: canAfford 
+                              ? (isMax 
+                                ? '0 4px 12px rgba(245, 158, 11, 0.4)'
+                                : '0 4px 12px rgba(147, 51, 234, 0.4)')
+                              : '0 2px 6px rgba(0, 0, 0, 0.2)',
+                            transition: 'all 0.2s ease',
+                            opacity: canAfford ? 1 : 0.5,
+                            width: '100%'
+                          }}
+                        >
+                          <div style={{ fontSize: '16px', marginBottom: '4px' }}>
+                            ✨ {isMax ? `${maxCount}x Packs (MAX)` : `${count}x Pack${typeof count === 'number' && count > 1 ? 's' : ''}`} ✨
+                          </div>
+                          <div style={{ fontSize: '13px', opacity: 0.9 }}>
+                            {gameState.currentRuneType === 'basic' 
+                              ? `💎 ${totalCost} Gems`
+                              : `💰 ${formatNumberGerman(totalCost)}$`}
+                          </div>
+                        </button>
+                      );
+                    })}
+                  </div>
                 </div>
 
                 {/* Secret Rune Craft Button - Mobile */}
@@ -1552,10 +2219,6 @@ function App() {
                           transition: 'all 0.3s ease',
                           cursor: 'pointer'
                         }}
-                        onMouseEnter={() => setHoveredRune(index)}
-                        onMouseLeave={() => setHoveredRune(null)}
-                        onTouchStart={() => setHoveredRune(index)}
-                        onTouchEnd={() => setTimeout(() => setHoveredRune(null), 2000)}
                       >
                         <div style={{ flex: 1 }}>
                           <div style={{ 
@@ -1575,23 +2238,23 @@ function App() {
                             {rune.rarity} Rune • {(rune.dropRate / 10)}% drop
                           </div>
                           
-                          {/* Bonus Information */}
-                          {hoveredRune === index && (
+                          {/* Mobile Bonus Display - Always visible if rune amount > 0 */}
+                          {runeAmount > 0 && (
                             <div style={{
                               fontSize: '10px',
                               color: '#60a5fa',
-                              lineHeight: 1.2,
+                              lineHeight: 1.3,
                               marginTop: '4px',
                               padding: '4px 6px',
                               background: 'rgba(59, 130, 246, 0.1)',
                               borderRadius: '4px',
                               border: '1px solid rgba(59, 130, 246, 0.2)'
                             }}>
-                              {rune.moneyBonus && `💰 +${(rune.moneyBonus * 100)}% Money`}
-                              {rune.rpBonus && `${rune.moneyBonus ? ' • ' : ''}🔄 +${(rune.rpBonus * 100)}% RP`}
-                              {rune.gemBonus && `${(rune.moneyBonus || rune.rpBonus) ? ' • ' : ''}💎 +${(rune.gemBonus * 100)}% Gem`}
-                              {rune.producing && `🌟 Produces ${rune.producing} (+${rune.produceAmount}/tick)`}
-                              {rune.tickBonus && `${(rune.moneyBonus || rune.rpBonus || rune.gemBonus) ? ' • ' : ''}⚡ -${rune.tickBonus}ms tick`}
+                              {rune.moneyBonus && `💰 +${(rune.moneyBonus * runeAmount * 100).toFixed(1)}%`}
+                              {rune.rpBonus && `${rune.moneyBonus ? ' • ' : ''}🔄 +${(rune.rpBonus * runeAmount * 100).toFixed(1)}%`}
+                              {rune.gemBonus && `${(rune.moneyBonus || rune.rpBonus) ? ' • ' : ''}💎 +${(rune.gemBonus * runeAmount * 100).toFixed(2)}%`}
+                              {rune.producing && `🌟 ${rune.producing} +${(rune.produceAmount || 0) * runeAmount}/tick`}
+                              {rune.tickBonus && `${(rune.moneyBonus || rune.rpBonus || rune.gemBonus) ? ' • ' : ''}⚡ -${rune.tickBonus}ms`}
                             </div>
                           )}
                         </div>
@@ -1731,299 +2394,21 @@ function App() {
                 )}
               </div>
             )}
-
-            {mobileActiveTab === 'dev' && import.meta.env.DEV && (
-              <div className="mobile-dev-panel">
-                <h2 style={{ 
-                  color: '#ff6b6b', 
-                  textAlign: 'center', 
-                  marginBottom: '24px',
-                  fontSize: '20px',
-                  fontWeight: 'bold'
-                }}>🔧 Dev Tools</h2>
-                
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                  <button 
-                    onClick={devAddMoney}
-                    style={{
-                      padding: '12px 16px',
-                      backgroundColor: '#4caf50',
-                      color: 'white',
-                      border: 'none',
-                      borderRadius: '8px',
-                      cursor: 'pointer',
-                      fontSize: '16px',
-                      fontWeight: 'bold'
-                    }}
-                  >
-                    💰 +100K Money
-                  </button>
-                  <button 
-                    onClick={devAddRebirthPoint}
-                    style={{
-                      padding: '12px 16px',
-                      backgroundColor: '#2196f3',
-                      color: 'white',
-                      border: 'none',
-                      borderRadius: '8px',
-                      cursor: 'pointer',
-                      fontSize: '16px',
-                      fontWeight: 'bold'
-                    }}
-                  >
-                    🔄 +10 Rebirth Points
-                  </button>
-                  <button 
-                    onClick={devAddGem}
-                    style={{
-                      padding: '12px 16px',
-                      backgroundColor: '#9c27b0',
-                      color: 'white',
-                      border: 'none',
-                      borderRadius: '8px',
-                      cursor: 'pointer',
-                      fontSize: '16px',
-                      fontWeight: 'bold'
-                    }}
-                  >
-                    💎 +10 Gems
-                  </button>
-                  <button
-                    onClick={devAddClick}
-                    style={{
-                      padding: '12px 16px',
-                      backgroundColor: '#504f4fff',
-                      color: 'white',
-                      border: 'none',
-                      borderRadius: '8px',
-                      cursor: 'pointer',
-                      fontSize: '16px',
-                      fontWeight: 'bold'
-                    }}
-                  >
-                    👆 +100 Clicks
-                  </button>
-                  
-                  {/* Rune Buttons */}
-                  <div style={{ 
-                    borderTop: '2px solid rgba(255, 255, 255, 0.3)', 
-                    marginTop: '16px', 
-                    paddingTop: '16px'
-                  }}>
-                    <h3 style={{ 
-                      fontSize: '16px',
-                      color: '#60a5fa',
-                      fontWeight: 'bold',
-                      marginBottom: '12px',
-                      textAlign: 'center'
-                    }}>
-                      🎲 Add Basic Runes
-                    </h3>
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', marginBottom: '16px' }}>
-                      {RUNES_1.map((rune, index) => (
-                        <button 
-                          key={rune.id}
-                          onClick={() => devAddRune(index)}
-                          style={{
-                            padding: '8px 12px',
-                            backgroundColor: rune.color,
-                            color: 'white',
-                            border: 'none',
-                            borderRadius: '6px',
-                            cursor: 'pointer',
-                            fontSize: '12px',
-                            fontWeight: 'bold',
-                            textShadow: '0 1px 2px rgba(0,0,0,0.5)'
-                          }}
-                          title={`Add 1x ${rune.name}`}
-                        >
-                          +{rune.name.split(' ')[0]}
-                        </button>
-                      ))}
-                    </div>
-                    
-                    <h3 style={{ 
-                      fontSize: '16px',
-                      color: '#c084fc',
-                      fontWeight: 'bold',
-                      marginBottom: '12px',
-                      textAlign: 'center'
-                    }}>
-                      ⚡ Add Elemental Runes
-                    </h3>
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
-                      {RUNES_2.map((rune, index) => (
-                        <button 
-                          key={rune.id}
-                          onClick={() => devAddElementalRune(index)}
-                          style={{
-                            padding: '8px 12px',
-                            backgroundColor: rune.color,
-                            color: 'white',
-                            border: 'none',
-                            borderRadius: '6px',
-                            cursor: 'pointer',
-                            fontSize: '12px',
-                            fontWeight: 'bold',
-                            textShadow: '0 1px 2px rgba(0,0,0,0.5)'
-                          }}
-                          title={`Add 1x ${rune.name}`}
-                        >
-                          +{rune.name.split(' ')[0]}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                </div>
-              </div>
-            )}
           </div>
         </div>
       </main>
 
-      {/* Development Panel - Nur in Dev Mode sichtbar und nur auf Desktop */}
-      {import.meta.env.DEV && (
-        <div className="dev-panel" style={{
-          position: 'fixed',
-          bottom: '20px',
-          right: '20px',
-          backgroundColor: '#ff6b6b',
-          border: '2px solid #ff5252',
-          borderRadius: '8px',
-          padding: '15px',
-          boxShadow: '0 4px 12px rgba(255, 107, 107, 0.3)',
-          zIndex: 1000,
-          display: window.innerWidth <= 1400 ? 'none' : 'block'
-        }}>
-          <h3 style={{ color: 'white', margin: '0 0 10px 0', fontSize: '14px' }}>🔧 Dev Tools</h3>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-            <button 
-              onClick={devAddMoney}
-              style={{
-                padding: '6px 12px',
-                backgroundColor: '#4caf50',
-                color: 'white',
-                border: 'none',
-                borderRadius: '4px',
-                cursor: 'pointer',
-                fontSize: '12px'
-              }}
-            >
-              +100K Money
-            </button>
-            <button 
-              onClick={devAddRebirthPoint}
-              style={{
-                padding: '6px 12px',
-                backgroundColor: '#2196f3',
-                color: 'white',
-                border: 'none',
-                borderRadius: '4px',
-                cursor: 'pointer',
-                fontSize: '12px'
-              }}
-            >
-              +10 Rebirth Point
-            </button>
-            <button 
-              onClick={devAddGem}
-              style={{
-                padding: '6px 12px',
-                backgroundColor: '#9c27b0',
-                color: 'white',
-                border: 'none',
-                borderRadius: '4px',
-                cursor: 'pointer',
-                fontSize: '12px'
-              }}
-            >
-              +10 Gem
-            </button>
-            <button
-              onClick={devAddClick}
-              style={{
-                padding: '6px 12px',
-                backgroundColor: '#504f4fff',
-                color: 'white',
-                border: 'none',
-                borderRadius: '4px',
-                cursor: 'pointer',
-                fontSize:'12px'
-              }}
-            >
-              +100 Clicks
-            </button>
-            
-            {/* Rune Buttons */}
-            <div style={{ 
-              borderTop: '1px solid rgba(255, 255, 255, 0.3)', 
-              marginTop: '8px', 
-              paddingTop: '8px',
-              fontSize: '11px',
-              color: 'white',
-              fontWeight: 'bold'
-            }}>
-              🎲 Basic Runes:
-            </div>
-            {RUNES_1.map((rune, index) => (
-              <button 
-                key={rune.id}
-                onClick={() => devAddRune(index)}
-                style={{
-                  padding: '4px 8px',
-                  backgroundColor: rune.color,
-                  color: 'white',
-                  border: 'none',
-                  borderRadius: '3px',
-                  cursor: 'pointer',
-                  fontSize: '10px',
-                  fontWeight: 'bold',
-                  textShadow: '0 1px 2px rgba(0,0,0,0.5)',
-                  marginBottom: '2px'
-                }}
-                title={`Add 1x ${rune.name}`}
-              >
-                +{rune.name.split(' ')[0]}
-              </button>
-            ))}
-            <div style={{ 
-              borderTop: '1px solid rgba(255, 255, 255, 0.3)', 
-              marginTop: '4px', 
-              paddingTop: '4px',
-              fontSize: '11px',
-              color: 'white',
-              fontWeight: 'bold'
-            }}>
-              ⚡ Elemental Runes:
-            </div>
-            {RUNES_2.map((rune, index) => (
-              <button 
-                key={rune.id}
-                onClick={() => devAddElementalRune(index)}
-                style={{
-                  padding: '4px 8px',
-                  backgroundColor: rune.color,
-                  color: 'white',
-                  border: 'none',
-                  borderRadius: '3px',
-                  cursor: 'pointer',
-                  fontSize: '10px',
-                  fontWeight: 'bold',
-                  textShadow: '0 1px 2px rgba(0,0,0,0.5)',
-                  marginBottom: '2px'
-                }}
-                title={`Add 1x ${rune.name}`}
-              >
-                +{rune.name.split(' ')[0]}
-              </button>
-            ))}
-          </div>
-        </div>
-      )}
-
       <footer className="app-footer">
-        <p>React Money Clicker v0.0.6 | Your progress is automatically saved!</p>
+        <p>React Money Clicker v0.1.1 | Your progress is automatically saved!</p>
       </footer>
+      
+      {/* Pack Opening Animation */}
+      {packResults && (
+        <PackOpeningAnimation 
+          results={packResults}
+          onComplete={closePackAnimation}
+        />
+      )}
       
       {/* Tooltip Animation CSS */}
       <style>{`
