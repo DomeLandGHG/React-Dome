@@ -99,3 +99,38 @@ export const getBonusDescription = (bonusType: string): string => {
     default: return 'Unknown';
   }
 };
+
+export const calculateElementalBonuses = (elementalPrestige: ElementalPrestige | null) => {
+  if (!elementalPrestige) return {
+    clickPowerBonus: 1,
+    autoIncomeBonus: 1,
+    autoSpeedBonus: 1,
+    rpGainBonus: 1,
+    runePackLuckBonus: 1,
+    upgradeDiscountBonus: 1
+  };
+
+  let clickPowerBonus = 1;
+  let autoIncomeBonus = 1;
+  let autoSpeedBonus = 1;
+  let rpGainBonus = 1;
+  let runePackLuckBonus = 1;
+  let upgradeDiscountBonus = 1;
+
+  ELEMENTAL_PRESTIGE_CONFIG.forEach(config => {
+    const level = elementalPrestige[config.elementName.toLowerCase() as keyof ElementalPrestige] || 0;
+    if (level > 0) {
+      const bonus = 1 + (config.bonusPerLevel * level / 100);
+      switch (config.bonusType) {
+        case 'clickPower': clickPowerBonus *= bonus; break;
+        case 'autoIncome': autoIncomeBonus *= bonus; break;
+        case 'autoSpeed': autoSpeedBonus *= bonus; break;
+        case 'rpGain': rpGainBonus *= bonus; break;
+        case 'runePackLuck': runePackLuckBonus *= bonus; break;
+        case 'upgradeDiscount': upgradeDiscountBonus *= bonus; break;
+      }
+    }
+  });
+
+  return { clickPowerBonus, autoIncomeBonus, autoSpeedBonus, rpGainBonus, runePackLuckBonus, upgradeDiscountBonus };
+};

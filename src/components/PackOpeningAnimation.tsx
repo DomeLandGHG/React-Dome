@@ -77,21 +77,15 @@ export const PackOpeningAnimation: React.FC<PackOpeningAnimationProps> = ({
       setPhase('complete');
     }, 500 + revealDuration + 1000);
 
-    // Phase 3: Auto-close nach 3 Sekunden
-    const closeTimer = setTimeout(() => {
-      onComplete();
-    }, 500 + revealDuration + 4000);
-
     return () => {
       clearTimeout(openTimer);
       clearTimeout(completeTimer);
-      clearTimeout(closeTimer);
     };
   }, [results, onComplete]);
 
   return (
-    <div className="pack-opening-overlay">
-      <div className="pack-opening-container">
+    <div className="pack-opening-overlay" onClick={(e) => e.stopPropagation()}>
+      <div className="pack-opening-container" onClick={(e) => e.stopPropagation()}>
         {phase === 'opening' && (
           <div className="pack-opening-animation">
             <div className="pack-box">

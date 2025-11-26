@@ -1,6 +1,8 @@
 import type { GameState } from '../types';
 import { formatNumberGerman } from '../types/German_number';
 import { UPGRADES } from '../types/Upgrade';
+import { EVENT_CONFIG } from '../types/ElementalEvent';
+import { calculateElementalBonuses } from '../types/ElementalPrestige';
 
 interface UpgradeButtonProps {
   name: string;
@@ -59,6 +61,12 @@ interface UpgradesPanelProps {
 }
 
 const UpgradesPanel = ({ gameState, buyUpgrade, buyMaxUpgrades }: UpgradesPanelProps) => {
+  // Calculate upgrade discount from Darkness event and Elemental Prestige
+  const activeEvent = gameState.activeEvent ? EVENT_CONFIG.find(e => e.id === gameState.activeEvent) : null;
+  const eventUpgradeDiscount = activeEvent?.effects.upgradeDiscount || 0;
+  const elementalBonuses = calculateElementalBonuses(gameState.elementalPrestige);
+  const totalDiscount = elementalBonuses.upgradeDiscountBonus * (1 - eventUpgradeDiscount);
+  
   return (
     <div className="upgrades-panel" style={{
       background: 'rgba(34, 197, 94, 0.1)',
@@ -103,10 +111,17 @@ const UpgradesPanel = ({ gameState, buyUpgrade, buyMaxUpgrades }: UpgradesPanelP
         {UPGRADES.map((upgrade, index) => {
           // Dynamische Namen für Unlock-Upgrades basierend auf Gems
           let displayName = upgrade.name;
-          let displayPrice = gameState.upgradePrices[index];
-          let canAfford = gameState.money >= gameState.upgradePrices[index];
+          let basePrice = gameState.upgradePrices[index];
+          let displayPrice = Math.floor(basePrice * totalDiscount);
+          let canAfford = gameState.money >= displayPrice;
           let isDisabled = false;
           let priceText = `${formatNumberGerman(displayPrice)}$`;
+          
+          // Show discount indicator if active
+          if (totalDiscount < 1) {
+            const discountPercent = Math.round((1 - totalDiscount) * 100);
+            priceText = `${formatNumberGerman(displayPrice)}$ (-${discountPercent}%)`;
+          }
           
           if (upgrade.type === 'Unlock') {
             if (gameState.gems === 0 && gameState.upgradeAmounts[index] === 0) {
@@ -124,17 +139,23 @@ const UpgradesPanel = ({ gameState, buyUpgrade, buyMaxUpgrades }: UpgradesPanelP
           }
           
           return (
-            <div key={upgrade.id} style={{ position: 'relative' }}>
-              <UpgradeButton
-                name={displayName}
-                price={displayPrice}
-                priceText={priceText}
-                amount={gameState.upgradeAmounts[index]}
-                maxAmount={gameState.maxUpgradeAmounts[index]}
-                canAfford={canAfford && !isDisabled}
-                isMaxed={gameState.upgradeAmounts[index] >= gameState.maxUpgradeAmounts[index]}
-                onClick={() => !isDisabled && buyUpgrade(index)}
-              />
+            <div key={upgrade.id} style={{ 
+              display: 'flex',
+              gap: '8px',
+              alignItems: 'stretch'
+            }}>
+              <div style={{ flex: 1, position: 'relative' }}>
+                <UpgradeButton
+                  name={displayName}
+                  price={displayPrice}
+                  priceText={priceText}
+                  amount={gameState.upgradeAmounts[index]}
+                  maxAmount={gameState.maxUpgradeAmounts[index]}
+                  canAfford={canAfford && !isDisabled}
+                  isMaxed={gameState.upgradeAmounts[index] >= gameState.maxUpgradeAmounts[index]}
+                  onClick={() => !isDisabled && buyUpgrade(index)}
+                />
+              </div>
               {gameState.maxUpgradeAmounts[index] > 1 && gameState.upgradeAmounts[index] < gameState.maxUpgradeAmounts[index] && (
                 <button
                   onClick={(e) => {
@@ -143,10 +164,7 @@ const UpgradesPanel = ({ gameState, buyUpgrade, buyMaxUpgrades }: UpgradesPanelP
                   }}
                   disabled={isDisabled}
                   style={{
-                    position: 'absolute',
-                    top: '8px',
-                    right: '8px',
-                    padding: '4px 10px',
+                    padding: '8px 12px',
                     background: 'linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%)',
                     border: '2px solid #d97706',
                     borderRadius: '12px',
@@ -158,10 +176,13 @@ const UpgradesPanel = ({ gameState, buyUpgrade, buyMaxUpgrades }: UpgradesPanelP
                     transition: 'all 0.2s ease',
                     textTransform: 'uppercase',
                     letterSpacing: '0.5px',
-                    zIndex: 10
+                    minWidth: '50px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center'
                   }}
                   onMouseEnter={(e) => {
-                    e.currentTarget.style.transform = 'scale(1.1)';
+                    e.currentTarget.style.transform = 'scale(1.05)';
                     e.currentTarget.style.boxShadow = '0 3px 10px rgba(251, 191, 36, 0.6)';
                   }}
                   onMouseLeave={(e) => {
@@ -169,7 +190,7 @@ const UpgradesPanel = ({ gameState, buyUpgrade, buyMaxUpgrades }: UpgradesPanelP
                     e.currentTarget.style.boxShadow = '0 2px 6px rgba(251, 191, 36, 0.4)';
                   }}
                 >
-                  max
+                  MAX
                 </button>
               )}
             </div>

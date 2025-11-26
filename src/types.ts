@@ -40,6 +40,11 @@ export interface GameState {
     dark: number;
   };
   
+  // Elemental Events
+  activeEvent?: string | null; // ID of currently active event (fireStorm, earthquake, etc.)
+  eventEndTime?: number | null; // timestamp when current event ends
+  nextEventTime?: number | null; // timestamp when next event should start
+  
   // Statistics
   stats: {
     allTimeMoneyEarned: number;
@@ -163,6 +168,9 @@ export const INITIAL_GAME_STATE: GameState = {
     light: 0,
     dark: 0
   },
+  activeEvent: null,
+  eventEndTime: null,
+  nextEventTime: null,
   stats: {
     allTimeMoneyEarned: 0,
     moneyFromClicks: 0,

@@ -6,7 +6,7 @@ export interface Achievement {
   unlocked: boolean;
   tier?: number; // Für mehrstufige Achievements (z.B. Money I, Money II)
   requirement?: {
-    type: 'money' | 'rebirth' | 'clicks' | 'gems' | 'upgrades' | 'elements' | 'runespurchased' | 'onlinetime' | 'offlinetime';
+    type: 'money' | 'rebirth' | 'clicks' | 'gems' | 'upgrades' | 'elements' | 'runespurchased' | 'onlinetime' | 'offlinetime' | 'ascensions';
     value: number;
   };
   requiresUnlock?: boolean; // z.B. Gem-Achievements brauchen Gem-Unlock Upgrade
@@ -27,7 +27,7 @@ export const ACHIEVEMENTS: Achievement[] = [
       value: 1000
     },
     maxTier: 100,
-    tierMultiplier: 1000
+    tierMultiplier: 2
   },
   {
     id: 1,
@@ -41,7 +41,7 @@ export const ACHIEVEMENTS: Achievement[] = [
       value: 10
     },
     maxTier: 100,
-    tierMultiplier: 10
+    tierMultiplier: 2
   },
   {
     id: 2,
@@ -56,7 +56,7 @@ export const ACHIEVEMENTS: Achievement[] = [
     },
     requiresUnlock: true,
     maxTier: 100,
-    tierMultiplier: 10
+    tierMultiplier: 2
   },
   {
     id: 3,
@@ -70,7 +70,7 @@ export const ACHIEVEMENTS: Achievement[] = [
       value: 100
     },
     maxTier: 100,
-    tierMultiplier: 100
+    tierMultiplier: 2
   },
   {
     id: 4,
@@ -84,7 +84,7 @@ export const ACHIEVEMENTS: Achievement[] = [
       value: 5
     },
     maxTier: 100,
-    tierMultiplier: 5
+    tierMultiplier: 2
   },
   {
     id: 5,
@@ -99,7 +99,7 @@ export const ACHIEVEMENTS: Achievement[] = [
     },
     requiresUnlock: true,
     maxTier: 100,
-    tierMultiplier: 100
+    tierMultiplier: 2
   },
   {
     id: 6,
@@ -110,11 +110,11 @@ export const ACHIEVEMENTS: Achievement[] = [
     tier: 1,
     requirement: {
       type: 'runespurchased',
-      value: 10
+      value: 5
     },
     requiresUnlock: true,
     maxTier: 100,
-    tierMultiplier: 10
+    tierMultiplier: 2
   },
   {
     id: 7,
@@ -143,5 +143,20 @@ export const ACHIEVEMENTS: Achievement[] = [
     },
     maxTier: 50,
     tierMultiplier: 3600 // Each tier = +1 hour
+  },
+  {
+    id: 9,
+    name: 'Ascension Master',
+    description: 'Perform',
+    icon: '✨',
+    unlocked: false,
+    tier: 1,
+    requirement: {
+      type: 'ascensions',
+      value: 1
+    },
+    requiresUnlock: true,
+    maxTier: 100,
+    tierMultiplier: 1
   },
 ];

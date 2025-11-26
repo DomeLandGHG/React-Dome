@@ -3,6 +3,7 @@ import type { GameState } from '../types';
 import { RUNES_1, RUNES_2 } from '../types/Runes';
 import { ACHIEVEMENTS } from '../types/Achievement';
 import { TRADER_OFFERS, generateRandomOffers } from '../types/ElementalTrader';
+import { EVENT_CONFIG } from '../types/ElementalEvent';
 
 interface DevModalProps {
   isOpen: boolean;
@@ -20,6 +21,7 @@ const DevModal = ({ isOpen, onClose, gameState, setGameState, setOfflineProgress
   const [showHelp, setShowHelp] = useState(false);
   const [showRunesPage, setShowRunesPage] = useState(false);
   const [showAchievements, setShowAchievements] = useState(false);
+  const [showEventsPage, setShowEventsPage] = useState(false);
   const commandInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -41,6 +43,7 @@ const DevModal = ({ isOpen, onClose, gameState, setGameState, setOfflineProgress
     { cmd: 'resetGame()', desc: 'Reset entire game' },
     { cmd: 'maxUpgrade(index)', desc: 'Max buy upgrade by index (0-4)' },
     { cmd: 'setAllAchievements(tier)', desc: 'Set all achievements to tier' },
+    { cmd: 'maxAllAchievements()', desc: 'Max all achievements to their maxTier' },
     { cmd: 'unlockAchievement(id)', desc: 'Unlock achievement by id (0-8)' },
     { cmd: 'setAchievementTier(id, tier)', desc: 'Set achievement tier (id: 0-8)' },
     { cmd: 'addRune(id, amount)', desc: 'Add base rune (id: 0-6)' },
@@ -48,6 +51,9 @@ const DevModal = ({ isOpen, onClose, gameState, setGameState, setOfflineProgress
     { cmd: 'addElement(id, amount)', desc: 'Add elemental resource (id: 0-5)' },
     { cmd: 'refreshTrader()', desc: 'Refresh trader offers' },
     { cmd: 'showTrader()', desc: 'Show current trader offers' },
+    { cmd: 'startEvent(id)', desc: 'Start event (0-5: fireStorm, earthquake, solarFlare, tsunami, darkness, tempest)' },
+    { cmd: 'stopEvent()', desc: 'Stop current event' },
+    { cmd: 'showEvents()', desc: 'Show all available events' },
     { cmd: '.help()', desc: 'Show all available commands' },
     { cmd: '.achievements()', desc: 'Show achievement list with IDs' },
     { cmd: '.clear()', desc: 'Clear command history' },
@@ -231,6 +237,19 @@ const DevModal = ({ isOpen, onClose, gameState, setGameState, setOfflineProgress
         return;
       }
 
+      // Max all achievements command
+      if (trimmedCmd === 'maxAllAchievements()') {
+        setGameState(prev => ({
+          ...prev,
+          achievements: ACHIEVEMENTS.map((ach, index) => ({ 
+            id: index, 
+            tier: ach.maxTier || 100 
+          }))
+        }));
+        setCommandHistory(prev => [...prev, `✅ Maxed all achievements to their maxTier`]);
+        return;
+      }
+
       const unlockAchievementMatch = trimmedCmd.match(/^unlockAchievement\(([^)]+)\)$/);
       if (unlockAchievementMatch) {
         const id = parseInt(unlockAchievementMatch[1]);
@@ -363,6 +382,49 @@ const DevModal = ({ isOpen, onClose, gameState, setGameState, setOfflineProgress
         return;
       }
 
+      // Event commands
+      const startEventMatch = trimmedCmd.match(/^startEvent\(([^)]+)\)$/);
+      if (startEventMatch) {
+        const eventId = parseInt(startEventMatch[1]);
+        if (isNaN(eventId) || eventId < 0 || eventId >= EVENT_CONFIG.length) {
+          throw new Error('Invalid event ID. Use 0-5 or event name.');
+        }
+        const event = EVENT_CONFIG[eventId];
+        const now = Date.now();
+        setGameState(prev => ({
+          ...prev,
+          activeEvent: event.id,
+          eventEndTime: now + event.duration,
+          nextEventTime: null
+        }));
+        setCommandHistory(prev => [...prev, `✅ Started event: ${event.name} (${event.icon}) - ${event.description}`]);
+        return;
+      }
+
+      if (trimmedCmd === 'stopEvent()') {
+        if (!gameState.activeEvent) {
+          setCommandHistory(prev => [...prev, `⚠️ No active event to stop`]);
+        } else {
+          const activeEvent = EVENT_CONFIG.find(e => e.id === gameState.activeEvent);
+          const now = Date.now();
+          const nextEventDelay = (10 + Math.random() * 10) * 60 * 1000;
+          setGameState(prev => ({
+            ...prev,
+            activeEvent: null,
+            eventEndTime: null,
+            nextEventTime: now + nextEventDelay
+          }));
+          setCommandHistory(prev => [...prev, `✅ Stopped event: ${activeEvent?.name || 'Unknown'}`]);
+        }
+        return;
+      }
+
+      if (trimmedCmd === 'showEvents()') {
+        const eventList = EVENT_CONFIG.map((e, i) => `${i}: ${e.icon} ${e.name} - ${e.description}`).join('\n');
+        setCommandHistory(prev => [...prev, `📋 Available Events:\n${eventList}`]);
+        return;
+      }
+
       // If no command matched
       throw new Error('Unknown command. Type .help() for available commands.');
       
@@ -378,6 +440,254 @@ const DevModal = ({ isOpen, onClose, gameState, setGameState, setOfflineProgress
       commandInputRef.current.focus();
     }
   };
+
+  // Events Manager Page
+  if (showEventsPage) {
+    const activeEvent = gameState.activeEvent ? EVENT_CONFIG.find(e => e.id === gameState.activeEvent) : null;
+    const timeRemaining = gameState.eventEndTime ? Math.max(0, gameState.eventEndTime - Date.now()) : 0;
+    const minutesRemaining = Math.floor(timeRemaining / 60000);
+    const secondsRemaining = Math.floor((timeRemaining % 60000) / 1000);
+
+    return (
+      <>
+        {/* Backdrop */}
+        <div 
+          style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            backgroundColor: 'rgba(0, 0, 0, 0.8)',
+            zIndex: 10000,
+            animation: 'fadeIn 0.3s ease-out'
+          }}
+          onClick={() => setShowEventsPage(false)}
+        />
+        
+        {/* Events Modal */}
+        <div style={{
+          position: 'fixed',
+          top: '50%',
+          left: '50%',
+          transform: 'translate(-50%, -50%)',
+          background: 'linear-gradient(135deg, #1e293b 0%, #0f172a 100%)',
+          border: '3px solid #f59e0b',
+          borderRadius: '24px',
+          padding: '20px',
+          boxShadow: '0 20px 60px rgba(0, 0, 0, 0.9), 0 0 40px rgba(245, 158, 11, 0.4)',
+          zIndex: 10001,
+          width: '90vw',
+          maxWidth: '700px',
+          maxHeight: '90vh',
+          overflow: 'auto',
+          animation: 'slideIn 0.3s ease-out'
+        }}>
+          {/* Header */}
+          <div style={{
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            marginBottom: '24px'
+          }}>
+            <h2 style={{
+              color: '#f59e0b',
+              fontSize: '24px',
+              fontWeight: 'bold',
+              margin: 0,
+              textShadow: '0 0 20px rgba(245, 158, 11, 0.6)'
+            }}>
+              🌍 Events Manager
+            </h2>
+            <button
+              onClick={() => setShowEventsPage(false)}
+              style={{
+                background: 'rgba(239, 68, 68, 0.2)',
+                border: '2px solid #ef4444',
+                borderRadius: '8px',
+                padding: '8px 16px',
+                cursor: 'pointer',
+                color: '#fca5a5',
+                fontSize: '14px',
+                fontWeight: 'bold',
+                transition: 'all 0.2s ease'
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.background = 'rgba(239, 68, 68, 0.4)';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.background = 'rgba(239, 68, 68, 0.2)';
+              }}
+            >
+              ✕ Back
+            </button>
+          </div>
+
+          {/* Active Event Status */}
+          {activeEvent ? (
+            <div style={{
+              background: 'linear-gradient(135deg, rgba(34, 197, 94, 0.2) 0%, rgba(22, 163, 74, 0.1) 100%)',
+              border: '2px solid rgba(34, 197, 94, 0.5)',
+              borderRadius: '16px',
+              padding: '20px',
+              marginBottom: '24px'
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '16px', marginBottom: '12px' }}>
+                <span style={{ fontSize: '48px' }}>{activeEvent.icon}</span>
+                <div style={{ flex: 1 }}>
+                  <h3 style={{ color: '#22c55e', margin: '0 0 8px 0', fontSize: '20px' }}>{activeEvent.name}</h3>
+                  <p style={{ color: '#94a3b8', margin: 0, fontSize: '14px' }}>{activeEvent.description}</p>
+                </div>
+                <div style={{
+                  background: 'rgba(0, 0, 0, 0.3)',
+                  padding: '12px 20px',
+                  borderRadius: '12px',
+                  textAlign: 'center'
+                }}>
+                  <div style={{ color: '#64748b', fontSize: '11px', marginBottom: '4px' }}>TIME LEFT</div>
+                  <div style={{ color: '#22c55e', fontSize: '24px', fontWeight: 'bold', fontFamily: 'monospace' }}>
+                    {minutesRemaining}:{secondsRemaining.toString().padStart(2, '0')}
+                  </div>
+                </div>
+              </div>
+              <button
+                onClick={() => {
+                  const now = Date.now();
+                  const nextEventDelay = (10 + Math.random() * 10) * 60 * 1000;
+                  setGameState(prev => ({
+                    ...prev,
+                    activeEvent: null,
+                    eventEndTime: null,
+                    nextEventTime: now + nextEventDelay
+                  }));
+                }}
+                style={{
+                  background: 'linear-gradient(135deg, #dc2626 0%, #991b1b 100%)',
+                  border: '2px solid #7f1d1d',
+                  borderRadius: '10px',
+                  padding: '10px 20px',
+                  cursor: 'pointer',
+                  color: 'white',
+                  fontSize: '14px',
+                  fontWeight: 'bold',
+                  width: '100%',
+                  transition: 'all 0.2s ease'
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.transform = 'translateY(-2px)';
+                  e.currentTarget.style.boxShadow = '0 6px 16px rgba(220, 38, 38, 0.4)';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.transform = 'none';
+                  e.currentTarget.style.boxShadow = 'none';
+                }}
+              >
+                🛑 Stop Event
+              </button>
+            </div>
+          ) : (
+            <div style={{
+              background: 'rgba(100, 116, 139, 0.1)',
+              border: '2px solid rgba(100, 116, 139, 0.3)',
+              borderRadius: '16px',
+              padding: '20px',
+              marginBottom: '24px',
+              textAlign: 'center'
+            }}>
+              <p style={{ color: '#94a3b8', margin: 0, fontSize: '16px' }}>
+                ⏸️ No event currently active
+              </p>
+            </div>
+          )}
+
+          {/* Event List */}
+          <h3 style={{ color: '#cbd5e1', margin: '0 0 16px 0', fontSize: '18px' }}>Available Events:</h3>
+          <div style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(2, 1fr)',
+            gap: '16px'
+          }}>
+            {EVENT_CONFIG.map((event) => (
+              <div
+                key={event.id}
+                style={{
+                  background: gameState.activeEvent === event.id 
+                    ? 'linear-gradient(135deg, rgba(34, 197, 94, 0.2) 0%, rgba(22, 163, 74, 0.1) 100%)'
+                    : 'rgba(30, 41, 59, 0.6)',
+                  border: gameState.activeEvent === event.id
+                    ? '2px solid rgba(34, 197, 94, 0.5)'
+                    : '2px solid rgba(100, 116, 139, 0.3)',
+                  borderRadius: '12px',
+                  padding: '16px',
+                  transition: 'all 0.2s ease',
+                  cursor: 'pointer'
+                }}
+                onMouseEnter={(e) => {
+                  if (gameState.activeEvent !== event.id) {
+                    e.currentTarget.style.borderColor = 'rgba(245, 158, 11, 0.6)';
+                    e.currentTarget.style.transform = 'translateY(-2px)';
+                  }
+                }}
+                onMouseLeave={(e) => {
+                  if (gameState.activeEvent !== event.id) {
+                    e.currentTarget.style.borderColor = 'rgba(100, 116, 139, 0.3)';
+                    e.currentTarget.style.transform = 'none';
+                  }
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '12px' }}>
+                  <span style={{ fontSize: '32px' }}>{event.icon}</span>
+                  <div style={{ flex: 1 }}>
+                    <h4 style={{ color: '#e2e8f0', margin: '0 0 4px 0', fontSize: '16px' }}>{event.name}</h4>
+                    <p style={{ color: '#94a3b8', margin: 0, fontSize: '13px' }}>{event.description}</p>
+                  </div>
+                </div>
+                <button
+                  onClick={() => {
+                    const now = Date.now();
+                    setGameState(prev => ({
+                      ...prev,
+                      activeEvent: event.id,
+                      eventEndTime: now + event.duration,
+                      nextEventTime: null
+                    }));
+                  }}
+                  disabled={gameState.activeEvent === event.id}
+                  style={{
+                    background: gameState.activeEvent === event.id
+                      ? 'rgba(100, 116, 139, 0.3)'
+                      : 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)',
+                    border: '2px solid ' + (gameState.activeEvent === event.id ? '#64748b' : '#b45309'),
+                    borderRadius: '8px',
+                    padding: '8px 16px',
+                    cursor: gameState.activeEvent === event.id ? 'not-allowed' : 'pointer',
+                    color: 'white',
+                    fontSize: '13px',
+                    fontWeight: 'bold',
+                    width: '100%',
+                    transition: 'all 0.2s ease',
+                    opacity: gameState.activeEvent === event.id ? 0.5 : 1
+                  }}
+                  onMouseEnter={(e) => {
+                    if (gameState.activeEvent !== event.id) {
+                      e.currentTarget.style.transform = 'translateY(-2px)';
+                    }
+                  }}
+                  onMouseLeave={(e) => {
+                    if (gameState.activeEvent !== event.id) {
+                      e.currentTarget.style.transform = 'none';
+                    }
+                  }}
+                >
+                  {gameState.activeEvent === event.id ? '✅ Active' : '▶️ Start Event'}
+                </button>
+              </div>
+            ))}
+          </div>
+        </div>
+      </>
+    );
+  }
 
   // Runes Page
   if (showRunesPage) {
@@ -407,11 +717,11 @@ const DevModal = ({ isOpen, onClose, gameState, setGameState, setOfflineProgress
           background: 'linear-gradient(135deg, #1e293b 0%, #0f172a 100%)',
           border: '3px solid #8b5cf6',
           borderRadius: '24px',
-          padding: '30px',
+          padding: '20px',
           boxShadow: '0 20px 60px rgba(0, 0, 0, 0.9), 0 0 40px rgba(139, 92, 246, 0.4)',
           zIndex: 10001,
-          minWidth: '700px',
-          maxWidth: '90vw',
+          width: '90vw',
+          maxWidth: '700px',
           maxHeight: '90vh',
           overflow: 'auto',
           animation: 'slideIn 0.3s ease-out'
@@ -571,11 +881,11 @@ const DevModal = ({ isOpen, onClose, gameState, setGameState, setOfflineProgress
         background: 'linear-gradient(135deg, #1e293b 0%, #0f172a 100%)',
         border: '3px solid #f59e0b',
         borderRadius: '24px',
-        padding: '30px',
+        padding: '20px',
         boxShadow: '0 20px 60px rgba(0, 0, 0, 0.9), 0 0 40px rgba(245, 158, 11, 0.4)',
         zIndex: 10001,
-        minWidth: '700px',
-        maxWidth: '90vw',
+        width: '90vw',
+        maxWidth: '700px',
         maxHeight: '90vh',
         overflow: 'auto',
         animation: 'slideIn 0.3s ease-out'
@@ -734,7 +1044,7 @@ const DevModal = ({ isOpen, onClose, gameState, setGameState, setOfflineProgress
           marginBottom: '20px'
         }}>
           <h3 style={{ color: '#22c55e', margin: '0 0 12px 0', fontSize: '16px' }}>⚡ Quick Actions:</h3>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '10px' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
             <button onClick={() => handleDevButton('addMoney(amount)', 'Add Money')} style={buttonStyle}>💰 Add Money</button>
             <button onClick={() => handleDevButton('addRP(amount)', 'Add Rebirth Points')} style={buttonStyle}>🔄 Add RP</button>
             <button onClick={() => handleDevButton('addGems(amount)', 'Add Gems')} style={buttonStyle}>💎 Add Gems</button>
@@ -744,6 +1054,7 @@ const DevModal = ({ isOpen, onClose, gameState, setGameState, setOfflineProgress
             <button onClick={() => handleDevButton('simulateOffline(minutes)', 'Simulate Offline (minutes)')} style={buttonStyle}>💤 Offline Time</button>
             <button onClick={() => handleDevButton('setAllAchievements(tier)', 'Set All Achievements')} style={buttonStyle}>🏆 Set Achievements</button>
             <button onClick={() => setShowRunesPage(true)} style={{...buttonStyle, background: 'linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%)', borderColor: '#6d28d9'}}>📜 Runes Manager</button>
+            <button onClick={() => setShowEventsPage(true)} style={{...buttonStyle, background: 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)', borderColor: '#b45309'}}>🌍 Events Manager</button>
             <button 
               onClick={() => {
                 executeCommand('refreshTrader()');

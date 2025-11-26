@@ -62,13 +62,13 @@ const ElementalPrestigeModal = ({ isOpen, onClose, gameState, onPrestige }: Elem
         transform: 'translate(-50%, -50%)',
         background: 'linear-gradient(135deg, #1e293b 0%, #0f172a 100%)',
         border: '3px solid #fbbf24',
-        borderRadius: '24px',
-        padding: '30px',
+        borderRadius: '16px',
+        padding: '16px',
         boxShadow: '0 20px 60px rgba(0, 0, 0, 0.9), 0 0 40px rgba(251, 191, 36, 0.4)',
         zIndex: 10001,
-        minWidth: '700px',
-        maxWidth: '90vw',
-        maxHeight: '90vh',
+        width: '90vw',
+        maxWidth: '600px',
+        maxHeight: '85vh',
         overflow: 'auto',
         animation: 'slideIn 0.3s ease-out'
       }}>
@@ -125,9 +125,9 @@ const ElementalPrestigeModal = ({ isOpen, onClose, gameState, onPrestige }: Elem
 
         {/* Elements Grid */}
         <div style={{
-          display: 'grid',
-          gridTemplateColumns: 'repeat(2, 1fr)',
-          gap: '16px'
+          display: 'flex',
+          flexDirection: 'column',
+          gap: '12px'
         }}>
           {ELEMENTAL_PRESTIGE_CONFIG.map((config) => {
             const currentLevel = Object.values(prestigeLevels)[config.elementId];

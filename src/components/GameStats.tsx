@@ -5,6 +5,7 @@ import { formatNumberGerman } from '../types/German_number';
 import { RUNES_1 } from '../types/Runes';
 import { REBIRTHUPGRADES } from '../types/Rebirth_Upgrade';
 import { ELEMENTAL_PRESTIGE_CONFIG } from '../types/ElementalPrestige';
+import { EVENT_CONFIG } from '../types/ElementalEvent';
 
 
 interface GameStatsProps {
@@ -124,9 +125,18 @@ const GameStats = ({ gameState }: GameStatsProps) => {
       });
     }
 
-    // Calculate final values with achievement bonuses and elemental prestige
-    const perClickTotal = gameState.moneyPerClick * clickMultiplier * runeMultiplier * rebirthPointMultiplier * achievementMoneyMultiplier * clickPowerBonus;
-    const perTickTotal = gameState.moneyPerTick * clickMultiplier * runeMultiplier * rebirthPointMultiplier * achievementMoneyMultiplier * autoIncomeBonus;
+    // Event Bonuses
+    const activeEvent = gameState.activeEvent ? EVENT_CONFIG.find(e => e.id === gameState.activeEvent) : null;
+    const eventGemMultiplier = activeEvent?.effects.gemMultiplier || 1;
+    const eventGemDropMultiplier = activeEvent?.effects.gemDropMultiplier || 1;
+    const eventClickPowerMultiplier = activeEvent?.effects.clickPowerMultiplier || 1;
+    const eventAutoIncomeMultiplier = activeEvent?.effects.autoIncomeMultiplier || 1;
+    const eventAutoSpeedMultiplier = activeEvent?.effects.autoSpeedMultiplier || 1;
+    const eventUpgradeDiscount = activeEvent?.effects.upgradeDiscount || 0;
+
+    // Calculate final values with achievement bonuses, elemental prestige, and event bonuses
+    const perClickTotal = gameState.moneyPerClick * clickMultiplier * runeMultiplier * rebirthPointMultiplier * achievementMoneyMultiplier * clickPowerBonus * eventClickPowerMultiplier;
+    const perTickTotal = gameState.moneyPerTick * clickMultiplier * runeMultiplier * rebirthPointMultiplier * achievementMoneyMultiplier * autoIncomeBonus * eventAutoIncomeMultiplier;
 
     return { 
       perClickTotal, 
@@ -147,7 +157,14 @@ const GameStats = ({ gameState }: GameStatsProps) => {
       autoSpeedBonus,
       rpGainBonus,
       runePackLuckBonus,
-      upgradeDiscountBonus
+      upgradeDiscountBonus,
+      eventGemMultiplier,
+      eventGemDropMultiplier,
+      eventClickPowerMultiplier,
+      eventAutoIncomeMultiplier,
+      eventAutoSpeedMultiplier,
+      eventUpgradeDiscount,
+      activeEvent
     };
   };
 
@@ -161,7 +178,7 @@ const GameStats = ({ gameState }: GameStatsProps) => {
     if (!showGems) return 0;
     const baseGemChance = 0.005; // 0.5% base chance
     const bonusGemChance = values.totalGemBonus + values.achievementGemBonus;
-    return baseGemChance + bonusGemChance;
+    return (baseGemChance + bonusGemChance) * values.eventGemDropMultiplier; // Apply Tempest event bonus
   };
   
   const gemChance = calculateGemChance();
@@ -226,9 +243,13 @@ const GameStats = ({ gameState }: GameStatsProps) => {
           onMouseLeave={handleMouseLeave}
         >
           <span className="stat-label" style={{ color: '#cbd5e1', fontSize: '14px', fontWeight: '500' }}>Per Tick:</span>
-          <span className="stat-value" style={{ color: '#4ade80', fontWeight: 'bold', fontSize: '16px' }}>{formatNumberGerman(values.perTickTotal)}$/s
+          <span className="stat-value" style={{ color: '#4ade80', fontWeight: 'bold', fontSize: '16px' }}>
+            {formatNumberGerman(values.perTickTotal)}$/s
             {(values.clickMultiplier > 1 || values.runeMultiplier > 1 || values.rebirthPointMultiplier > 1) && (
               <span style={{ fontSize: '0.9em', color: '#94a3b8' }}> ({formatNumberGerman(gameState.moneyPerTick)}$)</span>
+            )}
+            {values.eventAutoSpeedMultiplier > 1 && values.activeEvent && (
+              <span style={{ fontSize: '0.85em', color: '#f59e0b', marginLeft: '4px' }}> {values.activeEvent.icon}×{values.eventAutoSpeedMultiplier}</span>
             )}
           </span>
         </div>
@@ -266,6 +287,9 @@ const GameStats = ({ gameState }: GameStatsProps) => {
               {formatNumberGerman(gemChance * 100, 2)}%
               {values.totalGemBonus > 0 && (
                 <span style={{ fontSize: '0.9em', color: '#94a3b8' }}> (0,5%)</span>
+              )}
+              {(values.eventGemDropMultiplier > 1 || values.eventGemMultiplier > 1) && values.activeEvent && (
+                <span style={{ fontSize: '0.85em', color: '#60a5fa', marginLeft: '4px' }}> {values.activeEvent.icon}</span>
               )}
             </span>
           </div>
@@ -415,6 +439,23 @@ const GameStats = ({ gameState }: GameStatsProps) => {
                   </div>
                 )}
                 
+                {hoveredStat === 'click' && values.eventClickPowerMultiplier > 1 && values.activeEvent && (
+                  <div style={{
+                    color: '#e2e8f0',
+                    fontSize: '12px',
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                    padding: '6px 8px',
+                    background: 'rgba(245, 158, 11, 0.1)',
+                    borderRadius: '6px',
+                    border: '1px solid rgba(245, 158, 11, 0.3)'
+                  }}>
+                    <span>{values.activeEvent.icon} {values.activeEvent.name}:</span>
+                    <span style={{ color: '#f59e0b', fontWeight: 'bold' }}>×{formatNumberGerman(values.eventClickPowerMultiplier, 2)}</span>
+                  </div>
+                )}
+                
                 {hoveredStat === 'tick' && values.autoIncomeBonus > 1 && (
                   <div style={{
                     color: '#e2e8f0',
@@ -429,6 +470,57 @@ const GameStats = ({ gameState }: GameStatsProps) => {
                   }}>
                     <span>🌍 Elemental Prestige (Earth):</span>
                     <span style={{ color: '#86efac', fontWeight: 'bold' }}>×{formatNumberGerman(values.autoIncomeBonus, 2)}</span>
+                  </div>
+                )}
+                
+                {hoveredStat === 'tick' && values.eventAutoIncomeMultiplier > 1 && values.activeEvent && (
+                  <div style={{
+                    color: '#e2e8f0',
+                    fontSize: '12px',
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                    padding: '6px 8px',
+                    background: 'rgba(245, 158, 11, 0.1)',
+                    borderRadius: '6px',
+                    border: '1px solid rgba(245, 158, 11, 0.3)'
+                  }}>
+                    <span>{values.activeEvent.icon} {values.activeEvent.name} (Income):</span>
+                    <span style={{ color: '#f59e0b', fontWeight: 'bold' }}>×{formatNumberGerman(values.eventAutoIncomeMultiplier, 2)}</span>
+                  </div>
+                )}
+                
+                {hoveredStat === 'tick' && values.autoSpeedBonus > 1 && (
+                  <div style={{
+                    color: '#e2e8f0',
+                    fontSize: '12px',
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                    padding: '6px 8px',
+                    background: 'rgba(134, 239, 172, 0.1)',
+                    borderRadius: '6px',
+                    border: '1px solid rgba(134, 239, 172, 0.3)'
+                  }}>
+                    <span>💨 Elemental Prestige (Air):</span>
+                    <span style={{ color: '#86efac', fontWeight: 'bold' }}>×{formatNumberGerman(values.autoSpeedBonus, 2)}</span>
+                  </div>
+                )}
+                
+                {hoveredStat === 'tick' && values.eventAutoSpeedMultiplier > 1 && values.activeEvent && (
+                  <div style={{
+                    color: '#e2e8f0',
+                    fontSize: '12px',
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                    padding: '6px 8px',
+                    background: 'rgba(245, 158, 11, 0.1)',
+                    borderRadius: '6px',
+                    border: '1px solid rgba(245, 158, 11, 0.3)'
+                  }}>
+                    <span>{values.activeEvent.icon} {values.activeEvent.name} (Speed):</span>
+                    <span style={{ color: '#f59e0b', fontWeight: 'bold' }}>×{formatNumberGerman(values.eventAutoSpeedMultiplier, 2)}</span>
                   </div>
                 )}
                 

@@ -6,47 +6,18 @@ import { RUNES_1, RUNES_2 } from './types/Runes';
 import { UPGRADES } from './types/Upgrade';
 import { REBIRTHUPGRADES } from './types/Rebirth_Upgrade';
 import { ACHIEVEMENTS } from './types/Achievement';
-import { ELEMENTAL_PRESTIGE_CONFIG } from './types/ElementalPrestige';
+import { ELEMENTAL_PRESTIGE_CONFIG, calculateElementalBonuses } from './types/ElementalPrestige';
+import { EVENT_CONFIG, getRandomEvent, getUnlockedElements, type ElementalEvent } from './types/ElementalEvent';
 
 export const useGameLogic = () => {
   const [gameState, setGameState] = useState<GameState>(() => loadGameState());
   const [offlineProgress, setOfflineProgress] = useState<{ time: number; money: number } | null>(null);
 
-  // Calculate Elemental Prestige Bonuses
-  const calculateElementalBonuses = useCallback((elementalPrestige: any) => {
-    if (!elementalPrestige) return {
-      clickPowerBonus: 1,
-      autoIncomeBonus: 1,
-      autoSpeedBonus: 1,
-      rpGainBonus: 1,
-      runePackLuckBonus: 1,
-      upgradeDiscountBonus: 1
-    };
-
-    let clickPowerBonus = 1;
-    let autoIncomeBonus = 1;
-    let autoSpeedBonus = 1;
-    let rpGainBonus = 1;
-    let runePackLuckBonus = 1;
-    let upgradeDiscountBonus = 1;
-
-    ELEMENTAL_PRESTIGE_CONFIG.forEach(config => {
-      const level = elementalPrestige[config.elementName.toLowerCase()] || 0;
-      if (level > 0) {
-        const bonus = 1 + (config.bonusPerLevel * level / 100);
-        switch (config.bonusType) {
-          case 'clickPower': clickPowerBonus *= bonus; break;
-          case 'autoIncome': autoIncomeBonus *= bonus; break;
-          case 'autoSpeed': autoSpeedBonus *= bonus; break;
-          case 'rpGain': rpGainBonus *= bonus; break;
-          case 'runePackLuck': runePackLuckBonus *= bonus; break;
-          case 'upgradeDiscount': upgradeDiscountBonus *= bonus; break;
-        }
-      }
-    });
-
-    return { clickPowerBonus, autoIncomeBonus, autoSpeedBonus, rpGainBonus, runePackLuckBonus, upgradeDiscountBonus };
-  }, []);
+  // Get current active event
+  const getActiveEvent = useCallback((): ElementalEvent | null => {
+    if (!gameState.activeEvent) return null;
+    return EVENT_CONFIG.find(e => e.id === gameState.activeEvent) || null;
+  }, [gameState.activeEvent]);
 
   // Calculate offline progress on initial load
   useEffect(() => {
@@ -192,6 +163,11 @@ export const useGameLogic = () => {
             case 'offlinetime':
               currentValue = currentState.stats?.offlineTime || 0;
               break;
+            case 'ascensions':
+              currentValue = currentState.elementalPrestige 
+                ? Object.values(currentState.elementalPrestige).reduce((a, b) => a + b, 0)
+                : 0;
+              break;
           }
           
           if (currentValue >= requiredValue) {
@@ -244,6 +220,12 @@ export const useGameLogic = () => {
             case 'offlinetime':
               conditionMet = (currentState.stats?.offlineTime || 0) >= value;
               break;
+            case 'ascensions':
+              const totalAscensions = currentState.elementalPrestige 
+                ? Object.values(currentState.elementalPrestige).reduce((a, b) => a + b, 0)
+                : 0;
+              conditionMet = totalAscensions >= value;
+              break;
           }
           
           if (conditionMet) {
@@ -286,10 +268,13 @@ export const useGameLogic = () => {
   // Auto money generation & Rebirth-Upgrade: +1 Click per Tick & Elemental Rune Production
   useEffect(() => {
     if (gameState.moneyPerTick > 0 || gameState.rebirth_upgradeAmounts[1] > 0 || gameState.elementalRunes.some(amount => amount > 0)) {
-      // Calculate tick speed with Air Prestige bonus
+      // Calculate tick speed with Air Prestige bonus and Solar Flare event
       const elementalBonuses = calculateElementalBonuses(gameState.elementalPrestige);
+      const activeEvent = gameState.activeEvent ? EVENT_CONFIG.find(e => e.id === gameState.activeEvent) : null;
+      const eventAutoSpeedMultiplier = activeEvent?.effects.autoSpeedMultiplier || 1;
+      
       const baseTickInterval = 1000; // 1 second
-      const tickInterval = Math.max(100, Math.floor(baseTickInterval / elementalBonuses.autoSpeedBonus)); // Min 100ms
+      const tickInterval = Math.max(100, Math.floor(baseTickInterval / (elementalBonuses.autoSpeedBonus * eventAutoSpeedMultiplier))); // Min 100ms
       
       const interval = setInterval(() => {
         setGameState(prev => {
@@ -328,8 +313,12 @@ export const useGameLogic = () => {
               const bonus = Math.log(prev.rebirthPoints + 1) * effectValue; // log(RP + 1) * 0.05 als Decimal
               rebirthPointMultiplier = 1 + bonus;
             }
+            // Event bonuses: Earthquake (×5 Auto Income)
+            const activeEvent = prev.activeEvent ? EVENT_CONFIG.find(e => e.id === prev.activeEvent) : null;
+            const eventAutoIncomeMultiplier = activeEvent?.effects.autoIncomeMultiplier || 1;
+            
             // Apply achievement bonus to money
-            moneyFromTicks = prev.moneyPerTick * multiplier * runeMultiplier * rebirthPointMultiplier * achievementBonuses.moneyMultiplier;
+            moneyFromTicks = prev.moneyPerTick * multiplier * runeMultiplier * rebirthPointMultiplier * achievementBonuses.moneyMultiplier * eventAutoIncomeMultiplier;
             newMoney += moneyFromTicks;
           }
           
@@ -389,6 +378,95 @@ export const useGameLogic = () => {
     }
   }, [gameState.moneyPerTick, gameState.rebirth_upgradeAmounts, gameState.clicksTotal, gameState.elementalRunes, calculateAchievementBonuses]);
 
+  // Elemental Events System
+  useEffect(() => {
+    const now = Date.now();
+    
+    // Initialize event timers if not set
+    if (!gameState.nextEventTime) {
+      // Schedule first event in 10-20 minutes
+      const firstEventDelay = (10 + Math.random() * 10) * 60 * 1000;
+      setGameState(prev => ({
+        ...prev,
+        nextEventTime: now + firstEventDelay
+      }));
+      return;
+    }
+    
+    // Check if we need to start a new event
+    if (gameState.nextEventTime && now >= gameState.nextEventTime && !gameState.activeEvent) {
+      const unlockedElements = getUnlockedElements(gameState.elementalRunes);
+      
+      if (unlockedElements.length > 0) {
+        const newEvent = getRandomEvent(unlockedElements);
+        
+        if (newEvent) {
+          setGameState(prev => ({
+            ...prev,
+            activeEvent: newEvent.id,
+            eventEndTime: now + newEvent.duration,
+            nextEventTime: null
+          }));
+        }
+      } else {
+        // No unlocked elements, schedule next check
+        const nextCheckDelay = (10 + Math.random() * 10) * 60 * 1000;
+        setGameState(prev => ({
+          ...prev,
+          nextEventTime: now + nextCheckDelay
+        }));
+      }
+    }
+    
+    // Check if current event should end
+    if (gameState.activeEvent && gameState.eventEndTime && now >= gameState.eventEndTime) {
+      // End current event and schedule next one
+      const nextEventDelay = (10 + Math.random() * 10) * 60 * 1000;
+      setGameState(prev => ({
+        ...prev,
+        activeEvent: null,
+        eventEndTime: null,
+        nextEventTime: now + nextEventDelay
+      }));
+    }
+    
+    // Check every second for event transitions
+    const interval = setInterval(() => {
+      const currentTime = Date.now();
+      
+      // Check if event should start
+      if (gameState.nextEventTime && currentTime >= gameState.nextEventTime && !gameState.activeEvent) {
+        const unlockedElements = getUnlockedElements(gameState.elementalRunes);
+        
+        if (unlockedElements.length > 0) {
+          const newEvent = getRandomEvent(unlockedElements);
+          
+          if (newEvent) {
+            setGameState(prev => ({
+              ...prev,
+              activeEvent: newEvent.id,
+              eventEndTime: currentTime + newEvent.duration,
+              nextEventTime: null
+            }));
+          }
+        }
+      }
+      
+      // Check if event should end
+      if (gameState.activeEvent && gameState.eventEndTime && currentTime >= gameState.eventEndTime) {
+        const nextEventDelay = (10 + Math.random() * 10) * 60 * 1000;
+        setGameState(prev => ({
+          ...prev,
+          activeEvent: null,
+          eventEndTime: null,
+          nextEventTime: currentTime + nextEventDelay
+        }));
+      }
+    }, 1000);
+    
+    return () => clearInterval(interval);
+  }, [gameState.nextEventTime, gameState.activeEvent, gameState.eventEndTime, gameState.elementalRunes]);
+
   const clickMoney = useCallback(() => {
     setGameState(prev => {
       // Achievement bonuses
@@ -416,12 +494,17 @@ export const useGameLogic = () => {
         }
       });
       
+      // Event bonuses
+      const activeEvent = prev.activeEvent ? EVENT_CONFIG.find(e => e.id === prev.activeEvent) : null;
+      const eventGemMultiplier = activeEvent?.effects.gemMultiplier || 1;
+      const eventGemDropMultiplier = activeEvent?.effects.gemDropMultiplier || 1;
+      
       let newGems = prev.gems;
       let gemsEarned = 0;
       // Gem Drop Chance wenn das dritte Rebirth-Upgrade gekauft wurde
       if (prev.rebirth_upgradeAmounts[2] > 0) {
         const baseGemChance = REBIRTHUPGRADES[2].effect; // 0.005 = 0.5%
-        const totalGemChance = baseGemChance + totalGemBonus + achievementBonuses.gemBonusChance;
+        const totalGemChance = (baseGemChance + totalGemBonus + achievementBonuses.gemBonusChance) * eventGemDropMultiplier;
         
         // Wenn Chance über 100%, garantiert mindestens 1 Gem + Chance für mehr
         if (totalGemChance >= 1.0) {
@@ -437,6 +520,7 @@ export const useGameLogic = () => {
             gemsEarned = 1;
           }
         }
+        gemsEarned = Math.floor(gemsEarned * eventGemMultiplier); // Fire Storm: 2× Gems
         newGems += gemsEarned;
       }
       
@@ -453,7 +537,8 @@ export const useGameLogic = () => {
       // Elemental Prestige Boni
       const elementalBonuses = calculateElementalBonuses(prev.elementalPrestige);
       
-      const moneyEarned = prev.moneyPerClick * multiplier * runeMoneyMultiplier * rebirthPointMultiplier * achievementBonuses.moneyMultiplier * elementalBonuses.clickPowerBonus;
+      const eventClickPowerMultiplier = activeEvent?.effects.clickPowerMultiplier || 1;
+      const moneyEarned = prev.moneyPerClick * multiplier * runeMoneyMultiplier * rebirthPointMultiplier * achievementBonuses.moneyMultiplier * elementalBonuses.clickPowerBonus * eventClickPowerMultiplier;
       
       const newState = {
         ...prev,
@@ -516,8 +601,13 @@ export const useGameLogic = () => {
       
       // Normale Upgrade-Logik
       if (prev.money >= currentPrice && currentAmount < maxAmount) {
+        // Event bonuses: Darkness (-25% Upgrade Costs)
+        const activeEvent = prev.activeEvent ? EVENT_CONFIG.find(e => e.id === prev.activeEvent) : null;
+        const eventUpgradeDiscount = activeEvent?.effects.upgradeDiscount || 0;
+        
         const elementalBonuses = calculateElementalBonuses(prev.elementalPrestige);
-        const discountedPrice = Math.floor(currentPrice / elementalBonuses.upgradeDiscountBonus);
+        const totalDiscount = elementalBonuses.upgradeDiscountBonus * (1 - eventUpgradeDiscount);
+        const discountedPrice = Math.floor(currentPrice * totalDiscount);
         
         if (prev.money < discountedPrice) return prev;
         

@@ -1,6 +1,7 @@
 import type { GameState } from '../types';
 import { formatNumberGerman } from '../types/German_number';
 import { RUNES_1 } from '../types/Runes';
+import { calculateElementalBonuses } from '../types/ElementalPrestige';
 
 interface ActionButtonsProps {
   money: number;
@@ -34,7 +35,12 @@ const ActionButtons = ({ money, onRebirth, onReset, gameState /* onCheat, moneyP
   
   const runeRpBonus = calculateRuneRpBonus();
   const runeRpMultiplier = 1 + runeRpBonus;
-  const totalRebirthPoints = Math.floor(baseRebirthPoints * runeRpMultiplier * achievementRpMultiplier);
+  
+  // Calculate elemental prestige RP bonus
+  const elementalBonuses = calculateElementalBonuses(gameState.elementalPrestige);
+  const elementalRpBonus = elementalBonuses.rpGainBonus - 1; // Convert multiplier to bonus percentage
+  
+  const totalRebirthPoints = Math.floor(baseRebirthPoints * runeRpMultiplier * achievementRpMultiplier * elementalBonuses.rpGainBonus);
 
   return (
     <div className="action-buttons">
@@ -70,11 +76,13 @@ const ActionButtons = ({ money, onRebirth, onReset, gameState /* onCheat, moneyP
           <div style={{ fontSize: '18px', marginBottom: '4px' }}>🔄 REBIRTH</div>
           <div className="rebirth-info" style={{ fontSize: '14px', color: '#e9d5ff' }}>
             Get {formatNumberGerman(totalRebirthPoints)} Rebirth Points
-            {(runeRpBonus > 0 || achievementRpBonus > 0) && (
+            {(runeRpBonus > 0 || achievementRpBonus > 0 || elementalRpBonus > 0) && (
               <span style={{ fontSize: '0.9em', color: '#c4b5fd', display: 'block' }}>
                 {runeRpBonus > 0 && `+${formatNumberGerman(runeRpBonus * 100)}% from runes`}
-                {runeRpBonus > 0 && achievementRpBonus > 0 && ', '}
+                {runeRpBonus > 0 && (achievementRpBonus > 0 || elementalRpBonus > 0) && ', '}
                 {achievementRpBonus > 0 && `+${formatNumberGerman(achievementRpBonus * 100)}% from achievements`}
+                {achievementRpBonus > 0 && elementalRpBonus > 0 && ', '}
+                {elementalRpBonus > 0 && `+${formatNumberGerman(elementalRpBonus * 100)}% from prestige`}
               </span>
             )}
           </div>

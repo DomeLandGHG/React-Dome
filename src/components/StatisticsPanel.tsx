@@ -94,6 +94,14 @@ const StatisticsPanel: React.FC<StatisticsPanelProps> = ({ gameState, onToggleDe
       ]
     },
     {
+      title: '🏆 Records',
+      stats: [
+        { label: 'Highest Money (Single Rebirth)', value: formatNumberGerman(stats.highestMoneyInSingleRebirth || 0) + '$' },
+        { label: 'Fastest Rebirth', value: stats.fastestRebirthTime ? formatTime(stats.fastestRebirthTime) : 'N/A' },
+        { label: 'Total Achievements Unlocked', value: formatNumberGerman(gameState.achievements.filter(a => a.unlocked).length) + ' / ' + formatNumberGerman(gameState.achievements.length) },
+      ]
+    },
+    {
       title: '💸 All Time Spending',
       stats: [
         { label: 'Money Spent', value: formatNumberGerman(stats.allTimeMoneySpent) + '$' },

@@ -102,6 +102,30 @@ const SettingsMenu = ({ isOpen, onClose, onReset, onOpenAnimationSettings, disab
           flexDirection: 'column',
           gap: '16px'
         }}>
+          {/* Version Section */}
+          <div style={{
+            background: 'rgba(100, 116, 139, 0.1)',
+            border: '2px solid rgba(100, 116, 139, 0.3)',
+            borderRadius: '12px',
+            padding: '16px',
+            textAlign: 'center'
+          }}>
+            <div style={{
+              color: '#60a5fa',
+              fontSize: '14px',
+              fontWeight: 'bold',
+              marginBottom: '4px'
+            }}>
+              🎮 Money Clicker
+            </div>
+            <div style={{
+              color: '#94a3b8',
+              fontSize: '13px'
+            }}>
+              Version V.0.1.1
+            </div>
+          </div>
+
           {/* Animations Section */}
           <div style={{
             background: 'rgba(100, 116, 139, 0.1)',

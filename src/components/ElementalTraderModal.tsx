@@ -81,13 +81,13 @@ const ElementalTraderModal = ({ isOpen, onClose, offers, gameState, onAcceptOffe
         transform: 'translate(-50%, -50%)',
         background: 'linear-gradient(135deg, #1e293b 0%, #0f172a 100%)',
         border: '3px solid #a855f7',
-        borderRadius: '24px',
-        padding: '30px',
+        borderRadius: '16px',
+        padding: '16px',
         boxShadow: '0 20px 60px rgba(0, 0, 0, 0.9), 0 0 40px rgba(168, 85, 247, 0.4)',
         zIndex: 10001,
-        minWidth: '600px',
-        maxWidth: '90vw',
-        maxHeight: '90vh',
+        width: '90vw',
+        maxWidth: '600px',
+        maxHeight: '85vh',
         overflow: 'auto',
         animation: 'slideIn 0.3s ease-out'
       }}>
