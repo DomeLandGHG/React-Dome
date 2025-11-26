@@ -1993,7 +1993,7 @@ function App() {
               />
             )}
 
-            {mobileActiveTab === 'dev' && (
+            {mobileActiveTab === 'dev' && import.meta.env.DEV && (
               <DevModal 
                 isOpen={true}
                 onClose={() => setMobileActiveTab('stats')}
