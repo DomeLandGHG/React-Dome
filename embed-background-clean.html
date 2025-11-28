@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Money Clicker - Embed Background (No Button)</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            width: 100vw;
+            height: 100vh;
+            overflow: hidden;
+            font-family: Arial, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background: #2a2a2a;
+        }
+
+        .embed-background {
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+            position: relative;
+            overflow: hidden;
+        }
+
+        /* Animated gradient overlay */
+        .gradient-overlay {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            background: 
+                radial-gradient(circle at 30% 40%, rgba(102, 126, 234, 0.15) 0%, transparent 50%),
+                radial-gradient(circle at 70% 60%, rgba(118, 75, 162, 0.15) 0%, transparent 50%);
+            animation: gradientShift 8s ease-in-out infinite;
+        }
+
+        @keyframes gradientShift {
+            0%, 100% { opacity: 0.5; }
+            50% { opacity: 0.8; }
+        }
+
+        /* Geometric pattern */
+        .pattern {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            background-image: 
+                repeating-linear-gradient(45deg, transparent, transparent 60px, rgba(255,255,255,0.02) 60px, rgba(255,255,255,0.02) 120px),
+                repeating-linear-gradient(-45deg, transparent, transparent 60px, rgba(255,255,255,0.01) 60px, rgba(255,255,255,0.01) 120px);
+        }
+
+        /* Center play area */
+        .play-area {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 400px;
+            height: 280px;
+            background: rgba(0, 0, 0, 0.4);
+            border-radius: 20px;
+            border: 3px solid rgba(255, 215, 0, 0.3);
+            backdrop-filter: blur(10px);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 25px;
+            box-shadow: 
+                0 20px 60px rgba(0, 0, 0, 0.5),
+                inset 0 0 30px rgba(255, 215, 0, 0.05);
+        }
+
+        /* Title */
+        .title {
+            text-align: center;
+        }
+
+        .title h1 {
+            font-size: 36px;
+            font-weight: bold;
+            color: #fff;
+            text-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+            margin-bottom: 6px;
+            letter-spacing: 2px;
+        }
+
+        .title p {
+            font-size: 14px;
+            color: #ffd700;
+            text-shadow: 0 2px 10px rgba(0, 0, 0, 0.5);
+            font-weight: 600;
+        }
+
+        /* Money icon */
+        .money-icon {
+            width: 100px;
+            height: 100px;
+            background: linear-gradient(135deg, #ffd700 0%, #ffed4e 100%);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 50px;
+            box-shadow: 
+                0 10px 30px rgba(255, 215, 0, 0.6),
+                inset 0 -5px 15px rgba(0, 0, 0, 0.2);
+            animation: pulse 2s ease-in-out infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.08); }
+        }
+
+        /* Floating decorations */
+        .deco {
+            position: absolute;
+            opacity: 0.3;
+            animation: floatAround 6s ease-in-out infinite;
+        }
+
+        .deco:nth-child(1) { top: 15%; left: 10%; font-size: 40px; animation-delay: 0s; }
+        .deco:nth-child(2) { top: 20%; right: 15%; font-size: 35px; animation-delay: 1s; }
+        .deco:nth-child(3) { bottom: 20%; left: 15%; font-size: 45px; animation-delay: 2s; }
+        .deco:nth-child(4) { bottom: 15%; right: 10%; font-size: 38px; animation-delay: 1.5s; }
+        .deco:nth-child(5) { top: 45%; left: 8%; font-size: 32px; animation-delay: 0.5s; }
+        .deco:nth-child(6) { top: 55%; right: 8%; font-size: 36px; animation-delay: 2.5s; }
+
+        @keyframes floatAround {
+            0%, 100% { transform: translateY(0px) rotate(0deg); opacity: 0.3; }
+            50% { transform: translateY(-25px) rotate(180deg); opacity: 0.6; }
+        }
+
+        /* Instructions */
+        .instructions {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: rgba(0,0,0,0.85);
+            color: #ffd700;
+            padding: 20px;
+            border-radius: 12px;
+            font-size: 14px;
+            z-index: 1000;
+            max-width: 300px;
+            border: 2px solid rgba(255,215,0,0.3);
+        }
+
+        .instructions h3 {
+            margin: 0 0 10px 0;
+            color: #fff;
+            font-size: 16px;
+        }
+
+        .instructions p {
+            margin: 5px 0;
+            line-height: 1.6;
+        }
+
+        .instructions kbd {
+            background: #333;
+            padding: 2px 6px;
+            border-radius: 3px;
+            border: 1px solid #555;
+            font-family: monospace;
+        }
+    </style>
+</head>
+<body>
+    <div class="embed-background">
+        <div class="gradient-overlay"></div>
+        <div class="pattern"></div>
+
+        <!-- Floating decorations -->
+        <div class="deco">💰</div>
+        <div class="deco">💎</div>
+        <div class="deco">💰</div>
+        <div class="deco">💎</div>
+        <div class="deco">🔮</div>
+        <div class="deco">⚡</div>
+
+        <!-- Play area (No button version) -->
+        <div class="play-area">
+            <div class="title">
+                <h1>MONEY CLICKER</h1>
+                <p>Click, Upgrade, Ascend</p>
+            </div>
+            <div class="money-icon">💰</div>
+        </div>
+    </div>
+
+    <div class="instructions">
+        <h3>📸 Screenshot Instructions</h3>
+        <p><strong>Embed Background (No Button)</strong></p>
+        <p>• Clean version without button</p>
+        <p>• Press <kbd>F11</kbd> for fullscreen</p>
+        <p>• Screenshot entire screen or play area</p>
+        <p>• 400x280px play area centered</p>
+    </div>
+</body>
+</html>
