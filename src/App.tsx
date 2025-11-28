@@ -1330,6 +1330,11 @@ function App() {
                 gap: '16px'
               }}>
                 {elementalStats.map((stat, index) => {
+                  // Calculate achievement bonus
+                  const totalAchievementTiers = gameState.achievements.reduce((sum, a) => sum + (a.tier || 0), 0);
+                  const achievementMultiplier = 1 + totalAchievementTiers * 0.01; // 1% per tier
+                  const productionWithBonus = stat.totalProducing * achievementMultiplier;
+                  
                   // Konvertiere hex zu rgba
                   const hexToRgba = (hex: string, alpha: number) => {
                     const r = parseInt(hex.slice(1, 3), 16);
@@ -1372,7 +1377,7 @@ function App() {
                       marginBottom: '2px',
                       fontWeight: '500'
                     }}>
-                      +{stat.totalProducing}/tick
+                      +{formatNumberGerman(productionWithBonus)}/tick
                     </div>
                     <div style={{
                       fontSize: '10px',
@@ -1814,6 +1819,11 @@ function App() {
                       gap: '16px'
                     }}>
                       {elementalStats.map((stat, index) => {
+                        // Calculate achievement bonus
+                        const totalAchievementTiers = gameState.achievements.reduce((sum, a) => sum + (a.tier || 0), 0);
+                        const achievementMultiplier = 1 + totalAchievementTiers * 0.01; // 1% per tier
+                        const productionWithBonus = stat.totalProducing * achievementMultiplier;
+                        
                         // Konvertiere hex zu rgba
                         const hexToRgba = (hex: string, alpha: number) => {
                           const r = parseInt(hex.slice(1, 3), 16);
@@ -1856,7 +1866,7 @@ function App() {
                             marginBottom: '2px',
                             fontWeight: '500'
                           }}>
-                            +{stat.totalProducing}/tick
+                            +{formatNumberGerman(productionWithBonus)}/tick
                           </div>
                           <div style={{
                             fontSize: '10px',

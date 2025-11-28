@@ -75,10 +75,9 @@ export const RUNES_1: Rune[] = [  //Basic Rune
     rarity: 'Secret',
     color: '#404040ff', // Grey
     dropRate: 0, // Not obtainable through normal means
-    rpBonus: 0.50, // +50% RP
-    moneyBonus: 1.00, // +100% money
-    gemBonus: 0.005, // +0.5% gem chance
-    tickBonus: 1, // -1 millisecond per tick
+    rpBonus: 3.50, // +350% RP
+    moneyBonus: 5.00, // +500% money
+    gemBonus: 0.03, // +3% gem chance
   },      //Tick is standard at 1 second/100 miliseconds
 ];
 

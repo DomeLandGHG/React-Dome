@@ -141,7 +141,7 @@ export const useGameLogic = () => {
               currentValue = currentState.gems;
               break;
             case 'upgrades':
-              currentValue = currentState.upgradeAmounts.reduce((a, b) => a + b, 0);
+              currentValue = currentState.stats?.totalUpgradesPurchased || 0;
               break;
             case 'elements':
               currentValue = currentState.stats?.allTimeElementsProduced 
@@ -196,7 +196,7 @@ export const useGameLogic = () => {
               conditionMet = currentState.gems >= value;
               break;
             case 'upgrades':
-              conditionMet = currentState.upgradeAmounts.reduce((a, b) => a + b, 0) >= value;
+              conditionMet = (currentState.stats?.totalUpgradesPurchased || 0) >= value;
               break;
             case 'elements':
               const totalElements = currentState.stats?.allTimeElementsProduced 
@@ -587,16 +587,15 @@ export const useGameLogic = () => {
       }
       
       // Normale Upgrade-Logik
-      if (prev.money >= currentPrice && currentAmount < maxAmount) {
-        // Event bonuses: Darkness (-25% Upgrade Costs)
-        const activeEvent = prev.activeEvent ? EVENT_CONFIG.find(e => e.id === prev.activeEvent) : null;
-        const eventUpgradeDiscount = activeEvent?.effects.upgradeDiscount || 0;
-        
-        const elementalBonuses = calculateElementalBonuses(prev.elementalPrestige || null);
-        const totalDiscount = elementalBonuses.upgradeDiscountBonus * (1 - eventUpgradeDiscount);
-        const discountedPrice = Math.floor(currentPrice * totalDiscount);
-        
-        if (prev.money < discountedPrice) return prev;
+      // Event bonuses: Darkness (-25% Upgrade Costs)
+      const activeEvent = prev.activeEvent ? EVENT_CONFIG.find(e => e.id === prev.activeEvent) : null;
+      const eventUpgradeDiscount = activeEvent?.effects.upgradeDiscount || 0;
+      
+      const elementalBonuses = calculateElementalBonuses(prev.elementalPrestige || null);
+      const totalDiscount = elementalBonuses.upgradeDiscountBonus * (1 - eventUpgradeDiscount);
+      const discountedPrice = Math.floor(currentPrice * totalDiscount);
+      
+      if (prev.money >= discountedPrice && currentAmount < maxAmount) {
         
         const newUpgradePrices = [...prev.upgradePrices];
         const newUpgradeAmounts = [...prev.upgradeAmounts];

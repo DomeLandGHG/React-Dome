@@ -183,22 +183,21 @@ const RebirthPanel = ({ gameState, buyRebirthUpgrade, buyMaxRebirthUpgrades }: R
                       }}
                       disabled={isDisabled}
                       style={{
-                        position: 'absolute',
-                        top: '8px',
-                        right: '8px',
-                        padding: '4px 10px',
+                        marginTop: '8px',
+                        width: '100%',
+                        padding: '8px 16px',
                         background: 'linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%)',
                         border: '2px solid #d97706',
                         borderRadius: '12px',
                         color: '#78350f',
-                        fontSize: '11px',
+                        fontSize: '12px',
                         fontWeight: 'bold',
-                        cursor: 'pointer',
-                        boxShadow: '0 2px 6px rgba(251, 191, 36, 0.4)',
+                        cursor: isDisabled ? 'not-allowed' : 'pointer',
+                        boxShadow: '0 2px 8px rgba(251, 191, 36, 0.4)',
                         transition: 'all 0.2s ease',
                         textTransform: 'uppercase',
                         letterSpacing: '0.5px',
-                        zIndex: 10
+                        opacity: isDisabled ? 0.5 : 1
                       }}
                       onMouseEnter={(e) => {
                         e.currentTarget.style.transform = 'scale(1.1)';

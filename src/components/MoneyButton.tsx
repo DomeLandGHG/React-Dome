@@ -3,6 +3,7 @@ import type { GameState } from '../types';
 import { formatNumberGerman } from '../types/German_number';
 import { REBIRTHUPGRADES } from '../types/Rebirth_Upgrade';
 import { RUNES_1 } from '../types/Runes';
+import { EVENT_CONFIG } from '../types/ElementalEvent';
 
 interface FloatingMoney {
   id: number;
@@ -26,6 +27,11 @@ interface MoneyButtonProps {
 const MoneyButton = ({ onClick, gameState, onGemDrop }: MoneyButtonProps) => {
   const [floatingMoneys, setFloatingMoneys] = useState<FloatingMoney[]>([]);
   const [floatingGems, setFloatingGems] = useState<FloatingGem[]>([]);
+  
+  // Get active event if any
+  const activeEvent = gameState.activeEvent 
+    ? EVENT_CONFIG.find(e => e.id === gameState.activeEvent)
+    : null;
   
   // Calculate actual money per click with all bonuses (same as GameStats)
   const calculateActualMoneyPerClick = () => {
@@ -59,8 +65,11 @@ const MoneyButton = ({ onClick, gameState, onGemDrop }: MoneyButtonProps) => {
       rebirthPointMultiplier = 1 + bonus;
     }
 
-    // Calculate final value with achievement bonus
-    return gameState.moneyPerClick * clickMultiplier * runeMultiplier * rebirthPointMultiplier * achievementMoneyMultiplier;
+    // Event bonus multiplier (Tsunami: ×5 Click Power)
+    const eventMultiplier = activeEvent?.effects?.clickPowerMultiplier || 1;
+
+    // Calculate final value with achievement bonus and event bonus
+    return gameState.moneyPerClick * clickMultiplier * runeMultiplier * rebirthPointMultiplier * achievementMoneyMultiplier * eventMultiplier;
   };
 
   const totalMoneyPerClick = calculateActualMoneyPerClick();

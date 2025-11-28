@@ -355,7 +355,7 @@ const AchievementsPanel: React.FC<AchievementsPanelProps> = ({ gameState }) => {
                   progressText = `${formatNumberGerman(currentValue)} / ${formatNumberGerman(nextTierValue)} gems`;
                   break;
                 case 'upgrades':
-                  currentValue = gameState.upgradeAmounts.reduce((a, b) => a + b, 0);
+                  currentValue = gameState.stats?.totalUpgradesPurchased || 0;
                   progressText = `${currentValue} / ${nextTierValue} upgrades`;
                   break;
                 case 'elements':
@@ -393,7 +393,7 @@ const AchievementsPanel: React.FC<AchievementsPanelProps> = ({ gameState }) => {
                 progressText = `${formatNumberGerman(currentValue)} / ${formatNumberGerman(value)} gems`;
                 break;
               case 'upgrades':
-                currentValue = gameState.upgradeAmounts.reduce((a, b) => a + b, 0);
+                currentValue = gameState.stats?.totalUpgradesPurchased || 0;
                 progressText = `${currentValue} / ${value} upgrades`;
                 break;
               case 'elements':
