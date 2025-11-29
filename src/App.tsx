@@ -11,6 +11,7 @@ import UpgradesPanel from './components/UpgradesPanel';
 import RebirthPanel from './components/RebirthUpgradePanel';
 import AchievementsPanel from './components/AchievementsPanel';
 import StatisticsPanel from './components/StatisticsPanel';
+import LeaderboardPanel from './components/LeaderboardPanel';
 import ActionButtons from './components/ActionButtons';
 import MobileTabNavigation from './components/MobileTabNavigation';
 import SettingsMenu from './components/SettingsMenu';
@@ -21,17 +22,19 @@ import { EventNotification } from './components/EventNotification';
 import ElementalTraderModal from './components/ElementalTraderModal';
 import ElementalPrestigeModal from './components/ElementalPrestigeModal';
 import { PackOpeningAnimation, type PackResult } from './components/PackOpeningAnimation';
+import { MultiInstanceWarning } from './components/MultiInstanceWarning';
 import { formatNumberGerman } from './types/German_number';
 import { RUNES_1, RUNES_2, type Rune } from './types/Runes';
 import { TRADER_OFFERS, type TraderOffer, generateRandomOffers } from './types/ElementalTrader';
 import { EVENT_CONFIG } from './types/ElementalEvent';
+import { getUserId } from './leaderboard';
 import './App.css';
 
 function App() {
   const { gameState, setGameState, offlineProgress, setOfflineProgress, claimOfflineProgress, clickMoney, buyUpgrade, buyMaxUpgrades, buyRebirthUpgrade, buyMaxRebirthUpgrades, performRebirth, resetGame, cheatMoney, devAddMoney, devAddMoneyDirect, devAddRebirthPoint, devAddGem, devAddClick, devAddRune, devAddElementalRune, openRunePack, mergeRunes, mergeAllRunes, switchRuneType, toggleElementalStats, toggleMoneyEffects, toggleDiamondEffects, toggleDevStats, devSimulateOfflineTime, craftSecretRune } = useGameLogic();
   const [activePanel, setActivePanel] = useState<'upgrades' | 'rebirth' | 'achievements'>('upgrades');
-  const [secondPanelView, setSecondPanelView] = useState<'achievements' | 'statistics'>('achievements');
-  const [mobileActiveTab, setMobileActiveTab] = useState<'stats' | 'upgrades' | 'rebirth' | 'gems' | 'achievements' | 'statistics' | 'settings' | 'dev' | 'trader' | 'prestige'>('stats');
+  const [secondPanelView, setSecondPanelView] = useState<'achievements' | 'statistics' | 'leaderboard'>('achievements');
+  const [mobileActiveTab, setMobileActiveTab] = useState<'stats' | 'upgrades' | 'rebirth' | 'gems' | 'achievements' | 'statistics' | 'leaderboard' | 'settings' | 'dev' | 'trader' | 'prestige'>('stats');
   const [isFlashing, setIsFlashing] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [isAnimationSettingsOpen, setIsAnimationSettingsOpen] = useState(false);
@@ -550,6 +553,9 @@ function App() {
 
   return (
     <div className="app" style={appStyle}>
+      {/* Multi-Instance Warning */}
+      <MultiInstanceWarning userId={getUserId()} />
+      
       {/* Flash overlay for rebirth effect */}
       {isFlashing && (
         <div style={{
@@ -663,6 +669,9 @@ function App() {
         disableMoneyEffects={gameState.disableMoneyEffects || false}
         disableDiamondEffects={gameState.disableDiamondEffects || false}
         disablePackAnimations={gameState.disablePackAnimations || false}
+        username={gameState.username || 'Player'}
+        onUsernameChange={(newUsername) => setGameState(prev => ({ ...prev, username: newUsername }))}
+        gameState={gameState}
       />
 
       {/* Animation Settings Modal */}
@@ -1516,6 +1525,29 @@ function App() {
                 >
                   📊
                 </button>
+                <button
+                  onClick={() => setSecondPanelView('leaderboard')}
+                  style={{
+                    flex: 1,
+                    padding: '10px 12px',
+                    background: secondPanelView === 'leaderboard'
+                      ? 'linear-gradient(135deg, #8b5cf6 0%, #6d28d9 50%, #4c1d95 100%)'
+                      : 'transparent',
+                    color: 'white',
+                    border: 'none',
+                    borderRadius: '8px',
+                    cursor: 'pointer',
+                    fontSize: '14px',
+                    fontWeight: 'bold',
+                    textShadow: '0 0 8px rgba(0,0,0,0.3)',
+                    boxShadow: secondPanelView === 'leaderboard'
+                      ? '0 2px 8px rgba(139, 92, 246, 0.3)'
+                      : 'none',
+                    transition: 'all 0.3s ease'
+                  }}
+                >
+                  👑
+                </button>
               </div>
             </div>
           )}
@@ -1766,8 +1798,10 @@ function App() {
           }}>
             {secondPanelView === 'achievements' ? (
               <AchievementsPanel gameState={gameState} />
-            ) : (
+            ) : secondPanelView === 'statistics' ? (
               <StatisticsPanel gameState={gameState} onToggleDevStats={toggleDevStats} />
+            ) : (
+              <LeaderboardPanel gameState={gameState} />
             )}
           </div>
         )}
@@ -1991,6 +2025,10 @@ function App() {
               <StatisticsPanel gameState={gameState} onToggleDevStats={toggleDevStats} />
             )}
 
+            {mobileActiveTab === 'leaderboard' && isRebirthUnlocked && (
+              <LeaderboardPanel gameState={gameState} />
+            )}
+
             {mobileActiveTab === 'settings' && (
               <SettingsMenu 
                 isOpen={true}
@@ -2000,6 +2038,9 @@ function App() {
                 disableMoneyEffects={gameState.disableMoneyEffects || false}
                 disableDiamondEffects={gameState.disableDiamondEffects || false}
                 disablePackAnimations={gameState.disablePackAnimations || false}
+                username={gameState.username || 'Player'}
+                onUsernameChange={(newUsername) => setGameState(prev => ({ ...prev, username: newUsername }))}
+                gameState={gameState}
               />
             )}
 

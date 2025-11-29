@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Money Clicker - Discord Server Icon</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 20px;
+            background: #2c2f33;
+            display: flex;
+            flex-direction: column;
+            gap: 30px;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            font-family: Arial, sans-serif;
+        }
+
+        .icon-container {
+            display: flex;
+            gap: 30px;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+
+        .discord-icon {
+            width: 512px;
+            height: 512px;
+            border-radius: 50%;
+            position: relative;
+            overflow: hidden;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
+        }
+
+        /* Version 1: Purple Gradient with Money Bag */
+        .icon-v1 {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .icon-v1 .money-symbol {
+            font-size: 280px;
+            filter: drop-shadow(0 8px 30px rgba(0, 0, 0, 0.4));
+        }
+
+        /* Version 2: Gold Circle with Shadow */
+        .icon-v2 {
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .icon-v2 .inner-circle {
+            width: 380px;
+            height: 380px;
+            background: linear-gradient(135deg, #ffd700 0%, #ffed4e 100%);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 200px;
+            box-shadow: 
+                0 0 60px rgba(255, 215, 0, 0.6),
+                inset 0 -10px 30px rgba(0, 0, 0, 0.2);
+        }
+
+        /* Version 3: Simple Money Bag on Dark */
+        .icon-v3 {
+            background: #23272a;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .icon-v3 .money-bag-large {
+            font-size: 320px;
+            filter: drop-shadow(0 10px 40px rgba(255, 215, 0, 0.5));
+        }
+
+        /* Version 4: Gem & Money Combo */
+        .icon-v4 {
+            background: linear-gradient(135deg, #0f3460 0%, #16213e 50%, #1a1a2e 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+        }
+
+        .icon-v4 .center-money {
+            font-size: 240px;
+            z-index: 2;
+            filter: drop-shadow(0 8px 30px rgba(255, 215, 0, 0.6));
+        }
+
+        .icon-v4 .corner-gem {
+            position: absolute;
+            font-size: 80px;
+            filter: drop-shadow(0 4px 15px rgba(139, 0, 255, 0.6));
+        }
+
+        .icon-v4 .gem-tl { top: 60px; left: 60px; }
+        .icon-v4 .gem-tr { top: 60px; right: 60px; }
+        .icon-v4 .gem-bl { bottom: 60px; left: 60px; }
+        .icon-v4 .gem-br { bottom: 60px; right: 60px; }
+
+        .instructions {
+            background: rgba(0, 0, 0, 0.8);
+            color: #ffd700;
+            padding: 20px 30px;
+            border-radius: 12px;
+            font-size: 14px;
+            text-align: center;
+            max-width: 600px;
+            border: 2px solid rgba(255, 215, 0, 0.3);
+        }
+
+        .instructions h3 {
+            margin: 0 0 10px 0;
+            color: #fff;
+            font-size: 18px;
+        }
+
+        .label {
+            color: #cbd5e1;
+            font-size: 14px;
+            font-weight: bold;
+            margin-top: 10px;
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+    <div class="instructions">
+        <h3>🎨 Discord Server Icon Generator</h3>
+        <p>512x512 pixels - Perfect for Discord server icons</p>
+        <p>Right-click on your favorite → Save Image As...</p>
+        <p>Or screenshot with <strong>Win + Shift + S</strong></p>
+    </div>
+
+    <div class="icon-container">
+        <!-- Version 1 -->
+        <div>
+            <div class="discord-icon icon-v1">
+                <div class="money-symbol">💰</div>
+            </div>
+            <div class="label">Version 1: Purple Gradient</div>
+        </div>
+
+        <!-- Version 2 -->
+        <div>
+            <div class="discord-icon icon-v2">
+                <div class="inner-circle">💰</div>
+            </div>
+            <div class="label">Version 2: Gold Circle</div>
+        </div>
+
+        <!-- Version 3 -->
+        <div>
+            <div class="discord-icon icon-v3">
+                <div class="money-bag-large">💰</div>
+            </div>
+            <div class="label">Version 3: Dark Simple</div>
+        </div>
+
+        <!-- Version 4 -->
+        <div>
+            <div class="discord-icon icon-v4">
+                <div class="corner-gem gem-tl">💎</div>
+                <div class="corner-gem gem-tr">💎</div>
+                <div class="center-money">💰</div>
+                <div class="corner-gem gem-bl">💎</div>
+                <div class="corner-gem gem-br">💎</div>
+            </div>
+            <div class="label">Version 4: Money & Gems</div>
+        </div>
+    </div>
+</body>
+</html>

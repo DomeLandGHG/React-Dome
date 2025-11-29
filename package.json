@@ -1,4 +1,4 @@
- {
+{
   "name": "money_clicker",
   "private": true,
   "version": "0.1.1",
@@ -13,6 +13,7 @@
   },
   "homepage": "https://domelandghg.github.io/React-Dome",
   "dependencies": {
+    "firebase": "^12.6.0",
     "react": "^19.1.1",
     "react-dom": "^19.1.1"
   },

@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import type { GameState } from './types';
 import { INITIAL_GAME_STATE } from './types';
 import { saveGameState, loadGameState } from './storage';
+import { submitLeaderboardEntry, saveGameDataToFirebase } from './leaderboard';
 import { RUNES_1, RUNES_2 } from './types/Runes';
 import { UPGRADES } from './types/Upgrade';
 import { REBIRTHUPGRADES } from './types/Rebirth_Upgrade';
@@ -12,6 +13,60 @@ import { EVENT_CONFIG, getRandomEvent, getUnlockedElements } from './types/Eleme
 export const useGameLogic = () => {
   const [gameState, setGameState] = useState<GameState>(() => loadGameState());
   const [offlineProgress, setOfflineProgress] = useState<{ time: number; money: number; clicks: number } | null>(null);
+
+  // Auto-submit to leaderboard every full minute (synchronized)
+  useEffect(() => {
+    const submitToLeaderboard = async () => {
+      try {
+        console.log('[Leaderboard] Auto-submitting stats at:', new Date().toLocaleTimeString());
+        await submitLeaderboardEntry(gameState);
+        console.log('[Leaderboard] Successfully submitted!');
+      } catch (error) {
+        console.error('[Leaderboard] Failed to submit:', error);
+      }
+    };
+
+    // Submit immediately on mount
+    submitToLeaderboard();
+
+    // Calculate time until next full minute
+    const now = new Date();
+    const msUntilNextMinute = (60 - now.getSeconds()) * 1000 - now.getMilliseconds();
+    console.log('[Leaderboard] Next sync in', Math.round(msUntilNextMinute / 1000), 'seconds');
+
+    let intervalId: number | null = null;
+
+    // Wait until the next full minute, then submit every 60 seconds
+    const timeoutId = setTimeout(() => {
+      submitToLeaderboard();
+      intervalId = setInterval(submitToLeaderboard, 60000);
+    }, msUntilNextMinute);
+
+    return () => {
+      clearTimeout(timeoutId);
+      if (intervalId) clearInterval(intervalId);
+    };
+  }, []); // Empty dependency array - only runs once on mount
+
+  // Auto-save game data to Firebase every 5 minutes
+  useEffect(() => {
+    const autoSaveToCloud = async () => {
+      try {
+        console.log('[Auto-Save] Saving game data to cloud at:', new Date().toLocaleTimeString());
+        await saveGameDataToFirebase(gameState);
+        console.log('[Auto-Save] Successfully saved!');
+      } catch (error) {
+        console.error('[Auto-Save] Failed to save:', error);
+      }
+    };
+
+    // Save every 5 minutes (300000ms)
+    const saveInterval = setInterval(autoSaveToCloud, 300000);
+
+    return () => {
+      clearInterval(saveInterval);
+    };
+  }, [gameState]);
 
   // Calculate offline progress on initial load
   useEffect(() => {

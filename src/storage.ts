@@ -43,6 +43,19 @@ export const loadGameState = (): GameState => {
     if (saved) {
       const parsed = JSON.parse(saved);
       
+      // Check if this is freshly loaded data from Firebase (has a special marker)
+      const isFirebaseData = localStorage.getItem('firebase_data_loaded') === 'true';
+      if (isFirebaseData) {
+        // Clear the marker
+        localStorage.removeItem('firebase_data_loaded');
+        console.log('[Storage] Loading fresh Firebase data');
+      }
+      
+      // Generate random username if not exists
+      if (!parsed.username) {
+        parsed.username = `Player_${Math.floor(Math.random() * 1000000)}`;
+      }
+      
       // Erweitere Arrays statt sie zu ersetzen, um Fortschritt zu bewahren
       const extendArray = (savedArray: any[], defaultArray: any[]) => {
         if (!Array.isArray(savedArray)) return defaultArray;

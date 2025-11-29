@@ -1,6 +1,6 @@
 interface MobileTabNavigationProps {
-  activeTab: 'stats' | 'upgrades' | 'rebirth' | 'gems' | 'achievements' | 'statistics' | 'settings' | 'dev' | 'trader' | 'prestige';
-  onTabChange: (tab: 'stats' | 'upgrades' | 'rebirth' | 'gems' | 'achievements' | 'statistics' | 'settings' | 'dev' | 'trader' | 'prestige') => void;
+  activeTab: 'stats' | 'upgrades' | 'rebirth' | 'gems' | 'achievements' | 'statistics' | 'leaderboard' | 'settings' | 'dev' | 'trader' | 'prestige';
+  onTabChange: (tab: 'stats' | 'upgrades' | 'rebirth' | 'gems' | 'achievements' | 'statistics' | 'leaderboard' | 'settings' | 'dev' | 'trader' | 'prestige') => void;
   hasGems: boolean;
   hasRebirth: boolean;
   hasElementalRunes: boolean;
@@ -13,6 +13,7 @@ const MobileTabNavigation = ({ activeTab, onTabChange, hasGems, hasRebirth, hasE
     ...(hasRebirth ? [{ id: 'rebirth' as const, label: '🔄 Rebirth', icon: '🔄' }] : []),
     ...(hasRebirth ? [{ id: 'achievements' as const, label: '🏆 Achiev', icon: '🏆' }] : []),
     ...(hasRebirth ? [{ id: 'statistics' as const, label: '📊 Stats', icon: '📊' }] : []),
+    ...(hasRebirth ? [{ id: 'leaderboard' as const, label: '🏅 Leader', icon: '🏅' }] : []),
     ...(hasGems ? [{ id: 'gems' as const, label: '💎 Runes', icon: '💎' }] : []),
     ...(hasElementalRunes ? [{ id: 'trader' as const, label: '⚡ Trader', icon: '⚡' }] : []),
     ...(hasElementalRunes ? [{ id: 'prestige' as const, label: '🌟 Prestige', icon: '🌟' }] : []),
