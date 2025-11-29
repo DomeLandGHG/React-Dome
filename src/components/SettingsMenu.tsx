@@ -315,7 +315,7 @@ const SettingsMenu = ({ isOpen, onClose, onReset, onOpenAnimationSettings, disab
               color: '#94a3b8',
               fontSize: '13px'
             }}>
-              Version V.0.1.1
+              Version V.0.1.2
             </div>
           </div>
 
