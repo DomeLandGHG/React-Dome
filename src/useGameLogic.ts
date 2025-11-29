@@ -19,15 +19,17 @@ export const useGameLogic = () => {
     const submitToLeaderboard = async () => {
       try {
         console.log('[Leaderboard] Auto-submitting stats at:', new Date().toLocaleTimeString());
-        await submitLeaderboardEntry(gameState);
-        console.log('[Leaderboard] Successfully submitted!');
+        console.log('[Leaderboard] Current gameState devStats:', gameState.stats?.devStats);
+        const success = await submitLeaderboardEntry(gameState);
+        if (success) {
+          console.log('[Leaderboard] Successfully submitted!');
+        } else {
+          console.log('[Leaderboard] Submission blocked (dev account or error)');
+        }
       } catch (error) {
         console.error('[Leaderboard] Failed to submit:', error);
       }
     };
-
-    // Submit immediately on mount
-    submitToLeaderboard();
 
     // Calculate time until next full minute
     const now = new Date();
@@ -46,7 +48,7 @@ export const useGameLogic = () => {
       clearTimeout(timeoutId);
       if (intervalId) clearInterval(intervalId);
     };
-  }, []); // Empty dependency array - only runs once on mount
+  }, [gameState]); // UPDATE: Include gameState in dependencies!
 
   // Auto-save game data to Firebase every 5 minutes
   useEffect(() => {
@@ -862,17 +864,21 @@ export const useGameLogic = () => {
 
   // Development cheat functions
   const devAddMoney = useCallback(() => {
-    setGameState(prev => ({
-      ...prev,
-      money: prev.money + 100000, // Add 100K instead of 10 trillion
-      stats: {
-        ...prev.stats,
-        devStats: {
-          ...prev.stats.devStats,
-          moneyAdded: prev.stats.devStats.moneyAdded + 100000,
+    setGameState(prev => {
+      const newDevStats = {
+        ...prev.stats.devStats,
+        moneyAdded: prev.stats.devStats.moneyAdded + 100000,
+      };
+      console.log('[Dev] Adding money, new devStats:', newDevStats);
+      return {
+        ...prev,
+        money: prev.money + 100000,
+        stats: {
+          ...prev.stats,
+          devStats: newDevStats,
         },
-      },
-    }));
+      };
+    });
   }, []);
 
   // Direct money addition for console commands

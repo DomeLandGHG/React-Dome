@@ -88,6 +88,31 @@ export const loadGameState = (): GameState => {
       // Recalculate stats based on current game state to fix missing/incorrect stats
       const recalculatedStats = {
         ...mergedState.stats,
+        // Preserve devStats directly from saved data (CRITICAL for leaderboard filtering!)
+        devStats: parsed.stats?.devStats || {
+          moneyAdded: 0,
+          rebirthPointsAdded: 0,
+          gemsAdded: 0,
+          clicksAdded: 0,
+          offlineTimeAdded: 0,
+          runesAdded: {
+            common: 0,
+            uncommon: 0,
+            rare: 0,
+            epic: 0,
+            legendary: 0,
+            mythic: 0,
+            secret: 0,
+          },
+          elementalRunesAdded: {
+            air: 0,
+            earth: 0,
+            water: 0,
+            fire: 0,
+            light: 0,
+            dark: 0,
+          },
+        },
         // Recalculate total upgrades purchased from current amounts
         totalUpgradesPurchased: (parsed.upgradeAmounts || []).reduce((sum: number, amount: number) => sum + amount, 0),
         totalRebirthUpgradesPurchased: (parsed.rebirth_upgradeAmounts || []).reduce((sum: number, amount: number) => sum + amount, 0),

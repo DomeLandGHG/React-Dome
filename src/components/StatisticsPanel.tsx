@@ -259,7 +259,7 @@ const StatisticsPanel: React.FC<StatisticsPanelProps> = ({ gameState, onToggleDe
       </h2>
 
       {/* Dev Stats Toggle Button */}
-      {import.meta.env.DEV && ((stats.devStats?.moneyAdded || 0) > 0 || (stats.devStats?.rebirthPointsAdded || 0) > 0 || (stats.devStats?.gemsAdded || 0) > 0) ? (
+      {import.meta.env.DEV ? (
         <div
           style={{
             display: 'flex',

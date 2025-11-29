@@ -1,4 +1,4 @@
-import { db, dbRef, dbSet, dbGet, dbQuery, dbOrderByChild, dbLimitToLast } from './firebase';
+import { db, dbRef, dbSet, dbGet } from './firebase';
 import type { GameState } from './types';
 import { RUNES_1 } from './types/Runes';
 import { REBIRTHUPGRADES } from './types/Rebirth_Upgrade';
@@ -220,16 +220,34 @@ export const reserveUsername = async (username: string): Promise<boolean> => {
 // Submit leaderboard entry
 export const submitLeaderboardEntry = async (gameState: GameState): Promise<boolean> => {
   try {
-    // DISABLED: Don't block dev accounts from leaderboards
-    // if (gameState.stats.devStats && 
-    //     (gameState.stats.devStats.moneyAdded > 0 || 
-    //      gameState.stats.devStats.rebirthPointsAdded > 0 || 
-    //      gameState.stats.devStats.gemsAdded > 0)) {
-    //   console.log('Leaderboard submission blocked: Dev commands used');
-    //   return false;
-    // }
-    
     const userId = getUserId();
+    
+    // Check if user is banned from leaderboard
+    const bannedRef = dbRef(db, `leaderboardBans/${userId}`);
+    const bannedSnapshot = await dbGet(bannedRef);
+    
+    if (bannedSnapshot.exists() && bannedSnapshot.val() === true) {
+      console.log('[Leaderboard Submit] ❌ BLOCKED: User is banned from leaderboard');
+      return false;
+    }
+    
+    console.log('[Leaderboard Submit] Starting submission...');
+    console.log('[Leaderboard Submit] devStats:', gameState.stats?.devStats);
+    
+    // Block dev accounts from leaderboards
+    if (gameState.stats.devStats && 
+        (gameState.stats.devStats.moneyAdded > 0 || 
+         gameState.stats.devStats.rebirthPointsAdded > 0 || 
+         gameState.stats.devStats.gemsAdded > 0)) {
+      console.log('[Leaderboard Submit] ❌ BLOCKED: Dev commands used');
+      console.log('[Leaderboard Submit] Money Added:', gameState.stats.devStats.moneyAdded);
+      console.log('[Leaderboard Submit] Rebirth Points Added:', gameState.stats.devStats.rebirthPointsAdded);
+      console.log('[Leaderboard Submit] Gems Added:', gameState.stats.devStats.gemsAdded);
+      return false;
+    }
+    
+    console.log('[Leaderboard Submit] ✅ Proceeding with submission (no dev stats detected)');
+    
     const username = gameState.username || `Player_${Math.floor(Math.random() * 1000000)}`;
     
     // Calculate totalTiers safely
@@ -277,7 +295,8 @@ export const submitLeaderboardEntry = async (gameState: GameState): Promise<bool
       onlineTime: gameState.stats?.onlineTime || 0,
       totalRebirths: gameState.stats?.totalRebirths || 0,
       totalGems: gameState.stats?.allTimeGemsEarned || 0,
-      timestamp: Date.now()
+      timestamp: Date.now(),
+      devStats: gameState.stats?.devStats || { moneyAdded: 0, rebirthPointsAdded: 0, gemsAdded: 0, clicksAdded: 0 }
     };
     
     console.log('[Leaderboard Submit] Entry data:', leaderboardEntry);
@@ -297,27 +316,65 @@ export const submitLeaderboardEntry = async (gameState: GameState): Promise<bool
 export const getTopLeaderboard = async (category: 'allTimeMoney' | 'totalTiers' | 'moneyPerClick' | 'onlineTime', limit: number = 100): Promise<any[]> => {
   try {
     const leaderboardRef = dbRef(db, 'leaderboard');
+    const bansRef = dbRef(db, 'leaderboardBans');
     
-    // Use query with orderByChild and limitToLast for efficient sorting
-    const leaderboardQuery = dbQuery(
-      leaderboardRef,
-      dbOrderByChild(category),
-      dbLimitToLast(limit)
-    );
-    
-    const snapshot = await dbGet(leaderboardQuery);
+    const [snapshot, bansSnapshot] = await Promise.all([
+      dbGet(leaderboardRef),
+      dbGet(bansRef)
+    ]);
     
     if (!snapshot.exists()) {
       return [];
     }
     
+    // Get list of banned user IDs
+    const bannedUsers = new Set<string>();
+    if (bansSnapshot.exists()) {
+      const bansData = bansSnapshot.val();
+      Object.keys(bansData).forEach(userId => {
+        if (bansData[userId] === true) {
+          bannedUsers.add(userId);
+          console.log('[Leaderboard] Banned user:', userId);
+        }
+      });
+    }
+    
     const data = snapshot.val();
-    const entries = Object.values(data) as any[];
+    let entries = Object.values(data) as any[];
     
-    // Reverse because limitToLast returns in ascending order
-    entries.reverse();
+    // Filter out banned users and dev accounts
+    entries = entries.filter(entry => {
+      // Remove banned users
+      if (bannedUsers.has(entry.userId)) {
+        console.log('[Leaderboard] Filtering out banned user:', entry.username);
+        return false;
+      }
+      
+      // Remove entries that have dev stats with added values
+      if (entry.devStats) {
+        const devStats = entry.devStats;
+        if (devStats.moneyAdded > 0 || 
+            devStats.rebirthPointsAdded > 0 || 
+            devStats.gemsAdded > 0 ||
+            devStats.clicksAdded > 0) {
+          console.log('[Leaderboard] Filtering out dev account:', entry.username);
+          return false;
+        }
+      }
+      return true;
+    });
     
-    return entries;
+    console.log('[Leaderboard] Total entries after dev filter:', entries.length);
+    
+    // Sort by category value in descending order (highest first)
+    entries.sort((a, b) => {
+      const valueA = a[category] || 0;
+      const valueB = b[category] || 0;
+      return valueB - valueA; // Descending order
+    });
+    
+    // Return top 'limit' entries
+    return entries.slice(0, limit);
   } catch (error) {
     console.error('Error getting leaderboard:', error);
     return [];
