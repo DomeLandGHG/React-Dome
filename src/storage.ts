@@ -43,6 +43,19 @@ export const loadGameState = (): GameState => {
     if (saved) {
       const parsed = JSON.parse(saved);
       
+      // Check if this is freshly loaded data from Firebase (has a special marker)
+      const isFirebaseData = localStorage.getItem('firebase_data_loaded') === 'true';
+      if (isFirebaseData) {
+        // Clear the marker
+        localStorage.removeItem('firebase_data_loaded');
+        console.log('[Storage] Loading fresh Firebase data');
+      }
+      
+      // Generate random username if not exists
+      if (!parsed.username) {
+        parsed.username = `Player_${Math.floor(Math.random() * 1000000)}`;
+      }
+      
       // Erweitere Arrays statt sie zu ersetzen, um Fortschritt zu bewahren
       const extendArray = (savedArray: any[], defaultArray: any[]) => {
         if (!Array.isArray(savedArray)) return defaultArray;
@@ -75,6 +88,31 @@ export const loadGameState = (): GameState => {
       // Recalculate stats based on current game state to fix missing/incorrect stats
       const recalculatedStats = {
         ...mergedState.stats,
+        // Preserve devStats directly from saved data (CRITICAL for leaderboard filtering!)
+        devStats: parsed.stats?.devStats || {
+          moneyAdded: 0,
+          rebirthPointsAdded: 0,
+          gemsAdded: 0,
+          clicksAdded: 0,
+          offlineTimeAdded: 0,
+          runesAdded: {
+            common: 0,
+            uncommon: 0,
+            rare: 0,
+            epic: 0,
+            legendary: 0,
+            mythic: 0,
+            secret: 0,
+          },
+          elementalRunesAdded: {
+            air: 0,
+            earth: 0,
+            water: 0,
+            fire: 0,
+            light: 0,
+            dark: 0,
+          },
+        },
         // Recalculate total upgrades purchased from current amounts
         totalUpgradesPurchased: (parsed.upgradeAmounts || []).reduce((sum: number, amount: number) => sum + amount, 0),
         totalRebirthUpgradesPurchased: (parsed.rebirth_upgradeAmounts || []).reduce((sum: number, amount: number) => sum + amount, 0),

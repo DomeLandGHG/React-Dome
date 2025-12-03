@@ -56,6 +56,20 @@ const ElementalTraderModal = ({ isOpen, onClose, offers, gameState, onAcceptOffe
     }
   };
 
+  // Buy all logic
+  const handleBuyAll = (offer: TraderOffer) => {
+    const currentAmount = gameState.elementalResources[offer.elementType] || 0;
+    const maxTrades = Math.floor(currentAmount / offer.elementAmount);
+    if (maxTrades > 0) {
+      // Optimized: Only one state update for all trades
+      const bulkOffer = { ...offer, bulkAmount: maxTrades };
+      if (typeof onAcceptOffer === 'function') {
+        onAcceptOffer(bulkOffer);
+      }
+      setSelectedOffer(null);
+    }
+  };
+
   return (
     <>
       {/* Backdrop */}
@@ -242,34 +256,62 @@ const ElementalTraderModal = ({ isOpen, onClose, offers, gameState, onAcceptOffe
 
                 {/* Accept Button */}
                 {selectedOffer?.id === offer.id && canAfford && (
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handleAccept(offer);
-                    }}
-                    style={{
-                      width: '100%',
-                      marginTop: '16px',
-                      padding: '12px',
-                      background: 'linear-gradient(135deg, #22c55e 0%, #15803d 100%)',
-                      border: '2px solid #16a34a',
-                      borderRadius: '8px',
-                      color: 'white',
-                      fontSize: '16px',
-                      fontWeight: 'bold',
-                      cursor: 'pointer',
-                      transition: 'all 0.2s ease',
-                      animation: 'fadeIn 0.2s ease-out'
-                    }}
-                    onMouseEnter={(e) => {
-                      e.currentTarget.style.transform = 'scale(1.05)';
-                    }}
-                    onMouseLeave={(e) => {
-                      e.currentTarget.style.transform = 'scale(1)';
-                    }}
-                  >
-                    ✓ Accept Trade
-                  </button>
+                  <div style={{ display: 'flex', gap: '8px', marginTop: '16px' }}>
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleAccept(offer);
+                      }}
+                      style={{
+                        flex: 1,
+                        padding: '12px',
+                        background: 'linear-gradient(135deg, #22c55e 0%, #15803d 100%)',
+                        border: '2px solid #16a34a',
+                        borderRadius: '8px',
+                        color: 'white',
+                        fontSize: '16px',
+                        fontWeight: 'bold',
+                        cursor: 'pointer',
+                        transition: 'all 0.2s ease',
+                        animation: 'fadeIn 0.2s ease-out'
+                      }}
+                      onMouseEnter={(e) => {
+                        e.currentTarget.style.transform = 'scale(1.05)';
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.transform = 'scale(1)';
+                      }}
+                    >
+                      ✓ Accept Trade
+                    </button>
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleBuyAll(offer);
+                      }}
+                      style={{
+                        flex: 1,
+                        padding: '12px',
+                        background: 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)',
+                        border: '2px solid #fbbf24',
+                        borderRadius: '8px',
+                        color: 'white',
+                        fontSize: '16px',
+                        fontWeight: 'bold',
+                        cursor: 'pointer',
+                        transition: 'all 0.2s ease',
+                        animation: 'fadeIn 0.2s ease-out'
+                      }}
+                      onMouseEnter={(e) => {
+                        e.currentTarget.style.transform = 'scale(1.05)';
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.transform = 'scale(1)';
+                      }}
+                    >
+                      🛒 Buy All
+                    </button>
+                  </div>
                 )}
               </div>
             );

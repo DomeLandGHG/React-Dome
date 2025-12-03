@@ -1,3 +1,15 @@
+// DEV NOTES:
+// - Secret Rune Craft Animation mit Continue-Button
+// - Pack Opening Animation zeigt jetzt Element-Symbole korrekt
+// - Elemental Runes werden überall mit Symbol angezeigt
+// - Continue-Button nach Craft-Animation
+// - Alle Bugfixes und Features aus der Session integriert
+// - Siehe useGameLogic.ts: elementType wird für alle Runes korrekt gesetzt
+// - Siehe RuneCard.tsx: Symbol-Logik für Elemental und Basic Runes
+// - Siehe PackOpeningAnimation.tsx: Animation und Button
+// - Siehe SecretRuneCraftAnimation.tsx: Animation und Button
+// - Siehe styles: CSS-Fixes für Kartenrotation
+
 import { useState, useRef, useEffect } from 'react';
 import type { GameState } from '../types';
 import { RUNES_1, RUNES_2 } from '../types/Runes';

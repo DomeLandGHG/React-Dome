@@ -1,11 +1,12 @@
- {
+{
   "name": "money_clicker",
   "private": true,
-  "version": "0.1.1",
+  "version": "0.1.2",
   "type": "module",
   "scripts": {
     "dev": "vite --config vite.dev.config.ts",
     "build": "tsc -b && vite build",
+    "build:itch": "tsc -b && vite build --config vite.itch.config.ts",
     "lint": "eslint .",
     "preview": "vite preview",
     "predeploy": "npm run build",
@@ -13,6 +14,7 @@
   },
   "homepage": "https://domelandghg.github.io/React-Dome",
   "dependencies": {
+    "firebase": "^12.6.0",
     "react": "^19.1.1",
     "react-dom": "^19.1.1"
   },

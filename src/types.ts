@@ -19,6 +19,7 @@ export interface GameState {
   showElementalStats: boolean; // whether to show elemental stats panel
   elementalRunesUnlocked: boolean; // whether elemental runes have ever been obtained (permanent unlock)
   achievements: Array<{ id: number; tier: number }>; // Array of unlocked achievements with their tier
+  username?: string; // Player's username for leaderboards
   disableMoneyEffects?: boolean; // whether to disable money floating animations
   disableDiamondEffects?: boolean; // whether to disable diamond floating animations
   disablePackAnimations?: boolean; // whether to disable pack opening animations
@@ -157,6 +158,7 @@ export const INITIAL_GAME_STATE: GameState = {
   showElementalStats: false,
   elementalRunesUnlocked: false,
   achievements: [],
+  username: `Player_${Math.floor(Math.random() * 1000000)}`, // Random username for new players
   disableMoneyEffects: false,
   disableDiamondEffects: false,
   disablePackAnimations: false,
