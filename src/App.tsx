@@ -2569,7 +2569,7 @@ function App() {
       </main>
 
       <footer className="app-footer">
-        <p>React Money Clicker v0.1.2 | Your progress is automatically saved!</p>
+        <p>React Money Clicker v0.1.3 | Your progress is automatically saved!</p>
       </footer>
       
       {/* Pack Opening Animation */}
