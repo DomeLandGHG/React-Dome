@@ -1,4 +1,6 @@
 import { checkUsernameAvailability, reserveUsername, generateAccountCode, loginWithCode, saveGameDataToFirebase, loadGameDataFromFirebase, getUserId } from '../leaderboard';
+import { ref as dbRef, get as dbGet, set as dbSet } from 'firebase/database';
+import { db } from '../firebase';
 
 interface SettingsMenuProps {
   isOpen: boolean;
@@ -132,7 +134,42 @@ const SettingsMenu = ({ isOpen, onClose, onReset, onOpenAnimationSettings, disab
       const reserved = await reserveUsername(trimmed);
       
       if (reserved) {
+        // Update local state
         onUsernameChange(trimmed);
+        
+        try {
+          const userId = getUserId();
+          
+          // Update leaderboard username immediately
+          const leaderboardRef = dbRef(db, `leaderboard/${userId}`);
+          const snapshot = await dbGet(leaderboardRef);
+          
+          if (snapshot.exists()) {
+            const existingData = snapshot.val();
+            await dbSet(leaderboardRef, {
+              ...existingData,
+              username: trimmed
+            });
+            console.log('[Settings] Updated leaderboard username to:', trimmed);
+          }
+          
+          // Update gameData username in Firebase
+          const gameDataRef = dbRef(db, `gameData/${userId}`);
+          const gameSnapshot = await dbGet(gameDataRef);
+          
+          if (gameSnapshot.exists()) {
+            const gameData = gameSnapshot.val();
+            await dbSet(gameDataRef, {
+              ...gameData,
+              username: trimmed
+            });
+            console.log('[Settings] Updated gameData username to:', trimmed);
+          }
+          
+        } catch (error) {
+          console.error('[Settings] Failed to update username in Firebase:', error);
+        }
+        
         alert(`Username successfully changed to "${trimmed}"!`);
       } else {
         alert('Failed to reserve username. Please try again.');
@@ -315,7 +352,7 @@ const SettingsMenu = ({ isOpen, onClose, onReset, onOpenAnimationSettings, disab
               color: '#94a3b8',
               fontSize: '13px'
             }}>
-              Version V.0.1.2
+              Version V.0.1.3
             </div>
           </div>
 

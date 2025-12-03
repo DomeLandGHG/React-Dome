@@ -1,7 +1,7 @@
 import React from 'react';
 import '../styles/RuneCard.css';
 
-export type RuneRarity = 'common' | 'uncommon' | 'rare' | 'epic' | 'legendary' | 'secret';
+export type RuneRarity = 'common' | 'uncommon' | 'rare' | 'epic' | 'legendary' | 'mythic' | 'secret';
 
 interface RuneCardProps {
   rarity: RuneRarity | string;
@@ -18,6 +18,7 @@ const RUNE_SYMBOLS: Record<RuneRarity, string> = {
   rare: '▲',
   epic: '◈',
   legendary: '★',
+  mythic: '◉',
   secret: '✦'
 };
 
@@ -36,6 +37,7 @@ const RUNE_NAMES: Record<RuneRarity, string> = {
   rare: 'Rare Rune',
   epic: 'Epic Rune',
   legendary: 'Legendary Rune',
+  mythic: 'Mythic Rune',
   secret: 'Secret Rune'
 };
 
@@ -59,8 +61,13 @@ export const RuneCard: React.FC<RuneCardProps> = ({
   const displayName = isElemental 
     ? `${elementType} Rune` 
     : RUNE_NAMES[normalizedRarity] || rarity;
-    
-  const rarityClass = isElemental ? 'elemental' : normalizedRarity;
+  
+  // Map 'mythic' to 'mythical' for CSS class to match existing styles
+  // Also use specific element names for elemental runes
+  let rarityClass = isElemental ? elementType.toLowerCase() : normalizedRarity;
+  if (rarityClass === 'mythic') {
+    rarityClass = 'mythical';
+  }
   
   return (
     <div 

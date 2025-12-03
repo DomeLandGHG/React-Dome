@@ -22,6 +22,7 @@ import { EventNotification } from './components/EventNotification';
 import ElementalTraderModal from './components/ElementalTraderModal';
 import ElementalPrestigeModal from './components/ElementalPrestigeModal';
 import { PackOpeningAnimation, type PackResult } from './components/PackOpeningAnimation';
+import { SecretRuneCraftAnimation } from './components/SecretRuneCraftAnimation';
 import { MultiInstanceWarning } from './components/MultiInstanceWarning';
 import { formatNumberGerman } from './types/German_number';
 import { RUNES_1, RUNES_2, type Rune } from './types/Runes';
@@ -43,6 +44,9 @@ function App() {
   const [isTraderOpen, setIsTraderOpen] = useState(false);
   const [isPrestigeOpen, setIsPrestigeOpen] = useState(false);
   const [packResults, setPackResults] = useState<PackResult[] | null>(null);
+  const [totalPacksOpened, setTotalPacksOpened] = useState<number>(0);
+  const [actualRuneCounts, setActualRuneCounts] = useState<number[] | null>(null);
+  const [isCraftingSecret, setIsCraftingSecret] = useState<'single' | 'all' | false>(false);
   
   // Handle multi-pack purchase with animation
   const handleBuyRunePacks = React.useCallback((count: number) => {
@@ -64,7 +68,8 @@ function App() {
               bonusType: result.bonusType,
               producing: result.producing,
               bonuses: result.bonuses || [],
-              elementType: result.elementType
+              elementType: result.elementType,
+              index: result.index
             });
           }
         });
@@ -75,6 +80,9 @@ function App() {
         if (results.length > 0 && !gameState.disablePackAnimations) {
           console.log('Setting pack results to show animation');
           setPackResults(results);
+          setTotalPacksOpened(count);
+          // Extract actual counts if available (for large pack purchases)
+          setActualRuneCounts((packOpenResults as any).__actualCounts || null);
         } else if (gameState.disablePackAnimations) {
           console.log('Pack animations disabled, skipping animation');
         } else {
@@ -90,6 +98,7 @@ function App() {
   
   const closePackAnimation = React.useCallback(() => {
     setPackResults(null);
+    setActualRuneCounts(null);
   }, []);
   
   // Trader auto-refresh timer
@@ -203,8 +212,11 @@ function App() {
     gameState.runes.slice(0, 6).every(amount => amount >= 1) && 
     gameState.elementalRunes.slice(0, 6).every(amount => amount >= 1);
   
-  // Check if player has ever crafted a Secret Rune
-  const hasSecretRune = gameState.runes[6] > 0;
+  // Check how many Secret Runes can be crafted
+  const maxCraftableSecretRunes = Math.min(
+    ...gameState.runes.slice(0, 6),
+    ...gameState.elementalRunes.slice(0, 6)
+  );
   
   // Check if elemental runes have ever been unlocked (permanent unlock)
   const hasElementalRunes = gameState.elementalRunesUnlocked;
@@ -218,34 +230,35 @@ function App() {
 
   // Handle trader offer acceptance
   const handleAcceptTraderOffer = (offer: TraderOffer) => {
+    // Support bulk trades
+    const bulkAmount = (offer as any).bulkAmount ?? 1;
+    const totalElementCost = offer.elementAmount * bulkAmount;
     const currentAmount = gameState.elementalResources[offer.elementType] || 0;
-    
-    if (currentAmount < offer.elementAmount) {
-      console.error('Not enough resources');
+    if (currentAmount < totalElementCost || bulkAmount < 1) {
+      console.error('Not enough resources for bulk trade');
       return;
     }
 
-    // Deduct element cost
+    // Deduct total element cost
     const newResources = [...gameState.elementalResources];
-    newResources[offer.elementType] -= offer.elementAmount;
+    newResources[offer.elementType] -= totalElementCost;
 
-    // Apply reward
+    // Apply rewards in bulk
     let newState = { ...gameState, elementalResources: newResources };
-
     switch (offer.rewardType) {
       case 'gems':
-        newState.gems += offer.rewardAmount;
+        newState.gems += offer.rewardAmount * bulkAmount;
         break;
       case 'rp':
-        newState.rebirthPoints += offer.rewardAmount;
+        newState.rebirthPoints += offer.rewardAmount * bulkAmount;
         break;
       case 'money':
-        newState.money += offer.rewardAmount;
+        newState.money += offer.rewardAmount * bulkAmount;
         break;
       case 'rune':
         if (offer.rewardRuneId !== undefined) {
           const newRunes = [...newState.runes];
-          newRunes[offer.rewardRuneId] += offer.rewardAmount;
+          newRunes[offer.rewardRuneId] += offer.rewardAmount * bulkAmount;
           newState.runes = newRunes;
         }
         break;
@@ -722,6 +735,24 @@ function App() {
         onPrestige={handleElementalPrestige}
       />
 
+      {/* Secret Rune Craft Animation */}
+      {(isCraftingSecret === 'single' || isCraftingSecret === 'all') && (
+        <SecretRuneCraftAnimation
+          mode={isCraftingSecret}
+          count={isCraftingSecret === 'all' ? maxCraftableSecretRunes : 1}
+          onComplete={() => {
+            if (isCraftingSecret === 'all') {
+              for (let i = 0; i < maxCraftableSecretRunes; i++) {
+                craftSecretRune();
+              }
+            } else if (isCraftingSecret === 'single') {
+              craftSecretRune();
+            }
+            setIsCraftingSecret(false);
+          }}
+        />
+      )}
+
       <main className="game-container">
         {/* Desktop Layout */}
         <div className="desktop-layout">
@@ -808,7 +839,7 @@ function App() {
                 justifyContent: 'center',
                 flexDirection: 'column'
               }}>
-                {[1, 5, 10, 'max'].map(count => {
+                {[1, 'max'].map(count => {
                   const isMax = count === 'max';
                   const costPerPack = gameState.currentRuneType === 'basic' ? 5 : 250000;
                   const currency = gameState.currentRuneType === 'basic' ? gameState.gems : gameState.money;
@@ -863,7 +894,7 @@ function App() {
                       }}
                     >
                       <div style={{ fontSize: '16px', marginBottom: '4px' }}>
-                        ✨ {isMax ? `${maxCount}x Packs (MAX)` : `${count}x Pack${typeof count === 'number' && count > 1 ? 's' : ''}`} ✨
+                        ✨ {isMax ? `${maxCount}x Packs (MAX)` : `${count}x Pack`} ✨
                       </div>
                       <div style={{ fontSize: '13px', opacity: 0.9 }}>
                         {gameState.currentRuneType === 'basic' 
@@ -876,11 +907,14 @@ function App() {
               </div>
             </div>
 
-            {/* Secret Rune Craft Button - nur sichtbar wenn alle Runen vorhanden */}
+            {/* Secret Rune Craft Buttons - nur sichtbar wenn alle Runen vorhanden */}
             {canCraftSecretRune && (
-              <div style={{ marginBottom: '24px' }}>
+              <div style={{ marginBottom: '24px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                {/* Craft 1 Button */}
                 <button
-                  onClick={craftSecretRune}
+                  onClick={() => {
+                    setIsCraftingSecret('single');
+                  }}
                   style={{
                     width: '100%',
                     padding: '16px',
@@ -916,8 +950,53 @@ function App() {
                     background: 'linear-gradient(90deg, transparent, rgba(255,255,255,0.1), transparent)',
                     animation: 'shimmer 3s infinite'
                   }} />
-                  {hasSecretRune ? '🌑 Secret Rune 🌑' : '🌑 ??? 🌑'}
+                  🌑 Craft 1x Secret Rune 🌑
                 </button>
+
+                {/* Craft All Button - nur sichtbar wenn mehr als 1 craftbar */}
+                {maxCraftableSecretRunes > 1 && (
+                  <button
+                    onClick={() => {
+                      setIsCraftingSecret('all');
+                    }}
+                    style={{
+                      width: '100%',
+                      padding: '16px',
+                      fontSize: '16px',
+                      fontWeight: 'bold',
+                      background: 'linear-gradient(135deg, #606060 0%, #303030 50%, #1a1a1a 100%)',
+                      color: '#ffffff',
+                      border: '2px solid #808080',
+                      borderRadius: '12px',
+                      cursor: 'pointer',
+                      transition: 'all 0.3s ease',
+                      boxShadow: '0 6px 20px rgba(128, 128, 128, 0.6), inset 0 1px 0 rgba(255, 255, 255, 0.2)',
+                      position: 'relative',
+                      overflow: 'hidden'
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.transform = 'translateY(-2px)';
+                      e.currentTarget.style.boxShadow = '0 8px 25px rgba(128, 128, 128, 0.8), inset 0 1px 0 rgba(255, 255, 255, 0.25)';
+                      e.currentTarget.style.borderColor = '#a0a0a0';
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.transform = 'none';
+                      e.currentTarget.style.boxShadow = '0 6px 20px rgba(128, 128, 128, 0.6), inset 0 1px 0 rgba(255, 255, 255, 0.2)';
+                      e.currentTarget.style.borderColor = '#808080';
+                    }}
+                  >
+                    <div style={{
+                      position: 'absolute',
+                      top: 0,
+                      left: '-100%',
+                      width: '100%',
+                      height: '100%',
+                      background: 'linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent)',
+                      animation: 'shimmer 3s infinite'
+                    }} />
+                    🌑 Craft {maxCraftableSecretRunes}x Secret Runes (ALL) 🌑
+                  </button>
+                )}
               </div>
             )}
 
@@ -2131,7 +2210,7 @@ function App() {
                     justifyContent: 'center',
                     flexDirection: 'column'
                   }}>
-                    {[1, 5, 10, 'max'].map(count => {
+                    {[1, 'max'].map(count => {
                       const isMax = count === 'max';
                       const costPerPack = gameState.currentRuneType === 'basic' ? 5 : 250000;
                       const currency = gameState.currentRuneType === 'basic' ? gameState.gems : gameState.money;
@@ -2170,7 +2249,7 @@ function App() {
                           }}
                         >
                           <div style={{ fontSize: '16px', marginBottom: '4px' }}>
-                            ✨ {isMax ? `${maxCount}x Packs (MAX)` : `${count}x Pack${typeof count === 'number' && count > 1 ? 's' : ''}`} ✨
+                            ✨ {isMax ? `${maxCount}x Packs (MAX)` : `${count}x Pack`} ✨
                           </div>
                           <div style={{ fontSize: '13px', opacity: 0.9 }}>
                             {gameState.currentRuneType === 'basic' 
@@ -2183,11 +2262,14 @@ function App() {
                   </div>
                 </div>
 
-                {/* Secret Rune Craft Button - Mobile */}
+                {/* Secret Rune Craft Buttons - Mobile */}
                 {canCraftSecretRune && (
-                  <div style={{ marginBottom: '24px' }}>
+                  <div style={{ marginBottom: '24px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                    {/* Craft 1 Button */}
                     <button
-                      onClick={craftSecretRune}
+                      onClick={() => {
+                        setIsCraftingSecret('single');
+                      }}
                       style={{
                         width: '100%',
                         padding: '16px',
@@ -2213,8 +2295,43 @@ function App() {
                         background: 'linear-gradient(90deg, transparent, rgba(255,255,255,0.1), transparent)',
                         animation: 'shimmer 3s infinite'
                       }} />
-                      {hasSecretRune ? '🌑 Secret Rune 🌑' : '🌑 ??? 🌑'}
+                      🌑 Craft 1x Secret Rune 🌑
                     </button>
+
+                    {/* Craft All Button - nur sichtbar wenn mehr als 1 craftbar */}
+                    {maxCraftableSecretRunes > 1 && (
+                      <button
+                        onClick={() => {
+                          setIsCraftingSecret('all');
+                        }}
+                        style={{
+                          width: '100%',
+                          padding: '16px',
+                          fontSize: '16px',
+                          fontWeight: 'bold',
+                          background: 'linear-gradient(135deg, #606060 0%, #303030 50%, #1a1a1a 100%)',
+                          color: '#ffffff',
+                          border: '2px solid #808080',
+                          borderRadius: '12px',
+                          cursor: 'pointer',
+                          transition: 'all 0.3s ease',
+                          boxShadow: '0 6px 20px rgba(128, 128, 128, 0.6)',
+                          position: 'relative',
+                          overflow: 'hidden'
+                        }}
+                      >
+                        <div style={{
+                          position: 'absolute',
+                          top: 0,
+                          left: '-100%',
+                          width: '100%',
+                          height: '100%',
+                          background: 'linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent)',
+                          animation: 'shimmer 3s infinite'
+                        }} />
+                        🌑 Craft {maxCraftableSecretRunes}x Secret Runes (ALL) 🌑
+                      </button>
+                    )}
                   </div>
                 )}
 
@@ -2460,6 +2577,8 @@ function App() {
         <PackOpeningAnimation 
           results={packResults}
           onComplete={closePackAnimation}
+          totalPacksOpened={totalPacksOpened}
+          actualRuneCounts={actualRuneCounts}
         />
       )}
       

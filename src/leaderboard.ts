@@ -324,8 +324,12 @@ export const getTopLeaderboard = async (category: 'allTimeMoney' | 'totalTiers' 
     ]);
     
     if (!snapshot.exists()) {
+      console.log('[Leaderboard] ⚠️ No leaderboard data exists in Firebase');
       return [];
     }
+    
+    const data = snapshot.val();
+    console.log('[Leaderboard] 📊 Total entries in Firebase:', Object.keys(data).length);
     
     // Get list of banned user IDs
     const bannedUsers = new Set<string>();
@@ -334,19 +338,19 @@ export const getTopLeaderboard = async (category: 'allTimeMoney' | 'totalTiers' 
       Object.keys(bansData).forEach(userId => {
         if (bansData[userId] === true) {
           bannedUsers.add(userId);
-          console.log('[Leaderboard] Banned user:', userId);
+          console.log('[Leaderboard] 🚫 Banned user:', userId);
         }
       });
     }
     
-    const data = snapshot.val();
     let entries = Object.values(data) as any[];
+    console.log('[Leaderboard] 📋 All entries before filtering:', entries.map(e => ({ user: e.username, hasDevStats: !!e.devStats })));
     
     // Filter out banned users and dev accounts
     entries = entries.filter(entry => {
       // Remove banned users
       if (bannedUsers.has(entry.userId)) {
-        console.log('[Leaderboard] Filtering out banned user:', entry.username);
+        console.log('[Leaderboard] ❌ Filtering out banned user:', entry.username);
         return false;
       }
       
@@ -357,14 +361,15 @@ export const getTopLeaderboard = async (category: 'allTimeMoney' | 'totalTiers' 
             devStats.rebirthPointsAdded > 0 || 
             devStats.gemsAdded > 0 ||
             devStats.clicksAdded > 0) {
-          console.log('[Leaderboard] Filtering out dev account:', entry.username);
+          console.log('[Leaderboard] ❌ Filtering out dev account:', entry.username, 'devStats:', devStats);
           return false;
         }
       }
       return true;
     });
     
-    console.log('[Leaderboard] Total entries after dev filter:', entries.length);
+    console.log('[Leaderboard] ✅ Total entries after filtering:', entries.length);
+    console.log('[Leaderboard] 👥 Usernames after filter:', entries.map(e => e.username));
     
     // Sort by category value in descending order (highest first)
     entries.sort((a, b) => {

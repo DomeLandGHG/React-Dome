@@ -9,6 +9,7 @@ export const MultiInstanceWarning: React.FC<MultiInstanceWarningProps> = ({ user
   const [showWarning, setShowWarning] = useState(false);
   const [otherInstanceTime, setOtherInstanceTime] = useState<string>('');
   const [otherInstanceDevice, setOtherInstanceDevice] = useState<string>('');
+  const [isIgnored, setIsIgnored] = useState(false);
   const instanceIdRef = useRef<string>(`instance_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`);
 
   useEffect(() => {
@@ -25,10 +26,9 @@ export const MultiInstanceWarning: React.FC<MultiInstanceWarningProps> = ({ user
     const deviceType = isMobile ? 'Mobile' : 'Desktop';
 
     const instancesRef = dbRef(db, `activeInstances/${userId}`);
-
+    const myInstanceRef = dbRef(db, `activeInstances/${userId}/${myInstanceId}`);
     const updateHeartbeat = async () => {
       try {
-        const myInstanceRef = dbRef(db, `activeInstances/${userId}/${myInstanceId}`);
         await dbSet(myInstanceRef, {
           timestamp: Date.now(),
           device: deviceType
@@ -36,6 +36,13 @@ export const MultiInstanceWarning: React.FC<MultiInstanceWarningProps> = ({ user
       } catch (error) {
         console.error('[Multi-Instance] Failed to update heartbeat:', error);
       }
+    };
+
+    // Instant cleanup on page unload
+    const handleBeforeUnload = () => {
+      console.log('[Multi-Instance] Page unloading, removing instance immediately');
+      // Synchronous delete (will complete before page unloads)
+      dbSet(myInstanceRef, null);
     };
 
     const checkForOtherInstances = async () => {
@@ -71,7 +78,9 @@ export const MultiInstanceWarning: React.FC<MultiInstanceWarningProps> = ({ user
         if (foundOtherInstance) {
           setOtherInstanceTime(otherTime);
           setOtherInstanceDevice(otherDevice);
-          setShowWarning(true);
+          if (!isIgnored) {
+            setShowWarning(true);
+          }
         } else {
           setShowWarning(false);
         }
@@ -82,13 +91,17 @@ export const MultiInstanceWarning: React.FC<MultiInstanceWarningProps> = ({ user
 
     // Claim instance immediately (async IIFE)
     (async () => {
+      console.log('[Multi-Instance] Claiming instance:', myInstanceId);
       await updateHeartbeat();
 
       // Initial check after a delay to let heartbeat settle in Firebase
       setTimeout(() => {
         checkForOtherInstances();
-      }, 2000);
+      }, 1000);
     })();
+
+    // Add beforeunload listener for instant cleanup
+    window.addEventListener('beforeunload', handleBeforeUnload);
 
     // Regular heartbeat and checking
     const heartbeatInterval = setInterval(() => {
@@ -99,15 +112,17 @@ export const MultiInstanceWarning: React.FC<MultiInstanceWarningProps> = ({ user
     // Cleanup on unmount - remove our heartbeat
     return () => {
       clearInterval(heartbeatInterval);
+      window.removeEventListener('beforeunload', handleBeforeUnload);
       // Remove our instance from Firebase
-      const myInstanceRef = dbRef(db, `activeInstances/${userId}/${myInstanceId}`);
       dbSet(myInstanceRef, null).catch((error) => {
         console.error('[Multi-Instance] Cleanup error:', error);
       });
     };
-  }, [userId]);
+  }, [userId, isIgnored]);
 
-  if (!showWarning) return null;
+  if (!showWarning) {
+    return null;
+  }
 
   return (
     <div style={{
@@ -117,7 +132,7 @@ export const MultiInstanceWarning: React.FC<MultiInstanceWarningProps> = ({ user
       right: 0,
       bottom: 0,
       backgroundColor: 'rgba(0, 0, 0, 0.95)',
-      zIndex: 99999,
+      zIndex: 10000,
       display: 'flex',
       alignItems: 'center',
       justifyContent: 'center',
@@ -209,8 +224,7 @@ export const MultiInstanceWarning: React.FC<MultiInstanceWarningProps> = ({ user
             border: 'none',
             borderRadius: '8px',
             cursor: 'pointer',
-            fontWeight: 'bold',
-            transition: 'all 0.3s ease',
+            marginRight: '10px',
           }}
           onMouseEnter={(e) => {
             e.currentTarget.style.backgroundColor = '#ff5252';
@@ -222,6 +236,35 @@ export const MultiInstanceWarning: React.FC<MultiInstanceWarningProps> = ({ user
           }}
         >
           🔄 Seite neu laden
+        </button>
+        
+        <button
+          onClick={() => {
+            setIsIgnored(true);
+            setShowWarning(false);
+          }}
+          style={{
+            marginTop: '20px',
+            padding: '12px 30px',
+            fontSize: '1em',
+            backgroundColor: '#666',
+            color: 'white',
+            border: 'none',
+            borderRadius: '8px',
+            cursor: 'pointer',
+            fontWeight: 'bold',
+            transition: 'all 0.3s ease',
+          }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.backgroundColor = '#555';
+            e.currentTarget.style.transform = 'scale(1.05)';
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.backgroundColor = '#666';
+            e.currentTarget.style.transform = 'scale(1)';
+          }}
+        >
+          ✖️ Ignorieren
         </button>
       </div>
     </div>

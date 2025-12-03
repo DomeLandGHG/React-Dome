@@ -12,6 +12,11 @@
   animation: fadeIn 0.3s ease-in;
 }
 
+/* Force cards to show front side in pack opening animation */
+.pack-opening-overlay .rune-card-inner {
+  transform: rotateY(180deg) !important;
+}
+
 @keyframes fadeIn {
   from {
     opacity: 0;

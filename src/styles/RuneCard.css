@@ -97,11 +97,39 @@
   animation: legendaryGlow 2s ease-in-out infinite;
 }
 
-.rune-card-secret .rune-card-front {
+.rune-card-mythical .rune-card-front {
   background: linear-gradient(135deg, #943126 0%, #641e16 100%);
   border: 5px solid #ec7063;
   box-shadow: 0 8px 24px rgba(231, 76, 60, 0.8);
-  animation: secretGlow 1.5s ease-in-out infinite;
+  animation: mythicalGlow 1.5s ease-in-out infinite;
+}
+
+.rune-card-secret .rune-card-front {
+  background: linear-gradient(135deg, #1a1a1a 0%, #000000 50%, #1a1a1a 100%);
+  border: 5px solid #d4d4d4;
+  box-shadow: 0 8px 24px rgba(64, 64, 64, 0.8);
+  animation: secretGlow 2s ease-in-out infinite;
+  position: relative;
+  overflow: hidden;
+}
+
+.rune-card-secret .rune-card-front::before {
+  content: '';
+  position: absolute;
+  top: -50%;
+  left: -50%;
+  width: 200%;
+  height: 200%;
+  background: linear-gradient(
+    45deg,
+    transparent 30%,
+    rgba(212, 212, 212, 0.2) 40%,
+    rgba(255, 255, 255, 0.3) 50%,
+    rgba(212, 212, 212, 0.2) 60%,
+    transparent 70%
+  );
+  animation: secretShimmer 4s linear infinite;
+  pointer-events: none;
 }
 
 @keyframes legendaryGlow {
@@ -113,7 +141,7 @@
   }
 }
 
-@keyframes secretGlow {
+@keyframes mythicalGlow {
   0%, 100% {
     box-shadow: 0 8px 24px rgba(231, 76, 60, 0.8), 0 0 20px rgba(255, 0, 0, 0.4);
   }
@@ -122,11 +150,103 @@
   }
 }
 
+@keyframes secretGlow {
+  0%, 100% {
+    box-shadow: 
+      0 8px 24px rgba(64, 64, 64, 0.8), 
+      0 0 20px rgba(212, 212, 212, 0.4),
+      inset 0 0 30px rgba(255, 255, 255, 0.1);
+  }
+  50% {
+    box-shadow: 
+      0 8px 40px rgba(64, 64, 64, 1), 
+      0 0 50px rgba(212, 212, 212, 0.8), 
+      0 0 30px rgba(255, 255, 255, 0.6),
+      inset 0 0 50px rgba(255, 255, 255, 0.2);
+  }
+}
+
+@keyframes secretShimmer {
+  0% {
+    transform: rotate(45deg) translate(-100%, -100%);
+  }
+  100% {
+    transform: rotate(45deg) translate(100%, 100%);
+  }
+}
+
 /* Elemental Rune Styles */
 .rune-card-elemental .rune-card-front {
   background: linear-gradient(135deg, #1abc9c 0%, #16a085 100%);
   border: 3px solid #48c9b0;
   box-shadow: 0 8px 16px rgba(26, 188, 156, 0.4);
+}
+
+/* Individual Elemental Rune Styles */
+.rune-card-air .rune-card-front {
+  background: linear-gradient(135deg, #34fafa 0%, #00d4d4 50%, #00a8a8 100%);
+  border: 3px solid #6ffcfc;
+  box-shadow: 0 8px 20px rgba(52, 250, 250, 0.6), 0 0 15px rgba(52, 250, 250, 0.3);
+}
+
+.rune-card-earth .rune-card-front {
+  background: linear-gradient(135deg, #a0522d 0%, #8b4513 50%, #654321 100%);
+  border: 3px solid #cd853f;
+  box-shadow: 0 8px 20px rgba(160, 82, 45, 0.6), 0 0 15px rgba(160, 82, 45, 0.3);
+}
+
+.rune-card-water .rune-card-front {
+  background: linear-gradient(135deg, #1e90ff 0%, #1873cc 50%, #0d4d99 100%);
+  border: 3px solid #4da6ff;
+  box-shadow: 0 8px 20px rgba(30, 144, 255, 0.6), 0 0 15px rgba(30, 144, 255, 0.3);
+}
+
+.rune-card-fire .rune-card-front {
+  background: linear-gradient(135deg, #ff4500 0%, #cc3700 50%, #991a00 100%);
+  border: 3px solid #ff6347;
+  box-shadow: 0 8px 20px rgba(255, 69, 0, 0.6), 0 0 15px rgba(255, 69, 0, 0.3);
+  animation: fireGlow 1.5s ease-in-out infinite;
+}
+
+.rune-card-light .rune-card-front {
+  background: linear-gradient(135deg, #fffb1f 0%, #ffd700 50%, #ffb700 100%);
+  border: 4px solid #ffff80;
+  box-shadow: 0 8px 24px rgba(255, 251, 31, 0.8), 0 0 20px rgba(255, 215, 0, 0.5);
+  animation: lightGlow 2s ease-in-out infinite;
+}
+
+.rune-card-dark .rune-card-front {
+  background: linear-gradient(135deg, #36005c 0%, #1a002e 50%, #0d0017 100%);
+  border: 4px solid #6b00b8;
+  box-shadow: 0 8px 24px rgba(54, 0, 92, 0.8), 0 0 20px rgba(107, 0, 184, 0.5);
+  animation: darkGlow 2s ease-in-out infinite;
+}
+
+@keyframes fireGlow {
+  0%, 100% {
+    box-shadow: 0 8px 20px rgba(255, 69, 0, 0.6), 0 0 15px rgba(255, 69, 0, 0.3);
+  }
+  50% {
+    box-shadow: 0 8px 32px rgba(255, 69, 0, 0.9), 0 0 30px rgba(255, 69, 0, 0.6);
+  }
+}
+
+@keyframes lightGlow {
+  0%, 100% {
+    box-shadow: 0 8px 24px rgba(255, 251, 31, 0.8), 0 0 20px rgba(255, 215, 0, 0.5);
+  }
+  50% {
+    box-shadow: 0 8px 40px rgba(255, 251, 31, 1), 0 0 50px rgba(255, 215, 0, 1);
+  }
+}
+
+@keyframes darkGlow {
+  0%, 100% {
+    box-shadow: 0 8px 24px rgba(54, 0, 92, 0.8), 0 0 20px rgba(107, 0, 184, 0.5);
+  }
+  50% {
+    box-shadow: 0 8px 40px rgba(54, 0, 92, 1), 0 0 40px rgba(107, 0, 184, 0.8);
+  }
 }
 
 .rune-card-header {
@@ -238,8 +358,13 @@
 }
 
 .rune-card-legendary .rune-card-shine,
-.rune-card-secret .rune-card-shine {
+.rune-card-mythical .rune-card-shine {
   animation: shine 3s ease-in-out infinite;
+}
+
+/* Secret Rune has its own shimmer effect */
+.rune-card-secret .rune-card-shine {
+  display: none;
 }
 
 @keyframes shine {

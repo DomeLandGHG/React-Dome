@@ -1,3 +1,10 @@
+// Typing for pack opening results (sync with PackOpeningAnimation.tsx)
+export interface PackResult {
+  rarity: string;
+  bonus: number;
+  index: number;
+  elementType?: string;
+}
 import { useState, useEffect, useCallback } from 'react';
 import type { GameState } from './types';
 import { INITIAL_GAME_STATE } from './types';
@@ -817,13 +824,16 @@ export const useGameLogic = () => {
         newAchievements.push({ id: 1, tier: 1 });
       }
       
+      // Preserve trader offers and refresh timers
       return {
         ...INITIAL_GAME_STATE,
+        username: prev.username, // Preserve username on rebirth
         rebirthPoints: newRebirthPoints,
         gems: prev.gems, // Gems bleiben bei Rebirth erhalten
         runes: prev.runes, // Runen bleiben bei Rebirth erhalten
         elementalRunes: prev.elementalRunes, // Elemental Runen bleiben bei Rebirth erhalten
         elementalResources: prev.elementalResources, // Elemental Resources bleiben bei Rebirth erhalten
+        elementalPrestige: prev.elementalPrestige, // Elemental Prestige bleibt bei Rebirth erhalten
         currentRuneType: prev.currentRuneType, // UI state stays
         showElementalStats: prev.showElementalStats, // UI state stays
         elementalRunesUnlocked: prev.elementalRunesUnlocked, // Permanent unlock stays
@@ -847,6 +857,9 @@ export const useGameLogic = () => {
         maxUpgradeAmounts: prev.maxUpgradeAmounts.map((maxAmount, index) => 
           UPGRADES[index]?.type === 'Unlock' ? maxAmount : INITIAL_GAME_STATE.maxUpgradeAmounts[index]
         ),
+        traderOffers: prev.traderOffers,
+        traderLastRefresh: prev.traderLastRefresh,
+        traderNextRefresh: prev.traderNextRefresh,
       };
     });
   }, [calculateAchievementBonuses]);
@@ -1065,80 +1078,168 @@ export const useGameLogic = () => {
     // Check if player can afford the pack(s) based on rune type
     const costPerPack = gameState.currentRuneType === 'basic' ? 5 : 250000;
     const currency = gameState.currentRuneType === 'basic' ? gameState.gems : gameState.money;
-    const canAfford = currency >= costPerPack * count;
     
-    if (!canAfford) return returnResults ? [] : undefined;
+    const actualCount = Math.min(count, Math.floor(currency / costPerPack));
+    
+    if (actualCount <= 0) return returnResults ? [] : undefined;
 
     const currentRunes = gameState.currentRuneType === 'basic' ? RUNES_1 : RUNES_2;
     const elementalBonuses = calculateElementalBonuses(gameState.elementalPrestige || null);
     const luckBonus = elementalBonuses.runePackLuckBonus;
     const resultsToReturn: Array<{ rarity: string; bonus: number; index: number }> = [];
 
-    // Generate results BEFORE setState
-    for (let packIndex = 0; packIndex < count; packIndex++) {
-      const roll = Math.floor(Math.random() * 1000);
-      let droppedRune = -1;
-      
-      // Apply luck bonus ONLY for basic runes (not elemental)
+    // For very large pack counts (>10000), use probability distribution instead of simulation
+    const SIMULATION_THRESHOLD = 10000;
+    const useDistribution = actualCount > SIMULATION_THRESHOLD;
+
+    if (useDistribution) {
+      // Calculate modified drop rates with luck bonus
       const isBasicRunes = gameState.currentRuneType === 'basic';
       const modifiedRates = currentRunes.map((rune, index) => {
-        // Secret Rune (dropRate = 0) should never drop from packs
         if (rune.dropRate === 0) return 0;
         
         if (isBasicRunes && luckBonus > 1) {
-          // rarityFactor: 0 for common, increases to 1 for highest rarity
           const maxIndex = currentRunes.filter(r => r.dropRate > 0).length - 1;
           const rarityFactor = index / maxIndex;
-          
-          // Common (index 0) gets penalty, higher rarities get bonus
-          // Factor ranges from -0.5 (common) to +1.5 (legendary/mythic)
           const luckFactor = (rarityFactor * 2) - 0.5;
-          const adjustment = (luckBonus - 1) * luckFactor * 2.0; // Increased from 0.3 to 2.0 for visible effect
-          
+          const adjustment = (luckBonus - 1) * luckFactor * 2.0;
           return Math.max(1, rune.dropRate * (1 + adjustment));
         }
         return rune.dropRate;
       });
-      
-      // Normalize rates to sum to 1000
+
+      // Normalize rates to probabilities (sum to 1)
       const totalRate = modifiedRates.reduce((sum, rate) => sum + rate, 0);
-      const normalizedRates = modifiedRates.map(rate => (rate / totalRate) * 1000);
-      
-      let cumulativeRate = 0;
-      for (let i = 0; i < currentRunes.length; i++) {
-        cumulativeRate += normalizedRates[i];
-        if (roll < cumulativeRate) {
-          droppedRune = i;
-          break;
+      const probabilities = modifiedRates.map(rate => rate / totalRate);
+
+      // Calculate expected count for each rune type based on probability
+      const runeCounts: number[] = [];
+      let remainingPacks = actualCount;
+
+      probabilities.forEach((prob, index) => {
+        // Skip runes with 0 drop rate (e.g., Secret Rune)
+        if (modifiedRates[index] === 0) {
+          runeCounts.push(0);
+          return;
+        }
+        
+        if (index === probabilities.length - 1) {
+          // Last droppable rune gets all remaining packs to ensure total is exact
+          runeCounts.push(remainingPacks);
+        } else {
+          const expectedCount = Math.floor(actualCount * prob);
+          runeCounts.push(expectedCount);
+          remainingPacks -= expectedCount;
+        }
+      });
+
+      // Create results for animation - ensure all rune types with count > 0 are represented
+      if (returnResults) {
+        // Add one sample of each rune type that was actually obtained
+        runeCounts.forEach((count, index) => {
+          if (count > 0 && currentRunes[index]) {
+            const runeData = currentRunes[index];
+              resultsToReturn.push({
+                rarity: runeData.name,
+                bonus: runeData.moneyBonus || runeData.rpBonus || runeData.gemBonus || runeData.produceAmount || 0,
+                index: index,
+                elementType: runeData.producing ? runeData.producing : undefined
+              } as PackResult);
+          }
+        });
+        
+        // Fill remaining slots with random samples (up to 100 total)
+        const remainingSamples = Math.max(0, 100 - resultsToReturn.length);
+        for (let i = 0; i < remainingSamples; i++) {
+          const roll = Math.random();
+          let cumulative = 0;
+          let droppedRune = -1;
+
+          for (let j = 0; j < probabilities.length; j++) {
+            // Skip runes with 0 drop rate
+            if (modifiedRates[j] === 0) continue;
+            
+            cumulative += probabilities[j];
+            if (roll < cumulative) {
+              droppedRune = j;
+              break;
+            }
+          }
+
+          if (droppedRune !== -1) {
+            const runeData = currentRunes[droppedRune];
+            resultsToReturn.push({
+              rarity: runeData.name,
+              bonus: runeData.moneyBonus || runeData.rpBonus || runeData.gemBonus || runeData.produceAmount || 0,
+              index: droppedRune
+            });
+          }
         }
       }
-      
-      if (droppedRune !== -1 && returnResults) {
-        const runeData = currentRunes[droppedRune];
-        const bonuses: string[] = [];
+
+      // Store rune counts for state update
+      (resultsToReturn as any).__distributionCounts = runeCounts;
+      (resultsToReturn as any).__actualCounts = runeCounts; // Also store for animation
+
+    } else {
+      // Original simulation for smaller pack counts
+      for (let packIndex = 0; packIndex < actualCount; packIndex++) {
+        const roll = Math.floor(Math.random() * 1000);
+        let droppedRune = -1;
         
-        // Sammle alle Boni der Rune
-        if (runeData.moneyBonus) {
-          bonuses.push(`💰 +${(runeData.moneyBonus * 100).toFixed(2)}% Money`);
-        }
-        if (runeData.rpBonus) {
-          bonuses.push(`🔄 +${(runeData.rpBonus * 100).toFixed(2)}% RP`);
-        }
-        if (runeData.gemBonus) {
-          bonuses.push(`💎 +${(runeData.gemBonus * 100).toFixed(4)}% Gems`);
-        }
-        if (runeData.tickBonus) {
-          bonuses.push(`⚡ -${runeData.tickBonus}ms Tick Speed`);
-        }
-        if (runeData.producing && runeData.produceAmount) {
-          bonuses.push(`${runeData.produceAmount} ${runeData.producing}/tick`);
-        }
-        
-        resultsToReturn.push({
-          rarity: runeData.name,
-          bonus: runeData.moneyBonus || runeData.rpBonus || runeData.gemBonus || runeData.produceAmount || 0,
-          index: droppedRune
+        const isBasicRunes = gameState.currentRuneType === 'basic';
+        const modifiedRates = currentRunes.map((rune, index) => {
+          if (rune.dropRate === 0) return 0;
+          
+          if (isBasicRunes && luckBonus > 1) {
+            const maxIndex = currentRunes.filter(r => r.dropRate > 0).length - 1;
+            const rarityFactor = index / maxIndex;
+            const luckFactor = (rarityFactor * 2) - 0.5;
+            const adjustment = (luckBonus - 1) * luckFactor * 2.0;
+            return Math.max(1, rune.dropRate * (1 + adjustment));
+          }
+          return rune.dropRate;
         });
+        
+        const totalRate = modifiedRates.reduce((sum, rate) => sum + rate, 0);
+        const normalizedRates = modifiedRates.map(rate => (rate / totalRate) * 1000);
+        
+        let cumulativeRate = 0;
+        for (let i = 0; i < currentRunes.length; i++) {
+          cumulativeRate += normalizedRates[i];
+          if (roll < cumulativeRate) {
+            droppedRune = i;
+            break;
+          }
+        }
+        
+        if (droppedRune !== -1 && returnResults) {
+          const runeData = currentRunes[droppedRune];
+          const bonuses: string[] = [];
+          
+          if (runeData.moneyBonus) {
+            bonuses.push(`💰 +${(runeData.moneyBonus * 100).toFixed(2)}% Money`);
+          }
+          if (runeData.rpBonus) {
+            bonuses.push(`🔄 +${(runeData.rpBonus * 100).toFixed(2)}% RP`);
+          }
+          if (runeData.gemBonus) {
+            bonuses.push(`💎 +${(runeData.gemBonus * 100).toFixed(4)}% Gems`);
+          }
+          if (runeData.tickBonus) {
+            bonuses.push(`⚡ -${runeData.tickBonus}ms Tick Speed`);
+          }
+          if (runeData.producing && runeData.produceAmount) {
+            bonuses.push(`${runeData.produceAmount} ${runeData.producing}/tick`);
+          }
+          
+          resultsToReturn.push({
+            rarity: runeData.name,
+            bonus: runeData.moneyBonus || runeData.rpBonus || runeData.gemBonus || runeData.produceAmount || 0,
+            index: droppedRune,
+            elementType: runeData.producing ? runeData.producing : undefined
+          } as PackResult);
+        }
       }
     }
 
@@ -1149,47 +1250,90 @@ export const useGameLogic = () => {
       let newShowElementalStats = prev.showElementalStats;
       let newElementalRunesUnlocked = prev.elementalRunesUnlocked;
 
-      // Apply results to state
-      resultsToReturn.forEach(result => {
-        const droppedRune = result.index;
-        newRunes[droppedRune]++;
-          
-        // Track obtained rune
-        if (prev.currentRuneType === 'basic') {
-          const runeNames = ['common', 'uncommon', 'rare', 'epic', 'legendary', 'mythic'] as const;
-          const obtainedRuneName = runeNames[droppedRune];
-          updatedStats = {
-            ...updatedStats,
-            runesObtained: {
-              ...updatedStats.runesObtained,
-              [obtainedRuneName]: updatedStats.runesObtained[obtainedRuneName] + 1,
-            },
-          };
-        } else {
-          const elementNames = ['air', 'earth', 'water', 'fire', 'light', 'dark'] as const;
-          const obtainedElementName = elementNames[droppedRune];
-          updatedStats = {
-            ...updatedStats,
-            elementalRunesObtained: {
-              ...updatedStats.elementalRunesObtained,
-              [obtainedElementName]: updatedStats.elementalRunesObtained[obtainedElementName] + 1,
-            },
-          };
-        }
-        
-        // Check if we should show elemental stats (first elemental rune obtained)
-        if (prev.currentRuneType === 'elemental') {
-          if (!newShowElementalStats) {
-            newShowElementalStats = true;
-          }
-          if (!newElementalRunesUnlocked) {
-            newElementalRunesUnlocked = true;
-          }
-        }
-      });
+      // Check if using distribution-based calculation
+      const distributionCounts = (resultsToReturn as any).__distributionCounts;
       
-      // Deduct the appropriate cost
-      const totalCost = costPerPack * count;
+      if (distributionCounts) {
+        // Apply distribution counts directly
+        distributionCounts.forEach((count: number, index: number) => {
+          newRunes[index] += count;
+          
+          // Track obtained runes in stats
+          if (prev.currentRuneType === 'basic') {
+            const runeNames = ['common', 'uncommon', 'rare', 'epic', 'legendary', 'mythic'] as const;
+            if (index < runeNames.length) {
+              const obtainedRuneName = runeNames[index];
+              updatedStats = {
+                ...updatedStats,
+                runesObtained: {
+                  ...updatedStats.runesObtained,
+                  [obtainedRuneName]: updatedStats.runesObtained[obtainedRuneName] + count,
+                },
+              };
+            }
+          } else {
+            const elementNames = ['air', 'earth', 'water', 'fire', 'light', 'dark'] as const;
+            if (index < elementNames.length) {
+              const obtainedElementName = elementNames[index];
+              updatedStats = {
+                ...updatedStats,
+                elementalRunesObtained: {
+                  ...updatedStats.elementalRunesObtained,
+                  [obtainedElementName]: updatedStats.elementalRunesObtained[obtainedElementName] + count,
+                },
+              };
+            }
+          }
+        });
+        
+        // Enable elemental stats if elemental runes were obtained
+        if (prev.currentRuneType === 'elemental') {
+          newShowElementalStats = true;
+          newElementalRunesUnlocked = true;
+        }
+      } else {
+        // Apply simulated results (original behavior)
+        resultsToReturn.forEach(result => {
+          const droppedRune = result.index;
+          newRunes[droppedRune]++;
+            
+          // Track obtained rune
+          if (prev.currentRuneType === 'basic') {
+            const runeNames = ['common', 'uncommon', 'rare', 'epic', 'legendary', 'mythic'] as const;
+            const obtainedRuneName = runeNames[droppedRune];
+            updatedStats = {
+              ...updatedStats,
+              runesObtained: {
+                ...updatedStats.runesObtained,
+                [obtainedRuneName]: updatedStats.runesObtained[obtainedRuneName] + 1,
+              },
+            };
+          } else {
+            const elementNames = ['air', 'earth', 'water', 'fire', 'light', 'dark'] as const;
+            const obtainedElementName = elementNames[droppedRune];
+            updatedStats = {
+              ...updatedStats,
+              elementalRunesObtained: {
+                ...updatedStats.elementalRunesObtained,
+                [obtainedElementName]: updatedStats.elementalRunesObtained[obtainedElementName] + 1,
+              },
+            };
+          }
+          
+          // Check if we should show elemental stats (first elemental rune obtained)
+          if (prev.currentRuneType === 'elemental') {
+            if (!newShowElementalStats) {
+              newShowElementalStats = true;
+            }
+            if (!newElementalRunesUnlocked) {
+              newElementalRunesUnlocked = true;
+            }
+          }
+        });
+      }
+      
+      // Deduct the appropriate cost - use actualCount instead of count
+      const totalCost = costPerPack * actualCount;
       const newGems = prev.currentRuneType === 'basic' ? prev.gems - totalCost : prev.gems;
       const newMoney = prev.currentRuneType === 'elemental' ? prev.money - totalCost : prev.money;
       
@@ -1204,10 +1348,10 @@ export const useGameLogic = () => {
         stats: {
           ...updatedStats,
           baseRunePacksPurchased: prev.currentRuneType === 'basic' 
-            ? updatedStats.baseRunePacksPurchased + count
+            ? updatedStats.baseRunePacksPurchased + actualCount
             : updatedStats.baseRunePacksPurchased,
           elementalRunePacksPurchased: prev.currentRuneType === 'elemental' 
-            ? updatedStats.elementalRunePacksPurchased + count
+            ? updatedStats.elementalRunePacksPurchased + actualCount
             : updatedStats.elementalRunePacksPurchased,
           allTimeGemsSpent: prev.currentRuneType === 'basic' 
             ? updatedStats.allTimeGemsSpent + totalCost
@@ -1220,7 +1364,7 @@ export const useGameLogic = () => {
     });
 
     return returnResults ? resultsToReturn : undefined;
-  }, [gameState.gems, gameState.money, gameState.currentRuneType]);
+  }, [gameState.gems, gameState.money, gameState.currentRuneType, gameState.elementalPrestige]);
 
   const switchRuneType = useCallback(() => {
     setGameState(prev => ({
