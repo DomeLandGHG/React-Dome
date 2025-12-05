@@ -805,7 +805,7 @@ const DevModal = ({ isOpen, onClose, gameState, setGameState, setOfflineProgress
                 >
                   {rune.name}
                   <div style={{ fontSize: '10px', opacity: 0.8, marginTop: '4px' }}>
-                    Current: {gameState.runes[index]}
+                    Current: {gameState.runes[index].toLocaleString('en-US')}
                   </div>
                 </button>
               ))}
@@ -838,7 +838,7 @@ const DevModal = ({ isOpen, onClose, gameState, setGameState, setOfflineProgress
                 >
                   {rune.name}
                   <div style={{ fontSize: '10px', opacity: 0.8, marginTop: '4px' }}>
-                    Current: {gameState.elementalRunes[index]}
+                    Current: {gameState.elementalRunes[index].toLocaleString('en-US')}
                   </div>
                 </button>
               ))}

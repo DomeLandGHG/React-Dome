@@ -1,5 +1,6 @@
 import React from 'react';
 import '../styles/RuneCard.css';
+import { formatNumberGerman } from '../types/German_number';
 
 export type RuneRarity = 'common' | 'uncommon' | 'rare' | 'epic' | 'legendary' | 'mythic' | 'secret';
 
@@ -98,7 +99,7 @@ export const RuneCard: React.FC<RuneCardProps> = ({
           </div>
           
           {count > 1 && (
-            <div className="rune-count-badge">×{count}</div>
+            <div className="rune-count-badge">×{formatNumberGerman(count)}</div>
           )}
           
           <div className="rune-card-shine"></div>

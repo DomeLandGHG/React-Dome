@@ -8,8 +8,7 @@ export interface PackResult {
 import { useState, useEffect, useCallback } from 'react';
 import type { GameState } from './types';
 import { INITIAL_GAME_STATE } from './types';
-import { saveGameState, loadGameState } from './storage';
-import { submitLeaderboardEntry, saveGameDataToFirebase } from './leaderboard';
+import { submitLeaderboardEntry, saveGameDataToFirebase, loadGameDataFromFirebase } from './leaderboard';
 import { RUNES_1, RUNES_2 } from './types/Runes';
 import { UPGRADES } from './types/Upgrade';
 import { REBIRTHUPGRADES } from './types/Rebirth_Upgrade';
@@ -18,12 +17,39 @@ import { calculateElementalBonuses } from './types/ElementalPrestige';
 import { EVENT_CONFIG, getRandomEvent, getUnlockedElements } from './types/ElementalEvent';
 
 export const useGameLogic = () => {
-  const [gameState, setGameState] = useState<GameState>(() => loadGameState());
+  const [gameState, setGameState] = useState<GameState>(INITIAL_GAME_STATE);
+  const [isLoading, setIsLoading] = useState(true);
   const [offlineProgress, setOfflineProgress] = useState<{ time: number; money: number; clicks: number } | null>(null);
+
+  // Load initial game state from Firebase on mount
+  useEffect(() => {
+    const loadInitialData = async () => {
+      console.log('[useGameLogic] Loading initial data from Firebase...');
+      const firebaseData = await loadGameDataFromFirebase();
+      
+      if (firebaseData) {
+        setGameState(firebaseData);
+      } else {
+        console.log('[useGameLogic] No Firebase data found, using INITIAL_GAME_STATE');
+        // New user - save initial state to Firebase
+        await saveGameDataToFirebase(INITIAL_GAME_STATE);
+      }
+      
+      setIsLoading(false);
+    };
+    
+    loadInitialData();
+  }, []);
 
   // Auto-submit to leaderboard every full minute (synchronized)
   useEffect(() => {
     const submitToLeaderboard = async () => {
+      // Don't submit if page is reloading for cloud data
+      if (localStorage.getItem('_reloading') === 'true') {
+        console.log('[Leaderboard] Skipping auto-submit - page is reloading');
+        return;
+      }
+      
       try {
         console.log('[Leaderboard] Auto-submitting stats at:', new Date().toLocaleTimeString());
         console.log('[Leaderboard] Current gameState devStats:', gameState.stats?.devStats);
@@ -41,7 +67,6 @@ export const useGameLogic = () => {
     // Calculate time until next full minute
     const now = new Date();
     const msUntilNextMinute = (60 - now.getSeconds()) * 1000 - now.getMilliseconds();
-    console.log('[Leaderboard] Next sync in', Math.round(msUntilNextMinute / 1000), 'seconds');
 
     let intervalId: number | null = null;
 
@@ -57,28 +82,12 @@ export const useGameLogic = () => {
     };
   }, [gameState]); // UPDATE: Include gameState in dependencies!
 
-  // Auto-save game data to Firebase every 5 minutes
-  useEffect(() => {
-    const autoSaveToCloud = async () => {
-      try {
-        console.log('[Auto-Save] Saving game data to cloud at:', new Date().toLocaleTimeString());
-        await saveGameDataToFirebase(gameState);
-        console.log('[Auto-Save] Successfully saved!');
-      } catch (error) {
-        console.error('[Auto-Save] Failed to save:', error);
-      }
-    };
-
-    // Save every 5 minutes (300000ms)
-    const saveInterval = setInterval(autoSaveToCloud, 300000);
-
-    return () => {
-      clearInterval(saveInterval);
-    };
-  }, [gameState]);
-
   // Calculate offline progress on initial load
   useEffect(() => {
+    if (isLoading) return; // Wait for data to load
+    // Clear reloading flag on startup
+    localStorage.removeItem('_reloading');
+    
     const calculateOfflineProgress = () => {
       const now = Date.now();
       const lastSave = gameState.lastSaveTime || now;
@@ -108,6 +117,12 @@ export const useGameLogic = () => {
       // Calculate money earned from moneyPerTick during offline time
       // Also add clicks from Auto Clicker upgrade (Rebirth Upgrade 2)
       if (gameState.moneyPerTick > 0 || gameState.rebirth_upgradeAmounts[1] > 0) {
+        // Safety check
+        if (gameState.achievements === undefined || gameState.runes === undefined) {
+          setIsLoading(false);
+          return;
+        }
+        
         // Calculate all multipliers
         const totalAchievementTiers = gameState.achievements.reduce((sum, a) => sum + (a.tier || 0), 0);
         const achievementMoneyBonus = totalAchievementTiers * 0.01;
@@ -298,7 +313,24 @@ export const useGameLogic = () => {
       }
     });
     
-    return newAchievements;
+    // Only return new array if something actually changed
+    // Check length first (fast check)
+    if (newAchievements.length !== currentState.achievements.length) {
+      return newAchievements;
+    }
+    
+    // Check if any achievement changed
+    const hasChanges = newAchievements.some((newAch, index) => {
+      const oldAch = currentState.achievements[index];
+      return !oldAch || newAch.id !== oldAch.id || newAch.tier !== oldAch.tier;
+    });
+    
+    if (hasChanges) {
+      return newAchievements;
+    }
+    
+    // No changes - return same reference to prevent unnecessary re-renders
+    return currentState.achievements;
   }, []);
 
   // Calculate Achievement Bonuses
@@ -318,10 +350,16 @@ export const useGameLogic = () => {
     };
   }, []);
 
-  // Auto-save when state changes
+  // Auto-save to Firebase when state changes (with debounce)
   useEffect(() => {
-    saveGameState(gameState);
-  }, [gameState]);
+    if (isLoading) return; // Don't save during initial load
+    
+    const saveTimeout = setTimeout(() => {
+      saveGameDataToFirebase(gameState);
+    }, 2000); // Debounce: save 2 seconds after last change
+    
+    return () => clearTimeout(saveTimeout);
+  }, [gameState, isLoading]);
 
   // Auto money generation & Rebirth-Upgrade: +1 Click per Tick & Elemental Rune Production
   useEffect(() => {
@@ -329,6 +367,11 @@ export const useGameLogic = () => {
       // Auto tick interval
       const interval = setInterval(() => {
         setGameState(prev => {
+          // Safety check
+          if (prev.achievements === undefined || prev.runes === undefined || prev.rebirth_upgradeAmounts === undefined) {
+            return prev;
+          }
+          
           // Achievement bonuses
           const hasGemUnlock = prev.rebirth_upgradeAmounts[2] > 0;
           const totalAchievementTiers = prev.achievements.reduce((sum, a) => sum + (a.tier || 0), 0);
@@ -518,8 +561,24 @@ export const useGameLogic = () => {
     return () => clearInterval(interval);
   }, [gameState.nextEventTime, gameState.activeEvent, gameState.eventEndTime, gameState.elementalRunes]);
 
+  // Prevent rapid clicks from causing infinite loops
   const clickMoney = useCallback(() => {
+    const now = Date.now();
+    const lastClick = (window as any).__lastClickTime || 0;
+    
+    // Throttle clicks to max 60 per second (16.67ms minimum interval)
+    if (now - lastClick < 16) {
+      return; // Skip this click
+    }
+    
+    (window as any).__lastClickTime = now;
+    
     setGameState(prev => {
+      // Safety check: return unchanged state if not fully loaded
+      if (prev.achievements === undefined || prev.rebirth_upgradeAmounts === undefined || prev.runes === undefined) {
+        return prev;
+      }
+      
       // Achievement bonuses
       const hasGemUnlock = prev.rebirth_upgradeAmounts[2] > 0;
       const totalAchievementTiers = prev.achievements.reduce((sum, a) => sum + (a.tier || 0), 0);
@@ -609,6 +668,11 @@ export const useGameLogic = () => {
       
       // Check for new achievements
       const updatedAchievements = checkAchievements(newState);
+      
+      // Only create new object if achievements actually changed
+      if (updatedAchievements === newState.achievements) {
+        return newState;
+      }
       
       return {
         ...newState,
@@ -798,6 +862,11 @@ export const useGameLogic = () => {
 
   const performRebirth = useCallback(() => {
     setGameState(prev => {
+      // Safety check
+      if (prev.achievements === undefined || prev.runes === undefined || prev.rebirth_upgradeAmounts === undefined) {
+        return prev;
+      }
+      
       // Achievement bonuses
       const hasGemUnlock = prev.rebirth_upgradeAmounts[2] > 0;
       const totalAchievementTiers = prev.achievements.reduce((sum, a) => sum + (a.tier || 0), 0);
@@ -1394,35 +1463,34 @@ export const useGameLogic = () => {
     }));
   }, []);
 
-  const craftSecretRune = useCallback(() => {
+  const craftSecretRune = useCallback((count: number = 1) => {
     setGameState(prev => {
-      // Prüfe ob mindestens 1 von jeder Basic Rune vorhanden ist (IDs 0-5)
-      const hasAllBasicRunes = prev.runes.slice(0, 6).every(amount => amount >= 1);
+      // Berechne wie viele Secret Runes tatsächlich craftbar sind
+      const maxBasicRunes = Math.min(...prev.runes.slice(0, 6));
+      const maxElementalRunes = Math.min(...prev.elementalRunes.slice(0, 6));
+      const maxCraftable = Math.min(maxBasicRunes, maxElementalRunes, count);
       
-      // Prüfe ob mindestens 1 von jeder Elemental Rune vorhanden ist (IDs 0-5)
-      const hasAllElementalRunes = prev.elementalRunes.slice(0, 6).every(amount => amount >= 1);
-      
-      // Wenn nicht alle vorhanden sind, keine Aktion
-      if (!hasAllBasicRunes || !hasAllElementalRunes) {
+      // Wenn keine craftbar sind, keine Aktion
+      if (maxCraftable <= 0) {
         return prev;
       }
       
-      // Kopiere Arrays und verbrauche je 1 Rune
+      // Kopiere Arrays und verbrauche die benötigten Runen
       const newRunes = [...prev.runes];
       const newElementalRunes = [...prev.elementalRunes];
       
-      // Entferne je 1 von jeder Basic Rune (IDs 0-5)
+      // Entferne die benötigten Basic Runes (IDs 0-5)
       for (let i = 0; i < 6; i++) {
-        newRunes[i] -= 1;
+        newRunes[i] -= maxCraftable;
       }
       
-      // Entferne je 1 von jeder Elemental Rune (IDs 0-5)
+      // Entferne die benötigten Elemental Runes (IDs 0-5)
       for (let i = 0; i < 6; i++) {
-        newElementalRunes[i] -= 1;
+        newElementalRunes[i] -= maxCraftable;
       }
       
-      // Füge 1 Secret Rune hinzu (ID 6)
-      newRunes[6] = (newRunes[6] || 0) + 1;
+      // Füge Secret Runen hinzu (ID 6)
+      newRunes[6] = (newRunes[6] || 0) + maxCraftable;
       
       return {
         ...prev,
@@ -1432,7 +1500,7 @@ export const useGameLogic = () => {
           ...prev.stats,
           runesCrafted: {
             ...prev.stats.runesCrafted,
-            secret: prev.stats.runesCrafted.secret + 1,
+            secret: prev.stats.runesCrafted.secret + maxCraftable,
           },
         },
       };
@@ -1456,6 +1524,11 @@ export const useGameLogic = () => {
     // Calculate money earned from moneyPerTick during offline time
     // Also add clicks from Auto Clicker upgrade
     if (gameState.moneyPerTick > 0 || gameState.rebirth_upgradeAmounts[1] > 0) {
+      // Safety check
+      if (gameState.achievements === undefined || gameState.runes === undefined) {
+        return;
+      }
+      
       // Calculate all multipliers (same as in initial load)
       const totalAchievementTiers = gameState.achievements.reduce((sum, a) => sum + (a.tier || 0), 0);
       const achievementMoneyBonus = totalAchievementTiers * 0.01;
@@ -1658,6 +1731,7 @@ export const useGameLogic = () => {
   return {
     gameState,
     setGameState,
+    isLoading,
     offlineProgress,
     setOfflineProgress,
     claimOfflineProgress,

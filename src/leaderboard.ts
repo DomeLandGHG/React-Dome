@@ -1,5 +1,6 @@
 import { db, dbRef, dbSet, dbGet } from './firebase';
 import type { GameState } from './types';
+import { INITIAL_GAME_STATE } from './types';
 import { RUNES_1 } from './types/Runes';
 import { REBIRTHUPGRADES } from './types/Rebirth_Upgrade';
 import { EVENT_CONFIG } from './types/ElementalEvent';
@@ -50,30 +51,70 @@ export const loginWithCode = async (code: string): Promise<{ success: boolean; u
     const gameDataRef = dbRef(db, `gameData/${userId}`);
     const gameDataSnapshot = await dbGet(gameDataRef);
     
-    if (gameDataSnapshot.exists()) {
-      const gameData = gameDataSnapshot.val();
-      console.log('[Login] ✅ Game data found in Firebase');
-      console.log('[Login] Loaded username:', gameData.username);
-      console.log('[Login] Loaded money:', gameData.money);
-      console.log('[Login] Loaded rebirth points:', gameData.rebirthPoints);
-      
-      // Save to localStorage with a marker that this is fresh Firebase data
-      localStorage.setItem('moneyClickerSave', JSON.stringify(gameData));
-      localStorage.setItem('firebase_data_loaded', 'true');
-      console.log('[Login] ✅ Data saved to localStorage');
-    } else {
+    if (!gameDataSnapshot.exists()) {
       console.log('[Login] ⚠️ No game data found in Firebase for this account at path:', `gameData/${userId}`);
-      console.log('[Login] The account exists but has no saved game data yet.');
+      return { success: false, error: 'No saved game data found for this account. Save to cloud first on the original device.' };
     }
     
-    // Set the user ID in localStorage AFTER loading data
+    const gameData = gameDataSnapshot.val();
+    console.log('[Login] ✅ Game data found in Firebase');
+    console.log('[Login] Loaded username:', gameData.username);
+    console.log('[Login] Loaded money:', gameData.money);
+    console.log('[Login] Loaded rebirth points:', gameData.rebirthPoints);
+    
+    // Clear ALL localStorage data to ensure clean state
+    console.log('[Login] Clearing localStorage...');
+    localStorage.clear();
+    
+    // Set the new user ID
     setUserId(userId);
-    console.log('[Login] ✅ User ID set in localStorage');
+    console.log('[Login] ✅ User ID set in localStorage:', userId);
     
     return { success: true, userId };
   } catch (error) {
     console.error('[Login] ❌ Error during login:', error);
-    return { success: false, error: 'Invalid account code format.' };
+    return { success: false, error: 'Invalid account code format or connection error.' };
+  }
+};
+
+// Create new account (similar to loginWithCode but with fresh data)
+export const createNewAccount = async (): Promise<{ success: boolean; userId?: string; error?: string }> => {
+  try {
+    console.log('[New Account] Starting new account creation...');
+    
+    // Clear ALL localStorage data to ensure clean state
+    console.log('[New Account] Clearing localStorage...');
+    localStorage.clear();
+    
+    // Generate new user ID (getUserId will create a new one since localStorage is empty)
+    const newUserId = getUserId();
+    console.log('[New Account] ✅ New User ID generated:', newUserId);
+    
+    // Prepare initial data with current timestamp
+    const initialData = {
+      ...INITIAL_GAME_STATE,
+      lastSaveTime: Date.now()
+    };
+    
+    // Save initial data to Firebase
+    const gameDataRef = dbRef(db, `gameData/${newUserId}`);
+    await dbSet(gameDataRef, initialData);
+    console.log('[New Account] ✅ Initial data saved to Firebase at path:', `gameData/${newUserId}`);
+    
+    // Create user entry in Firebase
+    const userRef = dbRef(db, `users/${newUserId}`);
+    await dbSet(userRef, {
+      username: initialData.username,
+      rebirthPoints: 0,
+      money: 0,
+      createdAt: Date.now()
+    });
+    console.log('[New Account] ✅ User entry created in Firebase');
+    
+    return { success: true, userId: newUserId };
+  } catch (error) {
+    console.error('[New Account] ❌ Error creating new account:', error);
+    return { success: false, error: 'Failed to create new account. Please try again.' };
   }
 };
 
@@ -107,11 +148,31 @@ export const loadGameDataFromFirebase = async (): Promise<GameState | null> => {
     
     if (snapshot.exists()) {
       const gameData = snapshot.val();
-      console.log('[Firebase Load] ✅ Game data loaded successfully');
-      console.log('[Firebase Load] Username:', gameData.username);
-      console.log('[Firebase Load] Money:', gameData.money);
-      console.log('[Firebase Load] Rebirth Points:', gameData.rebirthPoints);
-      return gameData;
+      
+      // Merge with INITIAL_GAME_STATE to ensure all properties exist
+      const mergedData = {
+        ...INITIAL_GAME_STATE,
+        ...gameData,
+      };
+      
+      // Explicitly ensure critical arrays exist (override if undefined)
+      if (mergedData.achievements === undefined || mergedData.achievements === null) {
+        mergedData.achievements = [];
+      }
+      if (mergedData.runes === undefined || mergedData.runes === null) {
+        mergedData.runes = INITIAL_GAME_STATE.runes;
+      }
+      if (mergedData.elementalRunes === undefined || mergedData.elementalRunes === null) {
+        mergedData.elementalRunes = INITIAL_GAME_STATE.elementalRunes;
+      }
+      if (mergedData.rebirth_upgradeAmounts === undefined || mergedData.rebirth_upgradeAmounts === null) {
+        mergedData.rebirth_upgradeAmounts = INITIAL_GAME_STATE.rebirth_upgradeAmounts;
+      }
+      if (mergedData.upgradeAmounts === undefined || mergedData.upgradeAmounts === null) {
+        mergedData.upgradeAmounts = INITIAL_GAME_STATE.upgradeAmounts;
+      }
+      
+      return mergedData;
     }
     
     console.log('[Firebase Load] ⚠️ No game data found');

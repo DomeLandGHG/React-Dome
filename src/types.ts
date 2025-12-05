@@ -23,6 +23,7 @@ export interface GameState {
   disableMoneyEffects?: boolean; // whether to disable money floating animations
   disableDiamondEffects?: boolean; // whether to disable diamond floating animations
   disablePackAnimations?: boolean; // whether to disable pack opening animations
+  disableCraftAnimations?: boolean; // whether to disable Secret Rune craft animations
   includeDevStats?: boolean; // whether to include dev command stats in statistics display (default: false)
   lastSaveTime?: number; // timestamp of last save for offline progress (in milliseconds)
   
@@ -162,6 +163,7 @@ export const INITIAL_GAME_STATE: GameState = {
   disableMoneyEffects: false,
   disableDiamondEffects: false,
   disablePackAnimations: false,
+  disableCraftAnimations: false,
   includeDevStats: false,
   lastSaveTime: Date.now(),
   elementalPrestige: {

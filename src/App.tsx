@@ -32,7 +32,7 @@ import { getUserId } from './leaderboard';
 import './App.css';
 
 function App() {
-  const { gameState, setGameState, offlineProgress, setOfflineProgress, claimOfflineProgress, clickMoney, buyUpgrade, buyMaxUpgrades, buyRebirthUpgrade, buyMaxRebirthUpgrades, performRebirth, resetGame, cheatMoney, devAddMoney, devAddMoneyDirect, devAddRebirthPoint, devAddGem, devAddClick, devAddRune, devAddElementalRune, openRunePack, mergeRunes, mergeAllRunes, switchRuneType, toggleElementalStats, toggleMoneyEffects, toggleDiamondEffects, toggleDevStats, devSimulateOfflineTime, craftSecretRune } = useGameLogic();
+  const { gameState, setGameState, isLoading, offlineProgress, setOfflineProgress, claimOfflineProgress, clickMoney, buyUpgrade, buyMaxUpgrades, buyRebirthUpgrade, buyMaxRebirthUpgrades, performRebirth, resetGame, cheatMoney, devAddMoney, devAddMoneyDirect, devAddRebirthPoint, devAddGem, devAddClick, devAddRune, devAddElementalRune, openRunePack, mergeRunes, mergeAllRunes, switchRuneType, toggleElementalStats, toggleMoneyEffects, toggleDiamondEffects, toggleDevStats, devSimulateOfflineTime, craftSecretRune } = useGameLogic();
   const [activePanel, setActivePanel] = useState<'upgrades' | 'rebirth' | 'achievements'>('upgrades');
   const [secondPanelView, setSecondPanelView] = useState<'achievements' | 'statistics' | 'leaderboard'>('achievements');
   const [mobileActiveTab, setMobileActiveTab] = useState<'stats' | 'upgrades' | 'rebirth' | 'gems' | 'achievements' | 'statistics' | 'leaderboard' | 'settings' | 'dev' | 'trader' | 'prestige'>('stats');
@@ -564,6 +564,32 @@ function App() {
     ? { background: activeEvent.backgroundGradient, transition: 'background 2s ease' }
     : {};
 
+  // Show loading screen while data is being fetched from Firebase
+  if (isLoading) {
+    return (
+      <div className="app" style={{
+        display: 'flex',
+        justifyContent: 'center',
+        alignItems: 'center',
+        height: '100vh',
+        background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)'
+      }}>
+        <div style={{
+          textAlign: 'center',
+          color: 'white',
+          fontSize: '24px',
+          fontWeight: 'bold'
+        }}>
+          <div style={{ fontSize: '48px', marginBottom: '20px' }}>💰</div>
+          <div>Loading Money Clicker...</div>
+          <div style={{ fontSize: '16px', marginTop: '10px', opacity: 0.8 }}>
+            Fetching your data from cloud...
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="app" style={appStyle}>
       {/* Multi-Instance Warning */}
@@ -682,9 +708,9 @@ function App() {
         disableMoneyEffects={gameState.disableMoneyEffects || false}
         disableDiamondEffects={gameState.disableDiamondEffects || false}
         disablePackAnimations={gameState.disablePackAnimations || false}
+        disableCraftAnimations={gameState.disableCraftAnimations || false}
         username={gameState.username || 'Player'}
         onUsernameChange={(newUsername) => setGameState(prev => ({ ...prev, username: newUsername }))}
-        gameState={gameState}
       />
 
       {/* Animation Settings Modal */}
@@ -694,9 +720,11 @@ function App() {
         disableMoneyEffects={gameState.disableMoneyEffects || false}
         disableDiamondEffects={gameState.disableDiamondEffects || false}
         disablePackAnimations={gameState.disablePackAnimations || false}
+        disableCraftAnimations={gameState.disableCraftAnimations || false}
         onToggleMoneyEffects={(disabled) => setGameState(prev => ({ ...prev, disableMoneyEffects: disabled }))}
         onToggleDiamondEffects={(disabled) => setGameState(prev => ({ ...prev, disableDiamondEffects: disabled }))}
         onTogglePackAnimations={(disabled) => setGameState(prev => ({ ...prev, disablePackAnimations: disabled }))}
+        onToggleCraftAnimations={(disabled) => setGameState(prev => ({ ...prev, disableCraftAnimations: disabled }))}
       />
       
       {/* Offline Progress Modal */}
@@ -736,22 +764,31 @@ function App() {
       />
 
       {/* Secret Rune Craft Animation */}
-      {(isCraftingSecret === 'single' || isCraftingSecret === 'all') && (
+      {(isCraftingSecret === 'single' || isCraftingSecret === 'all') && !gameState.disableCraftAnimations && (
         <SecretRuneCraftAnimation
           mode={isCraftingSecret}
           count={isCraftingSecret === 'all' ? maxCraftableSecretRunes : 1}
           onComplete={() => {
             if (isCraftingSecret === 'all') {
-              for (let i = 0; i < maxCraftableSecretRunes; i++) {
-                craftSecretRune();
-              }
+              craftSecretRune(maxCraftableSecretRunes);
             } else if (isCraftingSecret === 'single') {
-              craftSecretRune();
+              craftSecretRune(1);
             }
             setIsCraftingSecret(false);
           }}
         />
       )}
+
+      {/* Instant craft if animations disabled */}
+      {(isCraftingSecret === 'single' || isCraftingSecret === 'all') && gameState.disableCraftAnimations && (() => {
+        if (isCraftingSecret === 'all') {
+          craftSecretRune(maxCraftableSecretRunes);
+        } else if (isCraftingSecret === 'single') {
+          craftSecretRune(1);
+        }
+        setIsCraftingSecret(false);
+        return null;
+      })()}
 
       <main className="game-container">
         {/* Desktop Layout */}
@@ -810,7 +847,7 @@ function App() {
                 color: '#60a5fa',
                 textShadow: '0 0 8px rgba(96, 165, 250, 0.6)'
               }}>
-                💎 {gameState.gems}
+                💎 {formatNumberGerman(gameState.gems)}
               </div>
               <div style={{ fontSize: '12px', color: '#3b82f6', marginTop: '4px' }}>Gems you own</div>
             </div>
@@ -894,11 +931,11 @@ function App() {
                       }}
                     >
                       <div style={{ fontSize: '16px', marginBottom: '4px' }}>
-                        ✨ {isMax ? `${maxCount}x Packs (MAX)` : `${count}x Pack`} ✨
+                        ✨ {isMax ? `${formatNumberGerman(maxCount)}x Packs (MAX)` : `${count}x Pack`} ✨
                       </div>
                       <div style={{ fontSize: '13px', opacity: 0.9 }}>
                         {gameState.currentRuneType === 'basic' 
-                          ? `💎 ${totalCost} Gems`
+                          ? `💎 ${formatNumberGerman(totalCost)} Gems`
                           : `💰 ${formatNumberGerman(totalCost)}$`}
                       </div>
                     </button>
@@ -994,7 +1031,7 @@ function App() {
                       background: 'linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent)',
                       animation: 'shimmer 3s infinite'
                     }} />
-                    🌑 Craft {maxCraftableSecretRunes}x Secret Runes (ALL) 🌑
+                    🌑 Craft {formatNumberGerman(maxCraftableSecretRunes)}x Secret Runes (ALL) 🌑
                   </button>
                 )}
               </div>
@@ -1163,7 +1200,7 @@ function App() {
                         fontSize: '12px', 
                         color: runeAmount > 0 ? '#e5e7eb' : '#9ca3af'
                       }}>
-                        Amount: {runeAmount}x
+                        Amount: {formatNumberGerman(runeAmount)}x
                       </div>
                       {/* Merge Buttons - nur für Basic Runes und wenn genug vorhanden */}
                       {gameState.currentRuneType === 'basic' && runeAmount >= 3 && index < 5 && (
@@ -1473,7 +1510,7 @@ function App() {
                       opacity: 0.9,
                       filter: 'brightness(1.2)'
                     }}>
-                      {stat.runeCount} rune{stat.runeCount !== 1 ? 's' : ''}
+                      {formatNumberGerman(stat.runeCount)} rune{stat.runeCount !== 1 ? 's' : ''}
                     </div>
                   </div>
                   );
@@ -1987,7 +2024,7 @@ function App() {
                             opacity: 0.9,
                             filter: 'brightness(1.2)'
                           }}>
-                            {stat.runeCount} rune{stat.runeCount !== 1 ? 's' : ''}
+                            {formatNumberGerman(stat.runeCount)} rune{stat.runeCount !== 1 ? 's' : ''}
                           </div>
                         </div>
                         );
@@ -2117,9 +2154,9 @@ function App() {
                 disableMoneyEffects={gameState.disableMoneyEffects || false}
                 disableDiamondEffects={gameState.disableDiamondEffects || false}
                 disablePackAnimations={gameState.disablePackAnimations || false}
+                disableCraftAnimations={gameState.disableCraftAnimations || false}
                 username={gameState.username || 'Player'}
                 onUsernameChange={(newUsername) => setGameState(prev => ({ ...prev, username: newUsername }))}
-                gameState={gameState}
               />
             )}
 
@@ -2181,7 +2218,7 @@ function App() {
                     color: '#60a5fa',
                     textShadow: '0 0 8px rgba(96, 165, 250, 0.6)'
                   }}>
-                    💎 {gameState.gems}
+                    💎 {formatNumberGerman(gameState.gems)}
                   </div>
                   <div style={{ fontSize: '12px', color: '#3b82f6', marginTop: '4px' }}>Gems you own</div>
                 </div>
@@ -2249,11 +2286,11 @@ function App() {
                           }}
                         >
                           <div style={{ fontSize: '16px', marginBottom: '4px' }}>
-                            ✨ {isMax ? `${maxCount}x Packs (MAX)` : `${count}x Pack`} ✨
+                            ✨ {isMax ? `${formatNumberGerman(maxCount)}x Packs (MAX)` : `${count}x Pack`} ✨
                           </div>
                           <div style={{ fontSize: '13px', opacity: 0.9 }}>
                             {gameState.currentRuneType === 'basic' 
-                              ? `💎 ${totalCost} Gems`
+                              ? `💎 ${formatNumberGerman(totalCost)} Gems`
                               : `💰 ${formatNumberGerman(totalCost)}$`}
                           </div>
                         </button>
@@ -2329,7 +2366,7 @@ function App() {
                           background: 'linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent)',
                           animation: 'shimmer 3s infinite'
                         }} />
-                        🌑 Craft {maxCraftableSecretRunes}x Secret Runes (ALL) 🌑
+                        🌑 Craft {formatNumberGerman(maxCraftableSecretRunes)}x Secret Runes (ALL) 🌑
                       </button>
                     )}
                   </div>
@@ -2439,7 +2476,7 @@ function App() {
                             color: '#60a5fa',
                             fontSize: '16px'
                           }}>
-                            {runeAmount}
+                            {formatNumberGerman(runeAmount)}
                           </div>
                           {/* Mobile Merge Buttons - nur für Basic Runes */}
                           {gameState.currentRuneType === 'basic' && runeAmount >= 3 && index < 5 && (
@@ -2569,7 +2606,7 @@ function App() {
       </main>
 
       <footer className="app-footer">
-        <p>React Money Clicker v0.1.3 | Your progress is automatically saved!</p>
+        <p>React Money Clicker v0.1.4 | Your progress is automatically saved!</p>
       </footer>
       
       {/* Pack Opening Animation */}

@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { getTopLeaderboard, getUserRank, getUserId } from '../leaderboard';
 import type { GameState } from '../types';
+import { formatNumberGerman } from '../types/German_number';
 
 interface LeaderboardPanelProps {
   gameState: GameState;
@@ -36,7 +37,7 @@ const LeaderboardPanel = ({ gameState }: LeaderboardPanelProps) => {
     switch (category) {
       case 'allTimeMoney':
       case 'moneyPerClick':
-        return value.toLocaleString('de-DE');
+        return formatNumberGerman(value);
       case 'totalTiers':
         return value.toString();
       case 'onlineTime':

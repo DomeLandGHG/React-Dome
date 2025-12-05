@@ -38,7 +38,7 @@ const ElementalTraderModal = ({ isOpen, onClose, offers, gameState, onAcceptOffe
         }
         return `${offer.rewardAmount} Rune`;
       case 'money':
-        return `${offer.rewardAmount.toLocaleString('de-DE')}$`;
+        return `${offer.rewardAmount.toLocaleString('en-US')}$`;
       default:
         return 'Unknown';
     }
@@ -214,14 +214,14 @@ const ElementalTraderModal = ({ isOpen, onClose, offers, gameState, onAcceptOffe
                       color: elementColor,
                       textShadow: `0 0 10px ${elementColor}40`
                     }}>
-                      {offer.elementAmount.toLocaleString('de-DE')} {elementName}
+                      {offer.elementAmount.toLocaleString('en-US')} {elementName}
                     </div>
                     <div style={{
                       fontSize: '11px',
                       color: canAfford ? '#22c55e' : '#ef4444',
                       marginTop: '4px'
                     }}>
-                      You have: {(gameState.elementalResources[offer.elementType] || 0).toLocaleString('de-DE')}
+                      You have: {(gameState.elementalResources[offer.elementType] || 0).toLocaleString('en-US')}
                     </div>
                   </div>
 

@@ -1,4 +1,4 @@
-import { checkUsernameAvailability, reserveUsername, generateAccountCode, loginWithCode, saveGameDataToFirebase, loadGameDataFromFirebase, getUserId } from '../leaderboard';
+import { checkUsernameAvailability, reserveUsername, generateAccountCode, loginWithCode, getUserId, createNewAccount } from '../leaderboard';
 import { ref as dbRef, get as dbGet, set as dbSet } from 'firebase/database';
 import { db } from '../firebase';
 
@@ -10,12 +10,12 @@ interface SettingsMenuProps {
   disableMoneyEffects: boolean;
   disableDiamondEffects: boolean;
   disablePackAnimations: boolean;
+  disableCraftAnimations: boolean;
   username: string;
   onUsernameChange: (newUsername: string) => void;
-  gameState: any;
 }
 
-const SettingsMenu = ({ isOpen, onClose, onReset, onOpenAnimationSettings, disableMoneyEffects, disableDiamondEffects, disablePackAnimations, username, onUsernameChange, gameState }: SettingsMenuProps) => {
+const SettingsMenu = ({ isOpen, onClose, onReset, onOpenAnimationSettings, disableMoneyEffects, disableDiamondEffects, disablePackAnimations, disableCraftAnimations, username, onUsernameChange }: SettingsMenuProps) => {
   if (!isOpen) return null;
 
   const handleReset = () => {
@@ -25,95 +25,33 @@ const SettingsMenu = ({ isOpen, onClose, onReset, onOpenAnimationSettings, disab
     }
   };
 
-  const handleManualSave = async () => {
-    const userId = getUserId();
-    alert(`Saving to cloud...\n\nUser ID: ${userId}\nUsername: ${username}\nMoney: ${gameState.money}\nRebirth Points: ${gameState.rebirthPoints}`);
-    
-    try {
-      const success = await saveGameDataToFirebase(gameState);
+  const handleNewAccount = async () => {
+    if (window.confirm('Create a new account?\n\nYour current account will be saved in the cloud.\n\nYou can return to it later using "Login with Code".')) {
+      // Get current account code before creating new one
+      const currentCode = generateAccountCode();
+      const currentUserId = getUserId();
+      const currentUsername = username;
       
-      if (success) {
-        alert(`✅ Successfully saved to cloud!\n\nUser ID: ${userId}\nUsername: ${username}\nMoney: ${gameState.money}\nRebirth Points: ${gameState.rebirthPoints}\n\nYour data is now in Firebase.`);
-      } else {
-        alert(`❌ Failed to save to cloud!\n\nPlease check your internet connection and Firebase settings.`);
-      }
-    } catch (error) {
-      alert(`❌ Error saving to cloud!\n\n${error}`);
-    }
-  };
-
-  const handleManualLoad = async () => {
-    const userId = getUserId();
-    const currentData = `Current Data:\nUser ID: ${userId}\nUsername: ${username}\nMoney: ${gameState.money}\nRebirth Points: ${gameState.rebirthPoints}`;
-    
-    // First, show what's in the cloud
-    try {
-      const cloudData = await loadGameDataFromFirebase();
+      // Show the old account code FIRST
+      const proceed = window.confirm(`✅ OLD ACCOUNT CODE:\n${currentCode}\n\nOld User ID: ${currentUserId}\nOld Username: ${currentUsername}\n\n💾 IMPORTANT: Copy this code NOW!\nYou need it to return to this account.\n\nClick OK to create new account.`);
       
-      if (!cloudData) {
-        alert(`⚠️ No cloud data found!\n\nUser ID: ${userId}\n\nThere is no saved data in Firebase for this account.\n\nUse "Save to Cloud Now" first to create a cloud save.`);
-        return;
-      }
+      if (!proceed) return;
       
-      const cloudInfo = `Cloud Data:\nUsername: ${cloudData.username}\nMoney: ${cloudData.money}\nRebirth Points: ${cloudData.rebirthPoints}`;
+      // Create new account (clears localStorage, generates new ID, saves to Firebase)
+      const result = await createNewAccount();
       
-      if (!window.confirm(`${currentData}\n\n${cloudInfo}\n\nLoad data from cloud?\n\nThis will REPLACE your current local data!`)) {
-        return;
-      }
-      
-      let debugLog = "🔍 DEBUG LOG:\n\n";
-      
-      // Step 0: Save User ID (WICHTIG!)
-      const savedUserId = localStorage.getItem('money_clicker_user_id');
-      debugLog += `0️⃣ User ID gesichert:\n   ${savedUserId}\n\n`;
-      
-      // Step 1: Check old data
-      const oldSave = localStorage.getItem('moneyClickerSave');
-      if (oldSave) {
-        const oldParsed = JSON.parse(oldSave);
-        debugLog += `1️⃣ Alte Daten gefunden:\n   Geld: ${oldParsed.money}\n   Rebirths: ${oldParsed.rebirthPoints}\n\n`;
-      } else {
-        debugLog += `1️⃣ Keine alten Daten\n\n`;
-      }
-      
-      // Step 2: Clear localStorage completely
-      debugLog += `2️⃣ LocalStorage wird gelöscht...\n`;
-      localStorage.clear();
-      const afterClear = localStorage.length;
-      debugLog += `   Items übrig: ${afterClear}\n\n`;
-      
-      // Step 2.5: Restore User ID!
-      if (savedUserId) {
-        localStorage.setItem('money_clicker_user_id', savedUserId);
-        debugLog += `2.5️⃣ User ID wiederhergestellt:\n   ${savedUserId}\n\n`;
-      }
-      
-      // Step 3: Save cloud data
-      debugLog += `3️⃣ Cloud-Daten werden gespeichert:\n   Geld: ${cloudData.money}\n   Rebirths: ${cloudData.rebirthPoints}\n\n`;
-      localStorage.setItem('moneyClickerSave', JSON.stringify(cloudData));
-      localStorage.setItem('firebase_data_loaded', 'true');
-      
-      // Step 4: Verify
-      const newSave = localStorage.getItem('moneyClickerSave');
-      if (newSave) {
-        const newParsed = JSON.parse(newSave);
-        debugLog += `4️⃣ ✅ GESPEICHERT:\n   Geld: ${newParsed.money}\n   Rebirths: ${newParsed.rebirthPoints}\n\n`;
-      } else {
-        debugLog += `4️⃣ ❌ FEHLER beim Speichern!\n\n`;
-      }
-      
-      debugLog += `Seite wird in 5 Sekunden neu geladen...`;
-      
-      alert(debugLog);
-      
-      // Reload with delay so user can read
-      setTimeout(() => {
+      if (result.success) {
+        console.log('[Settings] ✅ New account created successfully');
+        console.log('[Settings] New user ID:', result.userId);
+        
+        // Add a small delay to ensure Firebase has fully written the data
+        await new Promise(resolve => setTimeout(resolve, 500));
+        
+        // Reload page to load the new account
         window.location.reload();
-      }, 5000);
-      
-    } catch (error) {
-      console.error('[Manual Load] Error:', error);
-      alert(`❌ Error loading from cloud!\n\n${error}\n\nPlease check:\n1. Internet connection\n2. Firebase is configured\n3. You saved data to cloud first`);
+      } else {
+        alert(`Failed to create new account: ${result.error}`);
+      }
     }
   };
 
@@ -225,21 +163,20 @@ const SettingsMenu = ({ isOpen, onClose, onReset, onOpenAnimationSettings, disab
     const code = window.prompt(`Enter your account code:\n\nCurrent User ID: ${currentUserId}\nCurrent Username: ${username}\n\nWarning: This will replace your current account!`);
     
     if (code && code.trim() !== '') {
-      // Show loading message
-      const loadingMessage = 'Logging in... Please wait...';
-      alert(loadingMessage);
-      
       const result = await loginWithCode(code.trim());
       
       if (result.success) {
-        // Show detailed success info
-        const successInfo = `✅ Login Successful!\n\nOld User ID: ${currentUserId}\nOld Username: ${username}\n\nNew User ID: ${result.userId}\n\nThe page will now reload to load your account data.`;
-        alert(successInfo);
+        alert(`✅ Login Successful!\n\nNew User ID: ${result.userId}\n\nThe page will now reload to load your account data.`);
         
-        // Wait a bit before reload so user can read the message
-        setTimeout(() => {
-          window.location.reload();
-        }, 1000);
+        // Set flag to prevent auto-save/submit during reload
+        localStorage.setItem('_reloading', 'true');
+        
+        console.log('[Login] Triggering immediate reload...');
+        
+        // Force reload with cache bypass
+        const url = new URL(window.location.href);
+        url.searchParams.set('_t', Date.now().toString());
+        window.location.replace(url.toString());
       } else {
         alert(`❌ Login Failed!\n\nError: ${result.error}\n\nPlease check:\n1. The code is correct\n2. You have internet connection\n3. The account exists in Firebase`);
       }
@@ -352,7 +289,7 @@ const SettingsMenu = ({ isOpen, onClose, onReset, onOpenAnimationSettings, disab
               color: '#94a3b8',
               fontSize: '13px'
             }}>
-              Version V.0.1.3
+              Version V.0.1.4
             </div>
           </div>
 
@@ -445,67 +382,13 @@ const SettingsMenu = ({ isOpen, onClose, onReset, onOpenAnimationSettings, disab
               margin: '0 0 12px 0',
               lineHeight: '1.5'
             }}>
-              Play on multiple devices with the same account!
+              Your game auto-saves to cloud! Transfer account to another device below.
             </p>
             <div style={{
               display: 'flex',
               flexDirection: 'column',
               gap: '8px'
             }}>
-              <button
-                onClick={handleManualSave}
-                style={{
-                  background: 'linear-gradient(135deg, #10b981, #059669)',
-                  color: 'white',
-                  border: '2px solid #34d399',
-                  padding: '12px 20px',
-                  borderRadius: '10px',
-                  cursor: 'pointer',
-                  fontSize: '14px',
-                  fontWeight: 'bold',
-                  transition: 'all 0.3s ease',
-                  boxShadow: '0 4px 12px rgba(16, 185, 129, 0.4)',
-                  textShadow: '0 1px 2px rgba(0, 0, 0, 0.3)',
-                  width: '100%'
-                }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.transform = 'translateY(-2px)';
-                  e.currentTarget.style.boxShadow = '0 6px 16px rgba(16, 185, 129, 0.6)';
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.transform = 'none';
-                  e.currentTarget.style.boxShadow = '0 4px 12px rgba(16, 185, 129, 0.4)';
-                }}
-              >
-                💾 Save to Cloud Now
-              </button>
-              <button
-                onClick={handleManualLoad}
-                style={{
-                  background: 'linear-gradient(135deg, #0ea5e9, #0284c7)',
-                  color: 'white',
-                  border: '2px solid #38bdf8',
-                  padding: '12px 20px',
-                  borderRadius: '10px',
-                  cursor: 'pointer',
-                  fontSize: '14px',
-                  fontWeight: 'bold',
-                  transition: 'all 0.3s ease',
-                  boxShadow: '0 4px 12px rgba(14, 165, 233, 0.4)',
-                  textShadow: '0 1px 2px rgba(0, 0, 0, 0.3)',
-                  width: '100%'
-                }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.transform = 'translateY(-2px)';
-                  e.currentTarget.style.boxShadow = '0 6px 16px rgba(14, 165, 233, 0.6)';
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.transform = 'none';
-                  e.currentTarget.style.boxShadow = '0 4px 12px rgba(14, 165, 233, 0.4)';
-                }}
-              >
-                ☁️ Load from Cloud
-              </button>
               <button
                 onClick={handleGetAccountCode}
                 style={{
@@ -576,7 +459,7 @@ const SettingsMenu = ({ isOpen, onClose, onReset, onOpenAnimationSettings, disab
               fontWeight: 'bold',
               margin: '0 0 12px 0'
             }}>
-              🎬 Animationen
+              🎞️ Animation Settings
             </h3>
             <div style={{
               display: 'flex',
@@ -602,7 +485,7 @@ const SettingsMenu = ({ isOpen, onClose, onReset, onOpenAnimationSettings, disab
                 color: disableMoneyEffects ? '#fca5a5' : '#86efac',
                 border: `1px solid ${disableMoneyEffects ? 'rgba(220, 38, 38, 0.4)' : 'rgba(34, 197, 94, 0.4)'}`,
               }}>
-                💰 Geld: {disableMoneyEffects ? 'AUS' : 'AN'}
+                💰 Money: {disableMoneyEffects ? 'AUS' : 'AN'}
               </span>
               <span style={{
                 padding: '4px 12px',
@@ -612,7 +495,17 @@ const SettingsMenu = ({ isOpen, onClose, onReset, onOpenAnimationSettings, disab
                 color: disableDiamondEffects ? '#fca5a5' : '#86efac',
                 border: `1px solid ${disableDiamondEffects ? 'rgba(220, 38, 38, 0.4)' : 'rgba(34, 197, 94, 0.4)'}`,
               }}>
-                💎 Diamanten: {disableDiamondEffects ? 'AUS' : 'AN'}
+                💎 Gems: {disableDiamondEffects ? 'AUS' : 'AN'}
+              </span>
+              <span style={{
+                padding: '4px 12px',
+                borderRadius: '6px',
+                fontSize: '13px',
+                background: disableCraftAnimations ? 'rgba(220, 38, 38, 0.2)' : 'rgba(34, 197, 94, 0.2)',
+                color: disableCraftAnimations ? '#fca5a5' : '#86efac',
+                border: `1px solid ${disableCraftAnimations ? 'rgba(220, 38, 38, 0.4)' : 'rgba(34, 197, 94, 0.4)'}`,
+              }}>
+                ✨ Craft: {disableCraftAnimations ? 'AUS' : 'AN'}
               </span>
             </div>
             <button
@@ -643,7 +536,7 @@ const SettingsMenu = ({ isOpen, onClose, onReset, onOpenAnimationSettings, disab
                 e.currentTarget.style.boxShadow = '0 4px 12px rgba(74, 158, 255, 0.4)';
               }}
             >
-              ⚙️ Animationen Anpassen
+              ⚙️ Adjust Animations
             </button>
           </div>
 
@@ -720,35 +613,68 @@ const SettingsMenu = ({ isOpen, onClose, onReset, onOpenAnimationSettings, disab
               margin: '0 0 12px 0',
               lineHeight: '1.5'
             }}>
-              Reset all progress and start over from the beginning.
+              Create a new account or reset all progress.
             </p>
-            <button
-              onClick={handleReset}
-              style={{
-                background: 'linear-gradient(135deg, #dc2626, #ef4444)',
-                color: 'white',
-                border: '2px solid #b91c1c',
-                padding: '12px 20px',
-                borderRadius: '10px',
-                cursor: 'pointer',
-                fontSize: '14px',
-                fontWeight: 'bold',
-                transition: 'all 0.3s ease',
-                boxShadow: '0 4px 12px rgba(220, 38, 38, 0.4)',
-                textShadow: '0 1px 2px rgba(0, 0, 0, 0.3)',
-                width: '100%'
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.transform = 'translateY(-2px)';
-                e.currentTarget.style.boxShadow = '0 6px 16px rgba(220, 38, 38, 0.6)';
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.transform = 'none';
-                e.currentTarget.style.boxShadow = '0 4px 12px rgba(220, 38, 38, 0.4)';
-              }}
-            >
-              ⚠️ Reset All Progress
-            </button>
+            <div style={{
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '10px'
+            }}>
+              <button
+                onClick={handleNewAccount}
+                style={{
+                  background: 'linear-gradient(135deg, #f59e0b, #d97706)',
+                  color: 'white',
+                  border: '2px solid #f59e0b',
+                  padding: '12px 20px',
+                  borderRadius: '10px',
+                  cursor: 'pointer',
+                  fontSize: '14px',
+                  fontWeight: 'bold',
+                  transition: 'all 0.3s ease',
+                  boxShadow: '0 4px 12px rgba(245, 158, 11, 0.4)',
+                  textShadow: '0 1px 2px rgba(0, 0, 0, 0.3)',
+                  width: '100%'
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.transform = 'translateY(-2px)';
+                  e.currentTarget.style.boxShadow = '0 6px 16px rgba(245, 158, 11, 0.6)';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.transform = 'none';
+                  e.currentTarget.style.boxShadow = '0 4px 12px rgba(245, 158, 11, 0.4)';
+                }}
+              >
+                🆕 Create New Account
+              </button>
+              <button
+                onClick={handleReset}
+                style={{
+                  background: 'linear-gradient(135deg, #dc2626, #ef4444)',
+                  color: 'white',
+                  border: '2px solid #b91c1c',
+                  padding: '12px 20px',
+                  borderRadius: '10px',
+                  cursor: 'pointer',
+                  fontSize: '14px',
+                  fontWeight: 'bold',
+                  transition: 'all 0.3s ease',
+                  boxShadow: '0 4px 12px rgba(220, 38, 38, 0.4)',
+                  textShadow: '0 1px 2px rgba(0, 0, 0, 0.3)',
+                  width: '100%'
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.transform = 'translateY(-2px)';
+                  e.currentTarget.style.boxShadow = '0 6px 16px rgba(220, 38, 38, 0.6)';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.transform = 'none';
+                  e.currentTarget.style.boxShadow = '0 4px 12px rgba(220, 38, 38, 0.4)';
+                }}
+              >
+                ⚠️ Reset All Progress
+              </button>
+            </div>
           </div>
         </div>
       </div>

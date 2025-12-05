@@ -1,178 +1,27 @@
 import type { GameState } from './types';
 import { INITIAL_GAME_STATE } from './types';
 
-const SAVE_KEY = 'moneyClickerSave';
+// localStorage is now ONLY used for user ID
+// All game data is stored in Firebase
 
-// Deep merge helper function
-const deepMerge = (target: any, source: any): any => {
-  if (!source || typeof source !== 'object') return target;
-  
-  const output = { ...target };
-  
-  for (const key in source) {
-    if (source.hasOwnProperty(key)) {
-      if (source[key] && typeof source[key] === 'object' && !Array.isArray(source[key])) {
-        // Recursively merge nested objects
-        output[key] = deepMerge(target[key] || {}, source[key]);
-      } else if (source[key] !== undefined) {
-        // Use source value if defined
-        output[key] = source[key];
-      }
-    }
-  }
-  
-  return output;
-};
-
-export const saveGameState = (state: GameState): void => {
-  try {
-    // Update lastSaveTime before saving
-    const stateWithTimestamp = {
-      ...state,
-      lastSaveTime: Date.now()
-    };
-    localStorage.setItem(SAVE_KEY, JSON.stringify(stateWithTimestamp));
-  } catch (error) {
-    console.error('Failed to save game state:', error);
-  }
+export const saveGameState = (_state: GameState): void => {
+  // This function is now deprecated - use saveGameDataToFirebase instead
+  // Kept for backwards compatibility, does nothing
+  console.log('[Storage] saveGameState is deprecated - data should be saved to Firebase');
 };
 
 export const loadGameState = (): GameState => {
-  try {
-    const saved = localStorage.getItem(SAVE_KEY);
-    if (saved) {
-      const parsed = JSON.parse(saved);
-      
-      // Check if this is freshly loaded data from Firebase (has a special marker)
-      const isFirebaseData = localStorage.getItem('firebase_data_loaded') === 'true';
-      if (isFirebaseData) {
-        // Clear the marker
-        localStorage.removeItem('firebase_data_loaded');
-        console.log('[Storage] Loading fresh Firebase data');
-      }
-      
-      // Generate random username if not exists
-      if (!parsed.username) {
-        parsed.username = `Player_${Math.floor(Math.random() * 1000000)}`;
-      }
-      
-      // Erweitere Arrays statt sie zu ersetzen, um Fortschritt zu bewahren
-      const extendArray = (savedArray: any[], defaultArray: any[]) => {
-        if (!Array.isArray(savedArray)) return defaultArray;
-        // Verwende die größere Länge um neue Elemente zu unterstützen
-        const maxLength = Math.max(savedArray.length, defaultArray.length);
-        const result = [...defaultArray];
-        
-        // Erweitere das Array falls neue Elemente hinzugefügt wurden
-        while (result.length < maxLength) {
-          result.push(0);
-        }
-        
-        // Übernehme gespeicherte Werte
-        for (let i = 0; i < savedArray.length && i < result.length; i++) {
-          result[i] = savedArray[i];
-        }
-        return result;
-      };
-
-      // Spezielle Behandlung für maxUpgradeAmounts - immer die neuesten Werte verwenden
-      const updateMaxAmounts = (savedAmounts: any[], newMax: any[]) => {
-        if (!Array.isArray(savedAmounts)) return newMax;
-        // Verwende immer die neuesten max Werte, aber behalte gespeicherte Amounts bei
-        return newMax;
-      };
-      
-      // Merge base game state with saved state
-      const mergedState = deepMerge(INITIAL_GAME_STATE, parsed);
-      
-      // Recalculate stats based on current game state to fix missing/incorrect stats
-      const recalculatedStats = {
-        ...mergedState.stats,
-        // Preserve devStats directly from saved data (CRITICAL for leaderboard filtering!)
-        devStats: parsed.stats?.devStats || {
-          moneyAdded: 0,
-          rebirthPointsAdded: 0,
-          gemsAdded: 0,
-          clicksAdded: 0,
-          offlineTimeAdded: 0,
-          runesAdded: {
-            common: 0,
-            uncommon: 0,
-            rare: 0,
-            epic: 0,
-            legendary: 0,
-            mythic: 0,
-            secret: 0,
-          },
-          elementalRunesAdded: {
-            air: 0,
-            earth: 0,
-            water: 0,
-            fire: 0,
-            light: 0,
-            dark: 0,
-          },
-        },
-        // Recalculate total upgrades purchased from current amounts
-        totalUpgradesPurchased: (parsed.upgradeAmounts || []).reduce((sum: number, amount: number) => sum + amount, 0),
-        totalRebirthUpgradesPurchased: (parsed.rebirth_upgradeAmounts || []).reduce((sum: number, amount: number) => sum + amount, 0),
-      };
-      
-      // Add current rune counts to runesObtained if stats are missing
-      if (parsed.runes && Array.isArray(parsed.runes)) {
-        const runeNames = ['common', 'uncommon', 'rare', 'epic', 'legendary', 'mythic'] as const;
-        runeNames.forEach((name, index) => {
-          if (parsed.runes[index] > 0 && recalculatedStats.runesObtained[name] === 0) {
-            // If player has runes but stats show 0, assume they obtained at least as many as they currently have
-            recalculatedStats.runesObtained[name] = parsed.runes[index];
-          }
-        });
-      }
-      
-      // Add current elemental rune counts to elementalRunesObtained if stats are missing
-      if (parsed.elementalRunes && Array.isArray(parsed.elementalRunes)) {
-        const elementNames = ['air', 'earth', 'water', 'fire', 'light', 'dark'] as const;
-        elementNames.forEach((name, index) => {
-          if (parsed.elementalRunes[index] > 0 && recalculatedStats.elementalRunesObtained[name] === 0) {
-            recalculatedStats.elementalRunesObtained[name] = parsed.elementalRunes[index];
-          }
-        });
-      }
-      
-      return {
-        ...mergedState,
-        upgradePrices: extendArray(parsed.upgradePrices, INITIAL_GAME_STATE.upgradePrices),
-        upgradeAmounts: extendArray(parsed.upgradeAmounts, INITIAL_GAME_STATE.upgradeAmounts),
-        maxUpgradeAmounts: updateMaxAmounts(parsed.maxUpgradeAmounts, INITIAL_GAME_STATE.maxUpgradeAmounts),
-        rebirth_upgradePrices: extendArray(parsed.rebirth_upgradePrices, INITIAL_GAME_STATE.rebirth_upgradePrices),
-        rebirth_upgradeAmounts: extendArray(parsed.rebirth_upgradeAmounts, INITIAL_GAME_STATE.rebirth_upgradeAmounts),
-        rebirth_maxUpgradeAmounts: updateMaxAmounts(parsed.rebirth_maxUpgradeAmounts, INITIAL_GAME_STATE.rebirth_maxUpgradeAmounts),
-        clicksInRebirth: typeof parsed.clicksInRebirth === 'number' ? parsed.clicksInRebirth : INITIAL_GAME_STATE.clicksInRebirth,
-        clicksTotal: typeof parsed.clicksTotal === 'number' ? parsed.clicksTotal : INITIAL_GAME_STATE.clicksTotal,
-        runes: extendArray(parsed.runes, INITIAL_GAME_STATE.runes),
-        elementalRunes: extendArray(parsed.elementalRunes, INITIAL_GAME_STATE.elementalRunes),
-        elementalResources: extendArray(parsed.elementalResources, INITIAL_GAME_STATE.elementalResources),
-        currentRuneType: (parsed.currentRuneType === 'basic' || parsed.currentRuneType === 'elemental') 
-          ? parsed.currentRuneType 
-          : INITIAL_GAME_STATE.currentRuneType,
-        showElementalStats: typeof parsed.showElementalStats === 'boolean' 
-          ? parsed.showElementalStats 
-          : INITIAL_GAME_STATE.showElementalStats,
-        gems: typeof parsed.gems === 'number' ? parsed.gems : 0,
-        // Stats with recalculated values
-        stats: recalculatedStats,
-      };
-    }
-  } catch (error) {
-    console.error('Failed to load game state:', error);
-  }
+  // Return initial state - actual data will be loaded from Firebase
+  console.log('[Storage] loadGameState returning INITIAL_GAME_STATE - Firebase will load actual data');
   return INITIAL_GAME_STATE;
 };
 
 export const clearGameState = (): void => {
+  // Only clear user ID from localStorage
   try {
-    localStorage.removeItem(SAVE_KEY);
+    localStorage.removeItem('money_clicker_user_id');
+    console.log('[Storage] Cleared user ID from localStorage');
   } catch (error) {
-    console.error('Failed to clear game state:', error);
+    console.error('Failed to clear user ID:', error);
   }
 };

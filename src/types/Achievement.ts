@@ -67,7 +67,7 @@ export const ACHIEVEMENTS: Achievement[] = [
     tier: 1,
     requirement: {
       type: 'clicks',
-      value: 100
+      value: 10
     },
     maxTier: 100,
     tierMultiplier: 2
@@ -81,7 +81,7 @@ export const ACHIEVEMENTS: Achievement[] = [
     tier: 1,
     requirement: {
       type: 'upgrades',
-      value: 5
+      value: 1
     },
     maxTier: 100,
     tierMultiplier: 2
@@ -125,27 +125,13 @@ export const ACHIEVEMENTS: Achievement[] = [
     tier: 1,
     requirement: {
       type: 'onlinetime',
-      value: 3600 // 1 hour in seconds
+      value: 600 // 10 minutes in seconds
     },
     maxTier: 50,
-    tierMultiplier: 3600 // Each tier = +1 hour
+    tierMultiplier: 600 // Each tier = +10 minutes
   },
   {
     id: 8,
-    name: 'Idle Master',
-    description: 'Accumulate',
-    icon: '💤',
-    unlocked: false,
-    tier: 1,
-    requirement: {
-      type: 'offlinetime',
-      value: 3600 // 1 hour in seconds
-    },
-    maxTier: 50,
-    tierMultiplier: 3600 // Each tier = +1 hour
-  },
-  {
-    id: 9,
     name: 'Ascension Master',
     description: 'Perform',
     icon: '✨',

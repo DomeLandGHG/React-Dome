@@ -35,6 +35,11 @@ const MoneyButton = ({ onClick, gameState, onGemDrop }: MoneyButtonProps) => {
   
   // Calculate actual money per click with all bonuses (same as GameStats)
   const calculateActualMoneyPerClick = () => {
+    // Safety check: return base value if gameState is not fully loaded
+    if (gameState.achievements === undefined || gameState.rebirth_upgradeAmounts === undefined || gameState.runes === undefined) {
+      return gameState.moneyPerClick || 1;
+    }
+    
     // Achievement bonuses
     const totalAchievementTiers = gameState.achievements.reduce((sum, a) => sum + (a.tier || 0), 0);
     const achievementMoneyBonus = totalAchievementTiers * 0.01; // 1% per tier

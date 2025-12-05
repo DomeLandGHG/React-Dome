@@ -23,9 +23,15 @@ const ElementalPrestigeModal = ({ isOpen, onClose, gameState, onPrestige }: Elem
     dark: 0
   };
 
+  // Map elementId to prestige level key
+  const getPrestigeLevel = (elementId: number): number => {
+    const keyMap = ['air', 'earth', 'water', 'fire', 'light', 'dark'] as const;
+    return prestigeLevels[keyMap[elementId]] || 0;
+  };
+
   const canPrestige = (elementId: number): boolean => {
     const currentResource = gameState.elementalResources[elementId] || 0;
-    const currentLevel = Object.values(prestigeLevels)[elementId];
+    const currentLevel = getPrestigeLevel(elementId);
     const requirement = calculatePrestigeRequirement(elementId, currentLevel);
     return currentResource >= requirement;
   };
@@ -130,7 +136,7 @@ const ElementalPrestigeModal = ({ isOpen, onClose, gameState, onPrestige }: Elem
           gap: '12px'
         }}>
           {ELEMENTAL_PRESTIGE_CONFIG.map((config) => {
-            const currentLevel = Object.values(prestigeLevels)[config.elementId];
+            const currentLevel = getPrestigeLevel(config.elementId);
             const currentResource = gameState.elementalResources[config.elementId] || 0;
             const requirement = calculatePrestigeRequirement(config.elementId, currentLevel);
             const canDoPrestige = canPrestige(config.elementId);
@@ -223,10 +229,10 @@ const ElementalPrestigeModal = ({ isOpen, onClose, gameState, onPrestige }: Elem
                     color: canDoPrestige ? '#22c55e' : '#ef4444',
                     marginBottom: '4px'
                   }}>
-                    You have: {currentResource.toLocaleString('de-DE')}
+                    You have: {currentResource.toLocaleString('en-US')}
                   </div>
                   <div style={{ color: '#94a3b8' }}>
-                    Required: {requirement.toLocaleString('de-DE')}
+                    Required: {requirement.toLocaleString('en-US')}
                   </div>
                 </div>
 

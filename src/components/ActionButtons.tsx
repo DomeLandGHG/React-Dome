@@ -16,6 +16,11 @@ const ActionButtons = ({ money, onRebirth, gameState /* onCheat, moneyPerClick *
   const canRebirth = money >= 1000;
   const baseRebirthPoints = Math.floor(money / 1000);
   
+  // Safety check: return early if gameState is not fully loaded
+  if (gameState.achievements === undefined || gameState.runes === undefined) {
+    return null;
+  }
+  
   // Calculate achievement RP bonus
   const totalAchievementTiers = gameState.achievements.reduce((sum, a) => sum + (a.tier || 0), 0);
   const achievementRpBonus = totalAchievementTiers * 0.01; // 1% per tier

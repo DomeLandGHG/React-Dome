@@ -7,9 +7,11 @@ interface SettingsModalProps {
   disableMoneyEffects: boolean;
   disableDiamondEffects: boolean;
   disablePackAnimations: boolean;
+  disableCraftAnimations: boolean;
   onToggleMoneyEffects: (enabled: boolean) => void;
   onToggleDiamondEffects: (enabled: boolean) => void;
   onTogglePackAnimations: (enabled: boolean) => void;
+  onToggleCraftAnimations: (enabled: boolean) => void;
 }
 
 export const SettingsModal: React.FC<SettingsModalProps> = ({
@@ -18,9 +20,11 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
   disableMoneyEffects,
   disableDiamondEffects,
   disablePackAnimations,
+  disableCraftAnimations,
   onToggleMoneyEffects,
   onToggleDiamondEffects,
   onTogglePackAnimations,
+  onToggleCraftAnimations,
 }) => {
   if (!isOpen) return null;
 
@@ -28,15 +32,15 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
     <div className="settings-modal-overlay" onClick={onClose}>
       <div className="settings-modal" onClick={(e) => e.stopPropagation()}>
         <div className="settings-header">
-          <h2>⚙️ Einstellungen</h2>
+          <h2>⚙️ Settings</h2>
           <button className="settings-close" onClick={onClose}>✕</button>
         </div>
 
         <div className="settings-content">
           <div className="settings-section">
-            <h3>Animationen</h3>
+            <h3>Animations</h3>
             <p className="settings-description">
-              Deaktiviere Animationen für bessere Performance
+              Disable animations for better performance
             </p>
 
             <div className="settings-option">
@@ -48,11 +52,11 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                 />
                 <span className="checkbox-label">
                   <span className="checkbox-icon">📦</span>
-                  Pack-Öffnungs-Animationen
+                  Pack Opening Animations
                 </span>
               </label>
               <p className="option-description">
-                Zeigt die animierte Kartenaufdeckung beim Öffnen von Rune Packs
+                Shows animated card reveal when opening Rune Packs
               </p>
             </div>
 
@@ -65,11 +69,11 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                 />
                 <span className="checkbox-label">
                   <span className="checkbox-icon">💰</span>
-                  Geld-Animationen
+                  Money Animations
                 </span>
               </label>
               <p className="option-description">
-                Zeigt aufsteigende Zahlen beim Verdienen von Geld
+                Shows floating numbers when earning money
               </p>
             </div>
 
@@ -82,11 +86,28 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                 />
                 <span className="checkbox-label">
                   <span className="checkbox-icon">💎</span>
-                  Diamant-Animationen
+                  Diamond Animations
                 </span>
               </label>
               <p className="option-description">
-                Zeigt aufsteigende Zahlen beim Verdienen von Diamanten
+                Shows floating numbers when earning diamonds
+              </p>
+            </div>
+
+            <div className="settings-option">
+              <label className="settings-checkbox">
+                <input
+                  type="checkbox"
+                  checked={!disableCraftAnimations}
+                  onChange={(e) => onToggleCraftAnimations(!e.target.checked)}
+                />
+                <span className="checkbox-label">
+                  <span className="checkbox-icon">✨</span>
+                  Craft Animations
+                </span>
+              </label>
+              <p className="option-description">
+                Shows animated effects when crafting Secret Runes
               </p>
             </div>
           </div>
@@ -94,7 +115,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
 
         <div className="settings-footer">
           <button className="settings-done-button" onClick={onClose}>
-            Fertig
+            Done
           </button>
         </div>
       </div>

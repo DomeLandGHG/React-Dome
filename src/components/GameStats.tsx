@@ -59,6 +59,42 @@ const GameStats = ({ gameState }: GameStatsProps) => {
 
   // Calculate all multipliers exactly like in the game logic
   const calculateActualValues = () => {
+    // Safety check: return default values if gameState is not fully loaded
+    if (gameState.achievements === undefined || gameState.rebirth_upgradeAmounts === undefined) {
+      return {
+        actualMoneyPerClick: 1,
+        actualMoneyPerTick: 0,
+        totalMoneyBonus: 0,
+        totalRpBonus: 0,
+        totalGemBonus: 0,
+        achievementMoneyBonus: 0,
+        achievementRpBonus: 0,
+        achievementGemBonus: 0,
+        achievementMoneyMultiplier: 1,
+        achievementRpMultiplier: 1,
+        clickMultiplier: 1,
+        runeMultiplier: 1,
+        rebirthPointMultiplier: 1,
+        clickPowerBonus: 1,
+        autoIncomeBonus: 1,
+        autoSpeedBonus: 1,
+        rpGainBonus: 1,
+        elementalMoneyMultiplier: 1,
+        elementalRpMultiplier: 1,
+        eventMoneyMultiplier: 1,
+        eventRpMultiplier: 1,
+        eventGemMultiplier: 1,
+        eventGemDropMultiplier: 1,
+        eventClickPowerMultiplier: 1,
+        eventAutoIncomeMultiplier: 1,
+        eventAutoSpeedMultiplier: 1,
+        eventUpgradeDiscount: 0,
+        perClickTotal: 1,
+        perTickTotal: 0,
+        activeEvent: null
+      };
+    }
+    
     // Achievement bonuses
     const totalAchievementTiers = gameState.achievements.reduce((sum, a) => sum + (a.tier || 0), 0);
     const achievementMoneyBonus = totalAchievementTiers * 0.01; // 1% per tier
