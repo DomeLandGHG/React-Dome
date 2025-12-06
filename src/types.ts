@@ -1,7 +1,11 @@
+import type { GoldSkill } from './types/GoldSkillTree';
+
 export interface GameState {
   money: number;
   rebirthPoints: number;
   gems: number;
+  goldRP: number; // Gold Rebirth Points - earned from reaching infinity
+  goldSkills: GoldSkill[]; // Gold Skill Tree
   moneyPerClick: number;
   moneyPerTick: number;
   upgradePrices: number[];
@@ -142,14 +146,16 @@ export const INITIAL_GAME_STATE: GameState = {
   money: 0,
   rebirthPoints: 0,
   gems: 0,
+  goldRP: 0,
+  goldSkills: [], // Will be initialized with GOLD_SKILLS in useGameLogic
   moneyPerClick: 1,
   moneyPerTick: 0,
-  upgradePrices: [10, 100, 1000, 2500, 1000],
-  rebirth_upgradePrices: [1, 5, 15, 1, 25],
-  upgradeAmounts: [0, 0, 0, 0, 0],
-  rebirth_upgradeAmounts: [0, 0, 0, 0, 0],
-  maxUpgradeAmounts: [10, 10, 10, 10, 1],
-  rebirth_maxUpgradeAmounts: [5, 5, 1, 1, 1],
+  upgradePrices: [10, 100, 1000, 2500, 1000, 50000, 100000],
+  rebirth_upgradePrices: [1, 5, 15, 1, 25, 100, 250, 500],
+  upgradeAmounts: [0, 0, 0, 0, 0, 0, 0],
+  rebirth_upgradeAmounts: [0, 0, 0, 0, 0, 0, 0, 0],
+  maxUpgradeAmounts: [10, 10, 10, 10, 1, 10, 10],
+  rebirth_maxUpgradeAmounts: [5, 5, 1, 1, 1, 10, 10, 10],
   clicksInRebirth: 0,
   clicksTotal: 0,
   runes: [0, 0, 0, 0, 0, 0, 0], // Start with 0 of each rune type (including Secret Rune)
@@ -166,6 +172,9 @@ export const INITIAL_GAME_STATE: GameState = {
   disableCraftAnimations: false,
   includeDevStats: false,
   lastSaveTime: Date.now(),
+  traderOffers: [],
+  traderLastRefresh: Date.now(),
+  traderNextRefresh: Date.now() + (4 * 60 * 60 * 1000), // 4 hours from now
   elementalPrestige: {
     air: 0,
     earth: 0,

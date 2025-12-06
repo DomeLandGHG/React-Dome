@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import type { GameState } from '../types';
 import { ELEMENTAL_PRESTIGE_CONFIG, calculatePrestigeRequirement, getBonusDescription } from '../types/ElementalPrestige';
+import { formatNumberGerman } from '../types/German_number';
 
 interface ElementalPrestigeModalProps {
   isOpen: boolean;
@@ -229,10 +230,10 @@ const ElementalPrestigeModal = ({ isOpen, onClose, gameState, onPrestige }: Elem
                     color: canDoPrestige ? '#22c55e' : '#ef4444',
                     marginBottom: '4px'
                   }}>
-                    You have: {currentResource.toLocaleString('en-US')}
+                    You have: {formatNumberGerman(currentResource)}
                   </div>
                   <div style={{ color: '#94a3b8' }}>
-                    Required: {requirement.toLocaleString('en-US')}
+                    Required: {formatNumberGerman(requirement)}
                   </div>
                 </div>
 

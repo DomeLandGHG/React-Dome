@@ -12,6 +12,7 @@ interface SettingsModalProps {
   onToggleDiamondEffects: (enabled: boolean) => void;
   onTogglePackAnimations: (enabled: boolean) => void;
   onToggleCraftAnimations: (enabled: boolean) => void;
+  onManualSave?: () => Promise<boolean>;
 }
 
 export const SettingsModal: React.FC<SettingsModalProps> = ({
@@ -25,7 +26,17 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
   onToggleDiamondEffects,
   onTogglePackAnimations,
   onToggleCraftAnimations,
+  onManualSave,
 }) => {
+  const [isSaving, setIsSaving] = React.useState(false);
+
+  const handleManualSave = async () => {
+    if (!onManualSave) return;
+    setIsSaving(true);
+    await onManualSave();
+    setTimeout(() => setIsSaving(false), 1000);
+  };
+
   if (!isOpen) return null;
 
   return (
@@ -114,6 +125,13 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
         </div>
 
         <div className="settings-footer">
+          <button 
+            className="settings-save-button" 
+            onClick={handleManualSave}
+            disabled={isSaving || !onManualSave}
+          >
+            {isSaving ? '💾 Saving...' : '💾 Save Now'}
+          </button>
           <button className="settings-done-button" onClick={onClose}>
             Done
           </button>

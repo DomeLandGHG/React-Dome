@@ -4,6 +4,7 @@ import { formatNumberGerman } from '../types/German_number';
 import { REBIRTHUPGRADES } from '../types/Rebirth_Upgrade';
 import { RUNES_1 } from '../types/Runes';
 import { EVENT_CONFIG } from '../types/ElementalEvent';
+import { calculateGoldSkillBonuses } from '../types/GoldSkillTree';
 
 interface FloatingMoney {
   id: number;
@@ -73,8 +74,11 @@ const MoneyButton = ({ onClick, gameState, onGemDrop }: MoneyButtonProps) => {
     // Event bonus multiplier (Tsunami: ×5 Click Power)
     const eventMultiplier = activeEvent?.effects?.clickPowerMultiplier || 1;
 
-    // Calculate final value with achievement bonus and event bonus
-    return gameState.moneyPerClick * clickMultiplier * runeMultiplier * rebirthPointMultiplier * achievementMoneyMultiplier * eventMultiplier;
+    // Gold Skill bonuses
+    const goldSkillBonuses = calculateGoldSkillBonuses(gameState.goldSkills || []);
+
+    // Calculate final value with achievement bonus, gold skills, and event bonus
+    return gameState.moneyPerClick * clickMultiplier * runeMultiplier * rebirthPointMultiplier * achievementMoneyMultiplier * goldSkillBonuses.clickPowerMultiplier * eventMultiplier;
   };
 
   const totalMoneyPerClick = calculateActualMoneyPerClick();
@@ -169,11 +173,16 @@ const MoneyButton = ({ onClick, gameState, onGemDrop }: MoneyButtonProps) => {
       buttonCenterY = rect.top - containerRect.top + rect.height / 2;
     }
     
+    // Check for Critical Strike (Gold Skill)
+    const goldSkillBonuses = calculateGoldSkillBonuses(gameState.goldSkills || []);
+    const isCritical = goldSkillBonuses.criticalStrikeChance > 0 && Math.random() < goldSkillBonuses.criticalStrikeChance;
+    const displayAmount = totalMoneyPerClick * (isCritical ? 10 : 1);
+    
     const newFloatingMoney: FloatingMoney = {
       id: Date.now() + Math.random(),
       x: buttonCenterX + (Math.random() - 0.5) * (isMobile ? 120 : 200), // Smaller spread on mobile
       y: buttonCenterY + (Math.random() - 0.5) * (isMobile ? 30 : 50), // Smaller spread on mobile
-      amount: `+${formatNumberGerman(totalMoneyPerClick)}$`
+      amount: (isCritical ? '⚡CRIT! +' : '+') + formatNumberGerman(displayAmount) + '$'
     };
     
     setFloatingMoneys(prev => [...prev, newFloatingMoney]);

@@ -2,6 +2,7 @@ import { useState } from 'react';
 import type { GameState } from '../types';
 import type { TraderOffer } from '../types/ElementalTrader';
 import { RUNES_1, RUNES_2 } from '../types/Runes';
+import { formatNumberGerman } from '../types/German_number';
 
 interface ElementalTraderModalProps {
   isOpen: boolean;
@@ -28,17 +29,17 @@ const ElementalTraderModal = ({ isOpen, onClose, offers, gameState, onAcceptOffe
   const getRewardText = (offer: TraderOffer): string => {
     switch (offer.rewardType) {
       case 'gems':
-        return `${offer.rewardAmount} 💎 Gems`;
+        return `${formatNumberGerman(offer.rewardAmount)} 💎 Gems`;
       case 'rp':
-        return `${offer.rewardAmount} 🔄 RP`;
+        return `${formatNumberGerman(offer.rewardAmount)} 🔄 RP`;
       case 'rune':
         if (offer.rewardRuneId !== undefined) {
           const rune = RUNES_1[offer.rewardRuneId];
-          return `${offer.rewardAmount}× ${rune?.name || 'Rune'}`;
+          return `${formatNumberGerman(offer.rewardAmount)}× ${rune?.name || 'Rune'}`;
         }
-        return `${offer.rewardAmount} Rune`;
+        return `${formatNumberGerman(offer.rewardAmount)} Rune`;
       case 'money':
-        return `${offer.rewardAmount.toLocaleString('en-US')}$`;
+        return `${formatNumberGerman(offer.rewardAmount)}$`;
       default:
         return 'Unknown';
     }
@@ -214,14 +215,14 @@ const ElementalTraderModal = ({ isOpen, onClose, offers, gameState, onAcceptOffe
                       color: elementColor,
                       textShadow: `0 0 10px ${elementColor}40`
                     }}>
-                      {offer.elementAmount.toLocaleString('en-US')} {elementName}
+                      {formatNumberGerman(offer.elementAmount)} {elementName}
                     </div>
                     <div style={{
                       fontSize: '11px',
                       color: canAfford ? '#22c55e' : '#ef4444',
                       marginTop: '4px'
                     }}>
-                      You have: {(gameState.elementalResources[offer.elementType] || 0).toLocaleString('en-US')}
+                      You have: {formatNumberGerman(gameState.elementalResources[offer.elementType] || 0)}
                     </div>
                   </div>
 

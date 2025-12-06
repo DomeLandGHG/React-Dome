@@ -72,7 +72,11 @@ const UpgradesPanel = ({ gameState, buyUpgrade, buyMaxUpgrades }: UpgradesPanelP
       background: 'rgba(34, 197, 94, 0.1)',
       borderRadius: '12px',
       padding: '20px',
-      border: '1px solid rgba(34, 197, 94, 0.3)'
+      border: '1px solid rgba(34, 197, 94, 0.3)',
+      height: '100%',
+      overflowY: 'auto',
+      display: 'flex',
+      flexDirection: 'column'
     }}>
       <div style={{
         textAlign: 'center',
@@ -109,6 +113,17 @@ const UpgradesPanel = ({ gameState, buyUpgrade, buyMaxUpgrades }: UpgradesPanelP
         gap: '12px'
       }}>
         {UPGRADES.map((upgrade, index) => {
+          // Sicherheitsprüfung: Skip wenn Array-Index außerhalb liegt
+          if (gameState.upgradeAmounts[index] === undefined) {
+            return null;
+          }
+          if (!gameState.maxUpgradeAmounts[index]) {
+            return null;
+          }
+          if (!gameState.upgradePrices[index]) {
+            return null;
+          }
+          
           // Dynamische Namen für Unlock-Upgrades basierend auf Gems
           let displayName = upgrade.name;
           let basePrice = gameState.upgradePrices[index];

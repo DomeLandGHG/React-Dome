@@ -60,6 +60,26 @@ export const UPGRADES: Upgrade[] = [
     effect: 1,
     type: 'Unlock'
   },
+  {     // Upgrade 6
+    id: 5,
+    name: '+100$ per Click',
+    description: 'Increases money per click by 100$',
+    price: 50000,
+    amount: 0,
+    maxAmount: 10,
+    effect: 100,
+    type: 'click',
+  },
+  {     // Upgrade 7
+    id: 6,
+    name: '+100$ per Tick',
+    description: 'Increases money per tick by 100$',
+    price: 100000,
+    amount: 0,
+    maxAmount: 10,
+    effect: 100,
+    type: 'auto',
+  },
 ];
 
 //import { UPGRADES } from './types/Upgrade';

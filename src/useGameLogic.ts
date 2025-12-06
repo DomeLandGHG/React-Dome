@@ -15,6 +15,7 @@ import { REBIRTHUPGRADES } from './types/Rebirth_Upgrade';
 import { ACHIEVEMENTS } from './types/Achievement';
 import { calculateElementalBonuses } from './types/ElementalPrestige';
 import { EVENT_CONFIG, getRandomEvent, getUnlockedElements } from './types/ElementalEvent';
+import { GOLD_SKILLS, calculateGoldSkillBonuses } from './types/GoldSkillTree';
 
 export const useGameLogic = () => {
   const [gameState, setGameState] = useState<GameState>(INITIAL_GAME_STATE);
@@ -24,13 +25,99 @@ export const useGameLogic = () => {
   // Load initial game state from Firebase on mount
   useEffect(() => {
     const loadInitialData = async () => {
-      console.log('[useGameLogic] Loading initial data from Firebase...');
+      // console.log('[useGameLogic] Loading initial data from Firebase...');
       const firebaseData = await loadGameDataFromFirebase();
       
       if (firebaseData) {
-        setGameState(firebaseData);
+        // Migration: Stelle sicher, dass neue Rebirth Upgrades existieren
+        const migratedData = { ...firebaseData };
+        
+        // Safety check: fix infinity values
+        if (!isFinite(migratedData.rebirthPoints)) {
+          console.warn('[Migration] Detected infinity RP, resetting to 0');
+          migratedData.rebirthPoints = 0;
+        }
+        if (!isFinite(migratedData.money)) {
+          console.warn('[Migration] Detected infinity money, resetting to 0');
+          migratedData.money = 0;
+        }
+        if (!isFinite(migratedData.gems)) {
+          console.warn('[Migration] Detected infinity gems, resetting to 0');
+          migratedData.gems = 0;
+        }
+        
+        // Initialize Gold Skills if not present
+        if (!migratedData.goldSkills || migratedData.goldSkills.length === 0) {
+          // console.log('[Migration] Initializing Gold Skills');
+          migratedData.goldSkills = GOLD_SKILLS.map(skill => ({ ...skill, currentLevel: 0 }));
+        } else {
+          // Migration: Fix Gold Skills with wrong bonusPerLevel values
+          // console.log('[Migration] Syncing Gold Skills with correct definitions');
+          migratedData.goldSkills = migratedData.goldSkills.map(savedSkill => {
+            const correctSkill = GOLD_SKILLS.find(s => s.id === savedSkill.id);
+            if (!correctSkill) return savedSkill;
+            
+            // Keep currentLevel from saved data, but use all other values from definition
+            return {
+              ...correctSkill,
+              currentLevel: Math.min(savedSkill.currentLevel, correctSkill.maxLevel) // Cap at maxLevel
+            };
+          });
+        }
+        
+        // Check if upgrade arrays need migration (should have 7 entries for normal upgrades)
+        if (!migratedData.upgradeAmounts || migratedData.upgradeAmounts.length < 7) {
+          // console.log('[Migration] Updating upgradeAmounts to length 7');
+          migratedData.upgradeAmounts = [
+            ...(migratedData.upgradeAmounts || [0, 0, 0, 0, 0]),
+            0, 0 // Add entries for Tier 3 upgrades
+          ];
+        }
+        
+        if (!migratedData.maxUpgradeAmounts || migratedData.maxUpgradeAmounts.length < 7) {
+          // console.log('[Migration] Updating maxUpgradeAmounts to length 7');
+          migratedData.maxUpgradeAmounts = [
+            ...(migratedData.maxUpgradeAmounts || [10, 10, 10, 10, 1]),
+            10, 10 // Add max entries for Tier 3 upgrades
+          ];
+        }
+        
+        if (!migratedData.upgradePrices || migratedData.upgradePrices.length < 7) {
+          // console.log('[Migration] Updating upgradePrices to length 7');
+          migratedData.upgradePrices = [
+            ...(migratedData.upgradePrices || [10, 100, 1000, 2500, 1000]),
+            50000, 100000 // Add prices for Tier 3 upgrades
+          ];
+        }
+        
+        // Check if rebirth upgrade arrays need migration (should have 8 entries)
+        if (!migratedData.rebirth_upgradeAmounts || migratedData.rebirth_upgradeAmounts.length < 8) {
+          // console.log('[Migration] Updating rebirth_upgradeAmounts to length 8');
+          migratedData.rebirth_upgradeAmounts = [
+            ...(migratedData.rebirth_upgradeAmounts || [0, 0, 0, 0, 0]),
+            0, 0, 0 // Add entries for Capacity upgrades
+          ];
+        }
+        
+        if (!migratedData.rebirth_maxUpgradeAmounts || migratedData.rebirth_maxUpgradeAmounts.length < 8) {
+          // console.log('[Migration] Updating rebirth_maxUpgradeAmounts to length 8');
+          migratedData.rebirth_maxUpgradeAmounts = [
+            ...(migratedData.rebirth_maxUpgradeAmounts || [5, 5, 1, 1, 1]),
+            10, 10, 10 // Add max entries for Capacity upgrades
+          ];
+        }
+        
+        if (!migratedData.rebirth_upgradePrices || migratedData.rebirth_upgradePrices.length < 8) {
+          // console.log('[Migration] Updating rebirth_upgradePrices to length 8');
+          migratedData.rebirth_upgradePrices = [
+            ...(migratedData.rebirth_upgradePrices || [1, 5, 15, 1, 25]),
+            100, 250, 500 // Add prices for Capacity upgrades
+          ];
+        }
+        
+        setGameState(migratedData);
       } else {
-        console.log('[useGameLogic] No Firebase data found, using INITIAL_GAME_STATE');
+        // console.log('[useGameLogic] No Firebase data found, using INITIAL_GAME_STATE');
         // New user - save initial state to Firebase
         await saveGameDataToFirebase(INITIAL_GAME_STATE);
       }
@@ -46,18 +133,18 @@ export const useGameLogic = () => {
     const submitToLeaderboard = async () => {
       // Don't submit if page is reloading for cloud data
       if (localStorage.getItem('_reloading') === 'true') {
-        console.log('[Leaderboard] Skipping auto-submit - page is reloading');
+        // console.log('[Leaderboard] Skipping auto-submit - page is reloading');
         return;
       }
       
       try {
-        console.log('[Leaderboard] Auto-submitting stats at:', new Date().toLocaleTimeString());
-        console.log('[Leaderboard] Current gameState devStats:', gameState.stats?.devStats);
+        // console.log('[Leaderboard] Auto-submitting stats at:', new Date().toLocaleTimeString());
+        // console.log('[Leaderboard] Current gameState devStats:', gameState.stats?.devStats);
         const success = await submitLeaderboardEntry(gameState);
         if (success) {
-          console.log('[Leaderboard] Successfully submitted!');
+          // console.log('[Leaderboard] Successfully submitted!');
         } else {
-          console.log('[Leaderboard] Submission blocked (dev account or error)');
+          // console.log('[Leaderboard] Submission blocked (dev account or error)');
         }
       } catch (error) {
         console.error('[Leaderboard] Failed to submit:', error);
@@ -160,8 +247,9 @@ export const useGameLogic = () => {
         }
         
         const elementalBonuses = calculateElementalBonuses(gameState.elementalPrestige || null);
+        const goldSkillBonuses = calculateGoldSkillBonuses(gameState.goldSkills || []);
         
-        const actualMoneyPerTick = gameState.moneyPerTick * clickMultiplier * runeMultiplier * rebirthPointMultiplier * achievementMoneyMultiplier * elementalBonuses.autoIncomeBonus;
+        const actualMoneyPerTick = gameState.moneyPerTick * clickMultiplier * runeMultiplier * rebirthPointMultiplier * achievementMoneyMultiplier * elementalBonuses.autoIncomeBonus * goldSkillBonuses.clickPowerMultiplier;
         const moneyEarned = (actualMoneyPerTick * offlineTime) * 0.5; // 50% offline efficiency
         const adjustedClicks = Math.floor(offlineClicks * 0.5); // 50% offline efficiency
         
@@ -411,19 +499,23 @@ export const useGameLogic = () => {
             const activeEvent = prev.activeEvent ? EVENT_CONFIG.find(e => e.id === prev.activeEvent) : null;
             const eventAutoIncomeMultiplier = activeEvent?.effects.autoIncomeMultiplier || 1;
             
-            // Apply achievement bonus to money
-            moneyFromTicks = prev.moneyPerTick * multiplier * runeMultiplier * rebirthPointMultiplier * achievementBonuses.moneyMultiplier * eventAutoIncomeMultiplier;
+            // Gold Skill bonuses
+            const goldSkillBonuses = calculateGoldSkillBonuses(prev.goldSkills || []);
+            
+            // Apply achievement bonus, gold skills, and event to money
+            moneyFromTicks = prev.moneyPerTick * multiplier * runeMultiplier * rebirthPointMultiplier * achievementBonuses.moneyMultiplier * goldSkillBonuses.clickPowerMultiplier * eventAutoIncomeMultiplier;
             newMoney += moneyFromTicks;
           }
           
-          // Elemental Rune Production (with achievement bonus)
+          // Elemental Rune Production (with achievement bonus and Gold Skills)
+          const goldSkillBonuses = calculateGoldSkillBonuses(prev.goldSkills || []);
           const newElementalResources = [...prev.elementalResources];
           const elementsProduced = { air: 0, earth: 0, water: 0, fire: 0, light: 0, dark: 0 };
           prev.elementalRunes.forEach((amount, index) => {
             if (amount > 0) {
               const rune = RUNES_2[index];
               const baseProduction = (rune.produceAmount || 0) * amount;
-              const productionAmount = baseProduction * achievementBonuses.elementalMultiplier;
+              const productionAmount = baseProduction * achievementBonuses.elementalMultiplier * goldSkillBonuses.elementalGainMultiplier;
               newElementalResources[index] += productionAmount;
               
               // Track production per element
@@ -442,6 +534,13 @@ export const useGameLogic = () => {
             clicksFromTicksAmount = prev.rebirth_upgradeAmounts[1];
             newClicksTotal += clicksFromTicksAmount;
             newClicksInRebirth += clicksFromTicksAmount;
+          }
+          
+          // Auto Clicker from Gold Skills
+          if (goldSkillBonuses.autoClicksPerTick > 0) {
+            clicksFromTicksAmount += goldSkillBonuses.autoClicksPerTick;
+            newClicksTotal += goldSkillBonuses.autoClicksPerTick;
+            newClicksInRebirth += goldSkillBonuses.autoClicksPerTick;
           }
           return {
             ...prev,
@@ -613,8 +712,11 @@ export const useGameLogic = () => {
       let gemsEarned = 0;
       // Gem Drop Chance wenn das dritte Rebirth-Upgrade gekauft wurde
       if (prev.rebirth_upgradeAmounts[2] > 0) {
+        // Gold Skill bonuses for gems
+        const goldSkillBonuses = calculateGoldSkillBonuses(prev.goldSkills || []);
+        
         const baseGemChance = REBIRTHUPGRADES[2].effect; // 0.005 = 0.5%
-        const totalGemChance = (baseGemChance + totalGemBonus + achievementBonuses.gemBonusChance) * eventGemDropMultiplier;
+        const totalGemChance = (baseGemChance + totalGemBonus + achievementBonuses.gemBonusChance) * goldSkillBonuses.gemGainMultiplier * eventGemDropMultiplier;
         
         // Wenn Chance über 100%, garantiert mindestens 1 Gem + Chance für mehr
         if (totalGemChance >= 1.0) {
@@ -630,7 +732,11 @@ export const useGameLogic = () => {
             gemsEarned = 1;
           }
         }
+        
+        // Apply event multiplier and Diamond Rain bonus
         gemsEarned = Math.floor(gemsEarned * eventGemMultiplier); // Fire Storm: 2× Gems
+        gemsEarned *= goldSkillBonuses.bonusGemMultiplier; // Diamond Rain: Multiplies gems by N
+        
         newGems += gemsEarned;
       }
       
@@ -647,8 +753,18 @@ export const useGameLogic = () => {
       // Elemental Prestige Boni
       const elementalBonuses = calculateElementalBonuses(prev.elementalPrestige || null);
       
+      // Gold Skill bonuses
+      const goldSkillBonuses = calculateGoldSkillBonuses(prev.goldSkills || []);
+      
+      // Critical Strike check
+      const isCritical = goldSkillBonuses.criticalStrikeChance > 0 && Math.random() < goldSkillBonuses.criticalStrikeChance;
+      const critMultiplier = isCritical ? 10 : 1;
+      // if (isCritical) {
+      //   console.log(`⚡ CRITICAL STRIKE! 10x money (chance: ${(goldSkillBonuses.criticalStrikeChance * 100).toFixed(1)}%)`);
+      // }
+      
       const eventClickPowerMultiplier = activeEvent?.effects.clickPowerMultiplier || 1;
-      const moneyEarned = prev.moneyPerClick * multiplier * runeMoneyMultiplier * rebirthPointMultiplier * achievementBonuses.moneyMultiplier * elementalBonuses.clickPowerBonus * eventClickPowerMultiplier;
+      const moneyEarned = prev.moneyPerClick * multiplier * runeMoneyMultiplier * rebirthPointMultiplier * achievementBonuses.moneyMultiplier * goldSkillBonuses.clickPowerMultiplier * elementalBonuses.clickPowerBonus * eventClickPowerMultiplier * critMultiplier;
       
       const newState = {
         ...prev,
@@ -730,7 +846,7 @@ export const useGameLogic = () => {
         
         // Calculate new price using exponential scaling
         // Basis: 2.0 für kleine Upgrades, 2.5 für mittlere, 3.0 für große
-        const priceMultiplier = upgradeIndex <= 1 ? 2.0 : upgradeIndex <= 3 ? 2.5 : 3.0;
+        const priceMultiplier = upgradeIndex <= 1 ? 2.0 : upgradeIndex <= 3 ? 2.5 : upgradeIndex <= 6 ? 3.0 : 3.5;
         
         // Berechne neuen Preis: basePrice * (multiplier ^ amount)
         const basePrice = UPGRADES[upgradeIndex].price; // Ursprungspreis
@@ -751,6 +867,10 @@ export const useGameLogic = () => {
           newMoneyPerClick += 10;
         } else if (upgradeIndex === 3) { // +10$ per tick
           newMoneyPerTick += 10;
+        } else if (upgradeIndex === 5) { // +100$ per click
+          newMoneyPerClick += 100;
+        } else if (upgradeIndex === 6) { // +100$ per tick
+          newMoneyPerTick += 100;
         }
         // Upgrade 4 ist ein Unlock-Upgrade - keine direkten Effekte nötig
         
@@ -829,6 +949,51 @@ export const useGameLogic = () => {
         return prev;
       }
       
+      // Spezielle Logik für Tier 1 Capacity (Index 5), Tier 2 Capacity (Index 6) und Tier 3 Capacity (Index 7)
+      if (upgradeIndex === 5 || upgradeIndex === 6 || upgradeIndex === 7) {
+        if (prev.rebirthPoints >= rebirth_currentPrice && rebirth_currentAmount < rebirth_maxAmount) {
+          const rebirth_newUpgradePrices = [...prev.rebirth_upgradePrices];
+          const rebirth_newUpgradeAmounts = [...prev.rebirth_upgradeAmounts];
+          const newMaxUpgradeAmounts = [...prev.maxUpgradeAmounts];
+
+          const priceMultiplier = 2.5;
+          const rebirth_basePrice = REBIRTHUPGRADES[upgradeIndex].price;
+          const rebirth_nextAmount = rebirth_currentAmount + 1;
+          rebirth_newUpgradePrices[upgradeIndex] = Math.floor(rebirth_basePrice * Math.pow(priceMultiplier, rebirth_nextAmount));
+          rebirth_newUpgradeAmounts[upgradeIndex] = rebirth_currentAmount + 1;
+
+          // Tier 1 Capacity: Erhöht Max von Upgrade 0 und 1 um 100
+          if (upgradeIndex === 5) {
+            newMaxUpgradeAmounts[0] += 100; // +1$ per Click
+            newMaxUpgradeAmounts[1] += 100; // +1$ per Tick
+          }
+          // Tier 2 Capacity: Erhöht Max von Upgrade 2 und 3 um 10
+          else if (upgradeIndex === 6) {
+            newMaxUpgradeAmounts[2] += 10; // +10$ per Click
+            newMaxUpgradeAmounts[3] += 10; // +10$ per Tick
+          }
+          // Tier 3 Capacity: Erhöht Max von Upgrade 5 und 6 um 5
+          else if (upgradeIndex === 7) {
+            newMaxUpgradeAmounts[5] += 5; // +100$ per Click
+            newMaxUpgradeAmounts[6] += 5; // +100$ per Tick
+          }
+
+          return {
+            ...prev,
+            rebirthPoints: prev.rebirthPoints - rebirth_currentPrice,
+            rebirth_upgradePrices: rebirth_newUpgradePrices,
+            rebirth_upgradeAmounts: rebirth_newUpgradeAmounts,
+            maxUpgradeAmounts: newMaxUpgradeAmounts,
+            stats: {
+              ...prev.stats,
+              totalRebirthUpgradesPurchased: prev.stats.totalRebirthUpgradesPurchased + 1,
+              allTimeRebirthPointsSpent: prev.stats.allTimeRebirthPointsSpent + rebirth_currentPrice,
+            },
+          };
+        }
+        return prev;
+      }
+      
       // Normale Rebirth-Upgrade-Logik
       if (prev.rebirthPoints >= rebirth_currentPrice && rebirth_currentAmount < rebirth_maxAmount) {
         const rebirth_newUpgradePrices = [...prev.rebirth_upgradePrices];
@@ -884,8 +1049,40 @@ export const useGameLogic = () => {
       const baseRebirthPoints = Math.floor(prev.money / 1000);
       const runeRpMultiplier = 1 + totalRpBonus;
       const elementalBonuses = calculateElementalBonuses(prev.elementalPrestige || null);
-      const rpEarned = Math.floor(baseRebirthPoints * runeRpMultiplier * achievementBonuses.rpMultiplier * elementalBonuses.rpGainBonus);
-      const newRebirthPoints = prev.rebirthPoints + rpEarned;
+      
+      // Calculate Gold Skill bonuses
+      const goldSkillBonuses = calculateGoldSkillBonuses(prev.goldSkills || []);
+      
+      const totalMultiplier = runeRpMultiplier * achievementBonuses.rpMultiplier * elementalBonuses.rpGainBonus * goldSkillBonuses.rpGainMultiplier;
+      
+      // Check if we reached infinity - trigger Gold RP prestige!
+      if (!isFinite(baseRebirthPoints * totalMultiplier)) {
+        // console.log('[Rebirth] 🌟 INFINITY REACHED! Triggering Gold RP Prestige!');
+        
+        return {
+          ...INITIAL_GAME_STATE,
+          username: prev.username,
+          goldRP: (prev.goldRP || 0) + 1, // Award 1 Gold RP!
+          goldSkills: prev.goldSkills || [], // Keep Gold Skills
+          achievements: prev.achievements, // Keep achievements
+          stats: {
+            ...INITIAL_GAME_STATE.stats,
+            totalRebirths: prev.stats.totalRebirths + 1,
+          },
+          // Keep all settings
+          disableMoneyEffects: prev.disableMoneyEffects,
+          disableDiamondEffects: prev.disableDiamondEffects,
+          disablePackAnimations: prev.disablePackAnimations,
+          disableCraftAnimations: prev.disableCraftAnimations,
+          includeDevStats: prev.includeDevStats,
+        };
+      }
+      
+      // Normal rebirth calculation
+      const cappedMultiplier = Math.min(totalMultiplier, 1e308);
+      const rpEarned = Math.floor(baseRebirthPoints * cappedMultiplier);
+      const safeRpEarned = isFinite(rpEarned) ? rpEarned : 0;
+      const newRebirthPoints = prev.rebirthPoints + safeRpEarned;
       
       // Unlock "First Rebirth" achievement (ID 1) if not already unlocked
       const newAchievements = [...prev.achievements];
@@ -897,6 +1094,7 @@ export const useGameLogic = () => {
       return {
         ...INITIAL_GAME_STATE,
         username: prev.username, // Preserve username on rebirth
+        goldRP: prev.goldRP || 0, // Preserve Gold RP
         rebirthPoints: newRebirthPoints,
         gems: prev.gems, // Gems bleiben bei Rebirth erhalten
         runes: prev.runes, // Runen bleiben bei Rebirth erhalten
@@ -913,7 +1111,7 @@ export const useGameLogic = () => {
         rebirth_maxUpgradeAmounts: prev.rebirth_maxUpgradeAmounts,
         stats: {
           ...prev.stats,
-          allTimeRebirthPointsEarned: prev.stats.allTimeRebirthPointsEarned + rpEarned,
+          allTimeRebirthPointsEarned: prev.stats.allTimeRebirthPointsEarned + safeRpEarned,
           totalRebirths: prev.stats.totalRebirths + 1,
         },
         // Normale Upgrades die Gems kosten bleiben auch erhalten
@@ -923,12 +1121,18 @@ export const useGameLogic = () => {
         upgradePrices: prev.upgradePrices.map((price, index) => 
           UPGRADES[index]?.type === 'Unlock' ? price : INITIAL_GAME_STATE.upgradePrices[index]
         ),
-        maxUpgradeAmounts: prev.maxUpgradeAmounts.map((maxAmount, index) => 
-          UPGRADES[index]?.type === 'Unlock' ? maxAmount : INITIAL_GAME_STATE.maxUpgradeAmounts[index]
-        ),
+        maxUpgradeAmounts: prev.maxUpgradeAmounts, // Preserve capacity upgrades from Rebirth Shop
         traderOffers: prev.traderOffers,
         traderLastRefresh: prev.traderLastRefresh,
         traderNextRefresh: prev.traderNextRefresh,
+        // Keep Gold Skills
+        goldSkills: prev.goldSkills || [],
+        // Keep all settings
+        disableMoneyEffects: prev.disableMoneyEffects,
+        disableDiamondEffects: prev.disableDiamondEffects,
+        disablePackAnimations: prev.disablePackAnimations,
+        disableCraftAnimations: prev.disableCraftAnimations,
+        includeDevStats: prev.includeDevStats,
       };
     });
   }, [calculateAchievementBonuses]);
@@ -951,7 +1155,7 @@ export const useGameLogic = () => {
         ...prev.stats.devStats,
         moneyAdded: prev.stats.devStats.moneyAdded + 100000,
       };
-      console.log('[Dev] Adding money, new devStats:', newDevStats);
+      // console.log('[Dev] Adding money, new devStats:', newDevStats);
       return {
         ...prev,
         money: prev.money + 100000,
@@ -1154,7 +1358,10 @@ export const useGameLogic = () => {
 
     const currentRunes = gameState.currentRuneType === 'basic' ? RUNES_1 : RUNES_2;
     const elementalBonuses = calculateElementalBonuses(gameState.elementalPrestige || null);
-    const luckBonus = elementalBonuses.runePackLuckBonus;
+    const goldSkillBonuses = calculateGoldSkillBonuses(gameState.goldSkills || []);
+    
+    // Combine luck bonuses from Elemental Prestige and Gold Skills
+    const luckBonus = elementalBonuses.runePackLuckBonus * (1 + goldSkillBonuses.runeChanceBonus);
     const resultsToReturn: Array<{ rarity: string; bonus: number; index: number }> = [];
 
     // For very large pack counts (>10000), use probability distribution instead of simulation
@@ -1163,11 +1370,10 @@ export const useGameLogic = () => {
 
     if (useDistribution) {
       // Calculate modified drop rates with luck bonus
-      const isBasicRunes = gameState.currentRuneType === 'basic';
       const modifiedRates = currentRunes.map((rune, index) => {
         if (rune.dropRate === 0) return 0;
         
-        if (isBasicRunes && luckBonus > 1) {
+        if (luckBonus > 1) {
           const maxIndex = currentRunes.filter(r => r.dropRate > 0).length - 1;
           const rarityFactor = index / maxIndex;
           const luckFactor = (rarityFactor * 2) - 0.5;
@@ -1256,11 +1462,10 @@ export const useGameLogic = () => {
         const roll = Math.floor(Math.random() * 1000);
         let droppedRune = -1;
         
-        const isBasicRunes = gameState.currentRuneType === 'basic';
         const modifiedRates = currentRunes.map((rune, index) => {
           if (rune.dropRate === 0) return 0;
           
-          if (isBasicRunes && luckBonus > 1) {
+          if (luckBonus > 1) {
             const maxIndex = currentRunes.filter(r => r.dropRate > 0).length - 1;
             const rarityFactor = index / maxIndex;
             const luckFactor = (rarityFactor * 2) - 0.5;
@@ -1565,7 +1770,9 @@ export const useGameLogic = () => {
         rebirthPointMultiplier = 1 + bonus;
       }
       
-      const actualMoneyPerTick = gameState.moneyPerTick * clickMultiplier * runeMultiplier * rebirthPointMultiplier * achievementMoneyMultiplier;
+      const goldSkillBonuses = calculateGoldSkillBonuses(gameState.goldSkills || []);
+      
+      const actualMoneyPerTick = gameState.moneyPerTick * clickMultiplier * runeMultiplier * rebirthPointMultiplier * achievementMoneyMultiplier * goldSkillBonuses.clickPowerMultiplier;
       const moneyEarned = (actualMoneyPerTick * offlineTime) * 0.5; // 50% offline efficiency
       const adjustedClicks = Math.floor(offlineClicks * 0.5); // 50% offline efficiency
       
@@ -1654,9 +1861,11 @@ export const useGameLogic = () => {
             else if (upgradeIndex === 1) newMoneyPerTick += 1;
             else if (upgradeIndex === 2) newMoneyPerClick += 10;
             else if (upgradeIndex === 3) newMoneyPerTick += 10;
+            else if (upgradeIndex === 5) newMoneyPerClick += 100;
+            else if (upgradeIndex === 6) newMoneyPerTick += 100;
             
             // Calculate next price
-            const priceMultiplier = upgradeIndex <= 1 ? 2.0 : upgradeIndex <= 3 ? 2.5 : 3.0;
+            const priceMultiplier = upgradeIndex <= 1 ? 2.0 : upgradeIndex <= 3 ? 2.5 : upgradeIndex <= 6 ? 3.0 : 3.5;
             const basePrice = UPGRADES[upgradeIndex].price;
             const nextAmount = newUpgradeAmounts[upgradeIndex];
             newUpgradePrices[upgradeIndex] = Math.floor(basePrice * Math.pow(priceMultiplier, nextAmount));
@@ -1710,6 +1919,24 @@ export const useGameLogic = () => {
           newState.stats.totalRebirthUpgradesPurchased++;
           newState.stats.allTimeRebirthPointsSpent += currentPrice;
           
+          // Apply capacity upgrades immediately
+          if (upgradeIndex === 5) {
+            // Tier 1 Capacity
+            newState.maxUpgradeAmounts = [...newState.maxUpgradeAmounts];
+            newState.maxUpgradeAmounts[0] += 100; // +1$ per Click
+            newState.maxUpgradeAmounts[1] += 100; // +1$ per Tick
+          } else if (upgradeIndex === 6) {
+            // Tier 2 Capacity
+            newState.maxUpgradeAmounts = [...newState.maxUpgradeAmounts];
+            newState.maxUpgradeAmounts[2] += 10; // +10$ per Click
+            newState.maxUpgradeAmounts[3] += 10; // +10$ per Tick
+          } else if (upgradeIndex === 7) {
+            // Tier 3 Capacity
+            newState.maxUpgradeAmounts = [...newState.maxUpgradeAmounts];
+            newState.maxUpgradeAmounts[5] += 5; // +100$ per Click
+            newState.maxUpgradeAmounts[6] += 5; // +100$ per Tick
+          }
+          
           // Calculate next price (nur für upgrades die mehr als 1x kaufbar sind)
           if (maxAmount > 1) {
             const priceMultiplier = upgradeIndex <= 1 ? 2.0 : upgradeIndex <= 3 ? 2.5 : 3.0;
@@ -1727,6 +1954,56 @@ export const useGameLogic = () => {
       return { ...newState, achievements: updatedAchievements };
     });
   }, [checkAchievements]);
+
+  // Manual save function
+  const manualSave = useCallback(async () => {
+    // console.log('[Manual Save] 💾 Saving game...');
+    const success = await saveGameDataToFirebase(gameState);
+    if (success) {
+      // console.log('[Manual Save] ✅ Game saved successfully!');
+    } else {
+      // console.log('[Manual Save] ❌ Save failed!');
+    }
+    return success;
+  }, [gameState]);
+
+  // Unlock Gold Skill
+  const unlockGoldSkill = useCallback((skillId: number) => {
+    setGameState(prev => {
+      const skill = prev.goldSkills.find(s => s.id === skillId);
+      if (!skill) return prev;
+
+      // Check if player has enough Gold RP
+      const cost = skill.cost;
+      if (prev.goldRP < cost) return prev;
+
+      // Check if skill is already maxed
+      if (skill.currentLevel >= skill.maxLevel) return prev;
+
+      // Check if requirements are met
+      if (skill.requires) {
+        for (const reqId of skill.requires) {
+          const reqSkill = prev.goldSkills.find(s => s.id === reqId);
+          if (!reqSkill || reqSkill.currentLevel === 0) {
+            return prev;
+          }
+        }
+      }
+
+      // Unlock the skill
+      const newSkills = prev.goldSkills.map(s => 
+        s.id === skillId 
+          ? { ...s, currentLevel: s.currentLevel + 1 }
+          : s
+      );
+
+      return {
+        ...prev,
+        goldRP: prev.goldRP - cost,
+        goldSkills: newSkills
+      };
+    });
+  }, []);
 
   return {
     gameState,
@@ -1760,5 +2037,7 @@ export const useGameLogic = () => {
     toggleDevStats,
     devSimulateOfflineTime,
     craftSecretRune,
+    manualSave,
+    unlockGoldSkill,
   };
 };

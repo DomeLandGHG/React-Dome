@@ -14,10 +14,12 @@ interface LeaderboardEntry {
   totalTiers: number;
   moneyPerClick: number;
   onlineTime: number;
+  totalClicks: number;
+  totalGems: number;
   timestamp: number;
 }
 
-type LeaderboardCategory = 'allTimeMoney' | 'totalTiers' | 'moneyPerClick' | 'onlineTime';
+type LeaderboardCategory = 'allTimeMoney' | 'totalTiers' | 'moneyPerClick' | 'onlineTime' | 'totalClicks' | 'totalGems';
 
 const LeaderboardPanel = ({ gameState }: LeaderboardPanelProps) => {
   const [selectedCategory, setSelectedCategory] = useState<LeaderboardCategory>('allTimeMoney');
@@ -31,15 +33,19 @@ const LeaderboardPanel = ({ gameState }: LeaderboardPanelProps) => {
     { id: 'totalTiers' as LeaderboardCategory, label: '🏆 Total Tiers', icon: '🏆' },
     { id: 'moneyPerClick' as LeaderboardCategory, label: '👆 Money Per Click', icon: '👆' },
     { id: 'onlineTime' as LeaderboardCategory, label: '⏰ Online Time', icon: '⏰' },
+    { id: 'totalClicks' as LeaderboardCategory, label: '🖱️ Total Clicks', icon: '🖱️' },
+    { id: 'totalGems' as LeaderboardCategory, label: '💎 Total Gems', icon: '💎' },
   ];
 
   const formatValue = (category: LeaderboardCategory, value: number): string => {
     switch (category) {
       case 'allTimeMoney':
       case 'moneyPerClick':
+      case 'totalGems':
         return formatNumberGerman(value);
       case 'totalTiers':
-        return value.toString();
+      case 'totalClicks':
+        return formatNumberGerman(value);
       case 'onlineTime':
         const hours = Math.floor(value / 3600);
         const minutes = Math.floor((value % 3600) / 60);
@@ -139,7 +145,7 @@ const LeaderboardPanel = ({ gameState }: LeaderboardPanelProps) => {
       {/* Category Tabs */}
       <div style={{
         display: 'grid',
-        gridTemplateColumns: 'repeat(2, 1fr)',
+        gridTemplateColumns: 'repeat(3, 1fr)',
         gap: '8px',
       }}>
         {categories.map((cat) => (
@@ -162,7 +168,7 @@ const LeaderboardPanel = ({ gameState }: LeaderboardPanelProps) => {
               boxShadow: selectedCategory === cat.id ? '0 0 15px rgba(59, 130, 246, 0.4)' : 'none',
             }}
           >
-            {cat.icon} {cat.label.replace(/💰|🏆|👆|⏰/g, '').trim()}
+            {cat.icon} {cat.label.replace(/💰|🏆|👆|⏰|🖱️|💎/g, '').trim()}
           </button>
         ))}
       </div>

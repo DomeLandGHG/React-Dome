@@ -127,7 +127,10 @@ export const calculateElementalBonuses = (elementalPrestige: ElementalPrestige |
         case 'autoSpeed': autoSpeedBonus *= bonus; break;
         case 'rpGain': rpGainBonus *= bonus; break;
         case 'runePackLuck': runePackLuckBonus *= bonus; break;
-        case 'upgradeDiscount': upgradeDiscountBonus *= bonus; break;
+        case 'upgradeDiscount': 
+          // For discount, we REDUCE the multiplier (1.0 = no discount, 0.5 = 50% off)
+          upgradeDiscountBonus *= (1 - (config.bonusPerLevel * level / 100)); 
+          break;
       }
     }
   });

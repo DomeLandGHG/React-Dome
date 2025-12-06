@@ -78,7 +78,11 @@ const RebirthPanel = ({ gameState, buyRebirthUpgrade, buyMaxRebirthUpgrades }: R
           background: 'rgba(147, 51, 234, 0.1)',
           borderRadius: '12px',
           padding: '20px',
-          border: '1px solid rgba(147, 51, 234, 0.3)'
+          border: '1px solid rgba(147, 51, 234, 0.3)',
+          height: '100%',
+          overflowY: 'auto',
+          display: 'flex',
+          flexDirection: 'column'
         }}>
           <div style={{
             textAlign: 'center',
@@ -110,6 +114,14 @@ const RebirthPanel = ({ gameState, buyRebirthUpgrade, buyMaxRebirthUpgrades }: R
           </div>
           <div className="rebirth-upgrade-list">
             {REBIRTHUPGRADES.map((upgrade, index: number) => {
+              // Sicherheitsprüfung: Skip wenn Array-Index außerhalb liegt
+              if (!gameState.rebirth_upgradeAmounts[index] && gameState.rebirth_upgradeAmounts[index] !== 0) {
+                return null;
+              }
+              if (!gameState.rebirth_maxUpgradeAmounts[index]) {
+                return null;
+              }
+              
               let bonus: number | undefined = undefined;
               
               // Dynamische Namen für Upgrade 0 basierend auf Level

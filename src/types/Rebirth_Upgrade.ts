@@ -60,6 +60,36 @@ export const REBIRTHUPGRADES: Upgrade[] = [
     effect: 0.05, // Moderater Multiplikator für die Logarithmus-Berechnung
     type: 'Multiplier'
   },
+  {     // Rebirth Upgrade 6
+    id: 5,
+    name: 'Tier 1 Capacity',
+    description: 'Increases max amount of Tier 1 upgrades (+1$ per Click/Tick) by 100',
+    price: 100,
+    amount: 0,
+    maxAmount: 10,
+    effect: 100, // Increases max by 100 per level
+    type: 'Multiplier'
+  },
+  {     // Rebirth Upgrade 7
+    id: 6,
+    name: 'Tier 2 Capacity',
+    description: 'Increases max amount of Tier 2 upgrades (+10$ per Click/Tick) by 10',
+    price: 250,
+    amount: 0,
+    maxAmount: 10,
+    effect: 10, // Increases max by 10 per level
+    type: 'Multiplier'
+  },
+  {     // Rebirth Upgrade 8
+    id: 7,
+    name: 'Tier 3 Capacity',
+    description: 'Increases max amount of Tier 3 upgrades (+100$ per Click/Tick) by 5',
+    price: 500,
+    amount: 0,
+    maxAmount: 10,
+    effect: 5, // Increases max by 5 per level
+    type: 'Multiplier'
+  },
 ];
 
 //import { REBIRTHUPGRADES } from './types/Rebirth_Upgrade';

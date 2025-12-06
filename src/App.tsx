@@ -21,6 +21,8 @@ import { SettingsModal } from './components/SettingsModal';
 import { EventNotification } from './components/EventNotification';
 import ElementalTraderModal from './components/ElementalTraderModal';
 import ElementalPrestigeModal from './components/ElementalPrestigeModal';
+import { GoldSkillTreeModal } from './components/GoldSkillTreeModal';
+import { ElementalConverterModal } from './components/ElementalConverterModal';
 import { PackOpeningAnimation, type PackResult } from './components/PackOpeningAnimation';
 import { SecretRuneCraftAnimation } from './components/SecretRuneCraftAnimation';
 import { MultiInstanceWarning } from './components/MultiInstanceWarning';
@@ -28,11 +30,12 @@ import { formatNumberGerman } from './types/German_number';
 import { RUNES_1, RUNES_2, type Rune } from './types/Runes';
 import { TRADER_OFFERS, type TraderOffer, generateRandomOffers } from './types/ElementalTrader';
 import { EVENT_CONFIG } from './types/ElementalEvent';
+import { calculateGoldSkillBonuses } from './types/GoldSkillTree';
 import { getUserId } from './leaderboard';
 import './App.css';
 
 function App() {
-  const { gameState, setGameState, isLoading, offlineProgress, setOfflineProgress, claimOfflineProgress, clickMoney, buyUpgrade, buyMaxUpgrades, buyRebirthUpgrade, buyMaxRebirthUpgrades, performRebirth, resetGame, cheatMoney, devAddMoney, devAddMoneyDirect, devAddRebirthPoint, devAddGem, devAddClick, devAddRune, devAddElementalRune, openRunePack, mergeRunes, mergeAllRunes, switchRuneType, toggleElementalStats, toggleMoneyEffects, toggleDiamondEffects, toggleDevStats, devSimulateOfflineTime, craftSecretRune } = useGameLogic();
+  const { gameState, setGameState, isLoading, offlineProgress, setOfflineProgress, claimOfflineProgress, clickMoney, buyUpgrade, buyMaxUpgrades, buyRebirthUpgrade, buyMaxRebirthUpgrades, performRebirth, resetGame, cheatMoney, devAddMoney, devAddMoneyDirect, devAddRebirthPoint, devAddGem, devAddClick, devAddRune, devAddElementalRune, openRunePack, mergeRunes, mergeAllRunes, switchRuneType, toggleElementalStats, toggleMoneyEffects, toggleDiamondEffects, toggleDevStats, devSimulateOfflineTime, craftSecretRune, manualSave, unlockGoldSkill } = useGameLogic();
   const [activePanel, setActivePanel] = useState<'upgrades' | 'rebirth' | 'achievements'>('upgrades');
   const [secondPanelView, setSecondPanelView] = useState<'achievements' | 'statistics' | 'leaderboard'>('achievements');
   const [mobileActiveTab, setMobileActiveTab] = useState<'stats' | 'upgrades' | 'rebirth' | 'gems' | 'achievements' | 'statistics' | 'leaderboard' | 'settings' | 'dev' | 'trader' | 'prestige'>('stats');
@@ -43,6 +46,8 @@ function App() {
   const [isDevOpen, setIsDevOpen] = useState(false);
   const [isTraderOpen, setIsTraderOpen] = useState(false);
   const [isPrestigeOpen, setIsPrestigeOpen] = useState(false);
+  const [isGoldSkillTreeOpen, setIsGoldSkillTreeOpen] = useState(false);
+  const [isConverterOpen, setIsConverterOpen] = useState(false);
   const [packResults, setPackResults] = useState<PackResult[] | null>(null);
   const [totalPacksOpened, setTotalPacksOpened] = useState<number>(0);
   const [actualRuneCounts, setActualRuneCounts] = useState<number[] | null>(null);
@@ -191,10 +196,11 @@ function App() {
 
   // Calculate elemental production stats
   const calculateElementalStats = () => {
+    const goldSkillBonuses = calculateGoldSkillBonuses(gameState.goldSkills || []);
     const elementalStats = RUNES_2.map((rune, index) => ({
       name: rune.producing || 'Unknown',
       color: rune.color,
-      totalProducing: gameState.elementalRunes[index] * (rune.produceAmount || 0),
+      totalProducing: gameState.elementalRunes[index] * (rune.produceAmount || 0) * goldSkillBonuses.elementalGainMultiplier,
       currentAmount: gameState.elementalResources[index] || 0,
       runeCount: gameState.elementalRunes[index]
     }));
@@ -300,6 +306,23 @@ function App() {
       ...gameState,
       elementalResources: newResources,
       elementalPrestige: newPrestige
+    });
+  };
+
+  // Handle elemental conversion
+  const handleElementalConvert = (fromIndex: number, toIndex: number, amount: number) => {
+    if (gameState.elementalResources[fromIndex] < amount || fromIndex === toIndex) {
+      return;
+    }
+
+    const convertedAmount = Math.floor(amount * 0.8); // 80% conversion rate
+    const newResources = [...gameState.elementalResources];
+    newResources[fromIndex] -= amount;
+    newResources[toIndex] += convertedAmount;
+
+    setGameState({
+      ...gameState,
+      elementalResources: newResources
     });
   };
 
@@ -711,6 +734,7 @@ function App() {
         disableCraftAnimations={gameState.disableCraftAnimations || false}
         username={gameState.username || 'Player'}
         onUsernameChange={(newUsername) => setGameState(prev => ({ ...prev, username: newUsername }))}
+        onManualSave={manualSave}
       />
 
       {/* Animation Settings Modal */}
@@ -725,6 +749,7 @@ function App() {
         onToggleDiamondEffects={(disabled) => setGameState(prev => ({ ...prev, disableDiamondEffects: disabled }))}
         onTogglePackAnimations={(disabled) => setGameState(prev => ({ ...prev, disablePackAnimations: disabled }))}
         onToggleCraftAnimations={(disabled) => setGameState(prev => ({ ...prev, disableCraftAnimations: disabled }))}
+        onManualSave={manualSave}
       />
       
       {/* Offline Progress Modal */}
@@ -761,6 +786,15 @@ function App() {
         onClose={() => setIsPrestigeOpen(false)}
         gameState={gameState}
         onPrestige={handleElementalPrestige}
+      />
+
+      {/* Gold Skill Tree Modal */}
+      <GoldSkillTreeModal
+        isOpen={isGoldSkillTreeOpen}
+        onClose={() => setIsGoldSkillTreeOpen(false)}
+        skills={gameState.goldSkills || []}
+        availableGoldRP={gameState.goldRP || 0}
+        onUnlockSkill={unlockGoldSkill}
       />
 
       {/* Secret Rune Craft Animation */}
@@ -1107,12 +1141,18 @@ function App() {
                   const firePrestigeLevel = gameState.elementalPrestige?.fire || 0;
                   const luckBonus = isBasicRunes && firePrestigeLevel > 0 ? 1 + (firePrestigeLevel * 0.01) : 1;
                   
+                  // Calculate Gold Skill bonuses
+                  const goldSkillBonuses = calculateGoldSkillBonuses(gameState.goldSkills || []);
+                  
+                  // Calculate Fortune's Favor bonus
+                  const fortuneFavorBonus = goldSkillBonuses.runeChanceBonus;
+                  
                   let displayedDropRate = rune.dropRate / 10; // Convert to percentage
                   
                   // Secret Rune never drops from packs
                   if (rune.dropRate === 0) {
                     displayedDropRate = 0;
-                  } else if (isBasicRunes && luckBonus > 1) {
+                  } else if (isBasicRunes && (luckBonus > 1 || fortuneFavorBonus > 0)) {
                     // Calculate modified rate like in openRunePack
                     const runesWithDrops = currentRunes.filter(r => r.dropRate > 0);
                     const maxIndex = runesWithDrops.length - 1;
@@ -1120,8 +1160,12 @@ function App() {
                     // Find this rune's position among droppable runes
                     const droppableIndex = runesWithDrops.findIndex(r => r.id === rune.id);
                     const rarityFactor = droppableIndex / maxIndex;
+                    
+                    // Apply both Fire Ascension and Fortune's Favor
+                    const combinedLuckBonus = luckBonus * (1 + fortuneFavorBonus);
+                    
                     const luckFactor = (rarityFactor * 2) - 0.5;
-                    const adjustment = (luckBonus - 1) * luckFactor * 2.0;
+                    const adjustment = (combinedLuckBonus - 1) * luckFactor * 2.0;
                     const modifiedRate = Math.max(1, rune.dropRate * (1 + adjustment));
                     
                     // Normalize to get actual percentage
@@ -1130,7 +1174,7 @@ function App() {
                       const dIndex = runesWithDrops.findIndex(rd => rd.id === r.id);
                       const rf = dIndex / maxIndex;
                       const lf = (rf * 2) - 0.5;
-                      const adj = (luckBonus - 1) * lf * 2.0;
+                      const adj = (combinedLuckBonus - 1) * lf * 2.0;
                       return Math.max(1, r.dropRate * (1 + adj));
                     });
                     const totalRate = allModifiedRates.reduce((sum, rate) => sum + rate, 0);
@@ -1138,13 +1182,19 @@ function App() {
                   }
                   
                   if (rune.moneyBonus && runeAmount > 0) {
-                    individualBonuses.push(`💰 +${formatNumberGerman((rune.moneyBonus * runeAmount) * 100, 2)}% Money`);
+                    const baseBonus = (rune.moneyBonus * runeAmount) * 100;
+                    const totalBonus = baseBonus * goldSkillBonuses.clickPowerMultiplier;
+                    individualBonuses.push(`💰 +${formatNumberGerman(totalBonus, 2)}% Money`);
                   }
                   if (rune.rpBonus && runeAmount > 0) {
-                    individualBonuses.push(`🔄 +${formatNumberGerman((rune.rpBonus * runeAmount) * 100, 2)}% Rebirth Points`);
+                    const baseBonus = (rune.rpBonus * runeAmount) * 100;
+                    const totalBonus = baseBonus * goldSkillBonuses.rpGainMultiplier;
+                    individualBonuses.push(`🔄 +${formatNumberGerman(totalBonus, 2)}% Rebirth Points`);
                   }
                   if (rune.gemBonus && runeAmount > 0) {
-                    individualBonuses.push(`💎 +${formatNumberGerman((rune.gemBonus * runeAmount) * 100, 3)}% Gem Chance`);
+                    const baseBonus = (rune.gemBonus * runeAmount) * 100;
+                    const totalBonus = baseBonus * goldSkillBonuses.gemGainMultiplier;
+                    individualBonuses.push(`💎 +${formatNumberGerman(totalBonus, 3)}% Gem Chance`);
                   }
                   if (rune.producing && runeAmount > 0) {
                     individualBonuses.push(`⚡ Produces ${formatNumberGerman((rune.produceAmount || 0) * runeAmount, 0)} ${rune.producing}/tick`);
@@ -1277,13 +1327,15 @@ function App() {
                     }}>
                       <div>
                         {displayedDropRate.toFixed(1)}%
-                        {isBasicRunes && luckBonus > 1 && rune.dropRate > 0 && (
+                        {isBasicRunes && (luckBonus > 1 || fortuneFavorBonus > 0) && rune.dropRate > 0 && (
                           <span style={{ 
                             fontSize: '10px', 
-                            color: index === 0 ? '#60a5fa' : '#fb923c',
+                            color: luckBonus > 1 && fortuneFavorBonus > 0 ? '#fbbf24' : 
+                                   luckBonus > 1 ? '#fb923c' : '#8b5cf6',
                             marginLeft: '4px'
                           }}>
-                            {index === 0 ? '❄️' : '🔥'}
+                            {luckBonus > 1 && fortuneFavorBonus > 0 ? '🔥🎯' : 
+                             luckBonus > 1 ? '🔥' : '🎯'}
                           </span>
                         )}
                       </div>
@@ -1349,7 +1401,14 @@ function App() {
             </div>
 
             {/* Active Bonuses */}
-            {(runeBonuses.totalMoneyBonus > 0 || runeBonuses.totalRpBonus > 0 || runeBonuses.totalGemBonus > 0) && (
+            {(runeBonuses.totalMoneyBonus > 0 || runeBonuses.totalRpBonus > 0 || runeBonuses.totalGemBonus > 0) && (() => {
+              const goldSkillBonuses = calculateGoldSkillBonuses(gameState.goldSkills || []);
+              const totalMoneyWithGoldSkills = runeBonuses.totalMoneyBonus * goldSkillBonuses.clickPowerMultiplier;
+              const totalRpWithGoldSkills = runeBonuses.totalRpBonus * goldSkillBonuses.rpGainMultiplier;
+              const totalGemWithGoldSkills = runeBonuses.totalGemBonus * goldSkillBonuses.gemGainMultiplier;
+              const totalRuneChanceBonus = goldSkillBonuses.runeChanceBonus;
+              
+              return (
               <div style={{ 
                 background: 'rgba(59, 130, 246, 0.1)',
                 borderRadius: '12px',
@@ -1382,7 +1441,7 @@ function App() {
                       border: '1px solid rgba(16, 185, 129, 0.2)'
                     }}>
                       <span>💰</span>
-                      <span>+{formatNumberGerman(runeBonuses.totalMoneyBonus * 100, 2)}% Money</span>
+                      <span>+{formatNumberGerman(totalMoneyWithGoldSkills * 100, 2)}% Money</span>
                     </div>
                   )}
                   {runeBonuses.totalRpBonus > 0 && (
@@ -1397,7 +1456,7 @@ function App() {
                       border: '1px solid rgba(59, 130, 246, 0.2)'
                     }}>
                       <span>🔄</span>
-                      <span>+{formatNumberGerman(runeBonuses.totalRpBonus * 100, 2)}% Rebirth Points</span>
+                      <span>+{formatNumberGerman(totalRpWithGoldSkills * 100, 2)}% Rebirth Points</span>
                     </div>
                   )}
                   {runeBonuses.totalGemBonus > 0 && (
@@ -1412,12 +1471,28 @@ function App() {
                       border: '1px solid rgba(245, 158, 11, 0.2)'
                     }}>
                       <span>💎</span>
-                      <span>+{formatNumberGerman(runeBonuses.totalGemBonus * 100, 3)}% Gem Chance</span>
+                      <span>+{formatNumberGerman(totalGemWithGoldSkills * 100, 3)}% Gem Chance</span>
+                    </div>
+                  )}
+                  {totalRuneChanceBonus > 0 && (
+                    <div style={{ 
+                      color: '#8B5CF6',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '8px',
+                      padding: '8px',
+                      background: 'rgba(139, 92, 246, 0.1)',
+                      borderRadius: '6px',
+                      border: '1px solid rgba(139, 92, 246, 0.2)'
+                    }}>
+                      <span>🎯</span>
+                      <span>+{formatNumberGerman(totalRuneChanceBonus * 100, 1)}% Rune Chance</span>
                     </div>
                   )}
                 </div>
               </div>
-            )}
+              );
+            })()}
           </div>
         )}
 
@@ -1425,7 +1500,8 @@ function App() {
           {/* Normale Stats - nur anzeigen wenn Elemental Stats nicht aktiv sind */}
           {!gameState.showElementalStats && (
             <GameStats 
-              gameState={gameState} 
+              gameState={gameState}
+              onOpenGoldSkillTree={() => setIsGoldSkillTreeOpen(true)}
             />
           )}
 
@@ -1584,6 +1660,54 @@ function App() {
             </div>
           )}
 
+          {/* Gold Skill Tree Button - permanently visible if player has ever earned Gold RP */}
+          {gameState.goldRP >= 0 && (gameState.goldRP > 0 || gameState.goldSkills?.some(s => s.currentLevel > 0)) && (
+            <button
+              onClick={() => setIsGoldSkillTreeOpen(true)}
+              style={{
+                width: '100%',
+                padding: '14px 20px',
+                marginTop: '16px',
+                background: 'linear-gradient(135deg, rgba(251, 191, 36, 0.25) 0%, rgba(245, 158, 11, 0.25) 100%)',
+                border: '3px solid #fbbf24',
+                borderRadius: '12px',
+                cursor: 'pointer',
+                transition: 'all 0.3s ease',
+                boxShadow: '0 4px 16px rgba(251, 191, 36, 0.4)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '10px',
+                fontSize: '16px',
+                fontWeight: 'bold'
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.background = 'linear-gradient(135deg, rgba(251, 191, 36, 0.35) 0%, rgba(245, 158, 11, 0.35) 100%)';
+                e.currentTarget.style.transform = 'translateY(-2px) scale(1.02)';
+                e.currentTarget.style.boxShadow = '0 6px 24px rgba(251, 191, 36, 0.6)';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.background = 'linear-gradient(135deg, rgba(251, 191, 36, 0.25) 0%, rgba(245, 158, 11, 0.25) 100%)';
+                e.currentTarget.style.transform = 'translateY(0) scale(1)';
+                e.currentTarget.style.boxShadow = '0 4px 16px rgba(251, 191, 36, 0.4)';
+              }}
+            >
+              <span style={{ 
+                fontSize: '24px',
+                filter: 'drop-shadow(0 0 8px rgba(251, 191, 36, 0.8))'
+              }}>🌟</span>
+              <span style={{ 
+                color: '#fbbf24',
+                textShadow: '0 0 10px rgba(251, 191, 36, 0.6)'
+              }}>Gold Skill Tree</span>
+              <span style={{ 
+                color: '#f59e0b',
+                fontSize: '18px',
+                textShadow: '0 0 8px rgba(245, 158, 11, 0.6)'
+              }}>({gameState.goldRP})</span>
+            </button>
+          )}
+
           {/* Second Panel Switch Button - nach dem Switch Button und vor dem Money Button */}
           {(gameState.rebirthPoints > 0 || gameState.rebirth_upgradeAmounts.some(amount => amount > 0)) && (
             <div className="Second-Panel-Switch" style={{ marginTop: '16px', marginBottom: '16px' }}>
@@ -1670,7 +1794,7 @@ function App() {
 
           {/* Elemental Trader Button - appears when player has elemental runes */}
           {hasElementalRunes && (
-            <div className="Trader-Button" style={{ marginTop: '16px', marginBottom: '16px' }}>
+            <div className="Trader-Button" style={{ marginTop: '16px', marginBottom: '8px' }}>
               <button
                 onClick={() => setIsTraderOpen(true)}
                 style={{
@@ -1713,6 +1837,56 @@ function App() {
                   marginLeft: 'auto'
                 }}>
                   {gameState.traderOffers && gameState.traderOffers.length > 0 ? `${gameState.traderOffers.length} offers` : 'New!'}
+                </span>
+              </button>
+            </div>
+          )}
+
+          {/* Elemental Converter Button - appears when Elemental Fusion is unlocked */}
+          {hasElementalRunes && calculateGoldSkillBonuses(gameState.goldSkills || []).elementalFusionUnlocked && (
+            <div className="Converter-Button" style={{ marginBottom: '16px' }}>
+              <button
+                onClick={() => setIsConverterOpen(true)}
+                style={{
+                  width: '100%',
+                  padding: '14px 16px',
+                  background: 'linear-gradient(135deg, #06b6d4 0%, #0891b2 50%, #0e7490 100%)',
+                  color: 'white',
+                  border: '2px solid #155e75',
+                  borderRadius: '12px',
+                  cursor: 'pointer',
+                  fontSize: '16px',
+                  fontWeight: 'bold',
+                  textShadow: '0 0 10px rgba(0,0,0,0.5)',
+                  boxShadow: '0 4px 12px rgba(6, 182, 212, 0.4)',
+                  transition: 'all 0.3s ease',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '8px',
+                  position: 'relative',
+                  overflow: 'hidden'
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.transform = 'translateY(-2px)';
+                  e.currentTarget.style.boxShadow = '0 6px 20px rgba(6, 182, 212, 0.6)';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.transform = 'none';
+                  e.currentTarget.style.boxShadow = '0 4px 12px rgba(6, 182, 212, 0.4)';
+                }}
+              >
+                <span style={{ fontSize: '20px' }}>🔮</span>
+                <span>Elemental Converter</span>
+                <span style={{
+                  fontSize: '10px',
+                  opacity: 0.9,
+                  background: 'rgba(0,0,0,0.3)',
+                  padding: '2px 6px',
+                  borderRadius: '4px',
+                  marginLeft: 'auto'
+                }}>
+                  80% rate
                 </span>
               </button>
             </div>
@@ -1858,7 +2032,7 @@ function App() {
               gameState={gameState}
               onGemDrop={() => {
                 // Optional: Add sound effect or additional visual feedback here
-                console.log('💎 Gem obtained!');
+                // console.log('💎 Gem obtained!');
               }}
             />
           </div>
@@ -1939,7 +2113,8 @@ function App() {
                 {/* Mobile Stats - nur anzeigen wenn Elemental Stats nicht aktiv sind */}
                 {!gameState.showElementalStats && (
                   <GameStats 
-                    gameState={gameState} 
+                    gameState={gameState}
+                    onOpenGoldSkillTree={() => setIsGoldSkillTreeOpen(true)}
                   />
                 )}
 
@@ -2093,16 +2268,6 @@ function App() {
                     eventEndTime={gameState.eventEndTime || null}
                   />
                 )}
-                
-                <div className="mobile-click-area" style={{ position: 'relative', zIndex: 1 }}>
-                  <MoneyButton 
-                    onClick={clickMoney} 
-                    gameState={gameState}
-                    onGemDrop={() => {
-                      console.log('💎 Gem obtained!');
-                    }}
-                  />
-                </div>
 
                 <ActionButtons
                   money={gameState.money}
@@ -2530,7 +2695,11 @@ function App() {
                 </div>
                 
                 {/* Active Bonuses für Mobile */}
-                {(runeBonuses.totalMoneyBonus > 0 || runeBonuses.totalRpBonus > 0 || runeBonuses.totalGemBonus > 0) && (
+                {(runeBonuses.totalMoneyBonus > 0 || runeBonuses.totalRpBonus > 0 || runeBonuses.totalGemBonus > 0) && (() => {
+                  const goldSkillBonuses = calculateGoldSkillBonuses(gameState.goldSkills || []);
+                  const totalRuneChanceBonus = goldSkillBonuses.runeChanceBonus;
+                  
+                  return (
                   <div style={{ 
                     background: 'rgba(59, 130, 246, 0.1)',
                     borderRadius: '12px',
@@ -2596,9 +2765,25 @@ function App() {
                           <span>+{formatNumberGerman(runeBonuses.totalGemBonus * 100, 3)}% Gem Chance</span>
                         </div>
                       )}
+                      {totalRuneChanceBonus > 0 && (
+                        <div style={{ 
+                          color: '#8B5CF6',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '8px',
+                          padding: '8px',
+                          background: 'rgba(139, 92, 246, 0.1)',
+                          borderRadius: '6px',
+                          border: '1px solid rgba(139, 92, 246, 0.2)'
+                        }}>
+                          <span>🎯</span>
+                          <span>+{formatNumberGerman(totalRuneChanceBonus * 100, 1)}% Rune Chance</span>
+                        </div>
+                      )}
                     </div>
                   </div>
-                )}
+                  );
+                })()}
               </div>
             )}
           </div>
@@ -2618,6 +2803,14 @@ function App() {
           actualRuneCounts={actualRuneCounts}
         />
       )}
+
+      {/* Elemental Converter Modal */}
+      <ElementalConverterModal
+        isOpen={isConverterOpen}
+        onClose={() => setIsConverterOpen(false)}
+        elementalResources={gameState.elementalResources}
+        onConvert={handleElementalConvert}
+      />
       
       {/* Tooltip Animation CSS */}
       <style>{`
