@@ -24,6 +24,27 @@ html, body {
   width: 100%;
 }
 
+/* Moderne Scrollbar Styling */
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+::-webkit-scrollbar-track {
+  background: rgba(15, 23, 42, 0.5);
+  border-radius: 10px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: linear-gradient(135deg, #475569, #64748b);
+  border-radius: 10px;
+  border: 2px solid rgba(15, 23, 42, 0.5);
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: linear-gradient(135deg, #64748b, #94a3b8);
+}
+
 #root {
   height: 100%;
   display: flex;
@@ -45,38 +66,42 @@ html, body {
 
 /* Header */
 .app-header h1 {
-  font-size: 1.8rem;
-  margin-bottom: 0.2rem;
-  background: linear-gradient(45deg, #ffd700, #ffb347);
+  font-size: 2.2rem;
+  margin-bottom: 0.3rem;
+  background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 50%, #fcd34d 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
+  filter: drop-shadow(0 0 20px rgba(251, 191, 36, 0.5));
+  font-weight: 900;
+  letter-spacing: -0.5px;
 }
 
 .app-header p {
-  font-size: 0.9rem;
-  color: #666;
+  font-size: 1rem;
+  color: #94a3b8;
   margin: 0;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
 }
 
 /* Main game container */
 .game-container {
   flex: 1;
   display: flex;
-  gap: 12px;
+  gap: 16px;
   max-width: 1400px;
   width: 100%;
   margin: 0 auto;
-  padding: 12px;
-  background: rgba(15, 23, 42, 0.3);
-  border-radius: 20px;
-  backdrop-filter: blur(10px);
-  border: 1px solid rgba(100, 116, 139, 0.2);
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+  padding: 16px;
+  background: linear-gradient(135deg, rgba(15, 23, 42, 0.95) 0%, rgba(30, 41, 59, 0.9) 100%);
+  border-radius: 24px;
+  backdrop-filter: blur(20px) saturate(180%);
+  border: 1px solid rgba(148, 163, 184, 0.3);
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(255, 255, 255, 0.05) inset;
   overflow: hidden;
   min-height: 0;
   box-sizing: border-box;
-  transition: max-width 0.3s ease;
+  transition: max-width 0.3s ease, box-shadow 0.3s ease;
 }
 
 /* Desktop: 2-3 column layout */
@@ -97,8 +122,19 @@ html, body {
   .left-panel {
     grid-column: 2;
     grid-row: 1;
+    background: linear-gradient(135deg, rgba(30, 41, 59, 0.6) 0%, rgba(51, 65, 85, 0.4) 100%);
+    border-radius: 16px;
+    border: 1px solid rgba(148, 163, 184, 0.2);
+    backdrop-filter: blur(10px);
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+    transition: all 0.3s ease;
   }
-  
+
+  .left-panel:hover {
+    border-color: rgba(148, 163, 184, 0.35);
+    box-shadow: 0 12px 48px rgba(0, 0, 0, 0.4);
+  }
+
   .right-Upgrade-panel {
     grid-column: 3;
     grid-row: 1;
@@ -140,14 +176,20 @@ html, body {
 /* Game stats */
 .game-stats {
   text-align: center;
+  padding: 8px;
 }
 
 .money-display {
-  font-size: 3rem;
-  font-weight: bold;
-  color: #2d5016;
-  margin-bottom: 1rem;
-  text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.1);
+  font-size: 3.5rem;
+  font-weight: 900;
+  background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 50%, #fcd34d 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  margin-bottom: 1.2rem;
+  text-shadow: none;
+  filter: drop-shadow(0 4px 8px rgba(251, 191, 36, 0.3));
+  letter-spacing: -1px;
 }
 
 .stats-grid {
@@ -157,25 +199,39 @@ html, body {
 }
 
 .stat-item {
-  background: #f8f9fa;
-  padding: 1rem;
-  border-radius: 8px;
+  background: linear-gradient(135deg, rgba(51, 65, 85, 0.5) 0%, rgba(71, 85, 105, 0.3) 100%);
+  padding: 14px;
+  border-radius: 12px;
   display: flex;
   flex-direction: column;
   align-items: center;
-  border: 2px solid #e9ecef;
+  border: 1px solid rgba(148, 163, 184, 0.25);
+  backdrop-filter: blur(8px);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
+  transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.stat-item:hover {
+  border-color: rgba(148, 163, 184, 0.4);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
 }
 
 .stat-label {
-  font-size: 0.9rem;
-  color: #666;
-  margin-bottom: 0.5rem;
+  font-size: 0.85rem;
+  color: #94a3b8;
+  margin-bottom: 6px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
 }
 
 .stat-value {
-  font-size: 1.5rem;
-  font-weight: bold;
-  color: #2d5016;
+  font-size: 1.6rem;
+  font-weight: 800;
+  background: linear-gradient(135deg, #fbbf24, #f59e0b);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
 }
 
 /* Money button */
@@ -344,22 +400,53 @@ html, body {
 }
 
 .rebirth-button {
-  background: linear-gradient(145deg, #8e44ad, #9b59b6);
+  background: linear-gradient(135deg, #a855f7 0%, #9333ea 50%, #7e22ce 100%);
   border: none;
-  border-radius: 12px;
-  padding: 1.5rem;
+  border-radius: 16px;
+  padding: 18px 32px;
   color: white;
-  font-size: 1.2rem;
-  font-weight: bold;
+  font-size: 18px;
+  font-weight: 800;
   cursor: pointer;
-  transition: all 0.3s ease;
-  box-shadow: 0 6px 20px rgba(142, 68, 173, 0.3);
+  transition: all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+  box-shadow: 0 8px 32px rgba(168, 85, 247, 0.5), 0 0 0 2px rgba(168, 85, 247, 0.3);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  position: relative;
+  overflow: hidden;
+}
+
+.rebirth-button::before {
+  content: '';
+  position: absolute;
+  top: -50%;
+  left: -50%;
+  width: 200%;
+  height: 200%;
+  background: linear-gradient(45deg, transparent, rgba(255, 255, 255, 0.3), transparent);
+  transform: rotate(45deg);
+  animation: shimmer 3s infinite;
+}
+
+@keyframes shimmer {
+  0% { transform: translateX(-100%) translateY(-100%) rotate(45deg); }
+  100% { transform: translateX(100%) translateY(100%) rotate(45deg); }
 }
 
 .rebirth-button:hover {
-  transform: translateY(-3px);
-  box-shadow: 0 10px 30px rgba(142, 68, 173, 0.4);
-  background: linear-gradient(145deg, #9b59b6, #8e44ad);
+  transform: scale(1.03);
+  box-shadow: 0 16px 48px rgba(168, 85, 247, 0.7), 0 0 0 3px rgba(168, 85, 247, 0.5), 0 0 40px rgba(168, 85, 247, 0.4);
+}
+
+.rebirth-button:active {
+  transform: translateY(-2px) scale(1.02);
+}
+
+.rebirth-button:disabled {
+  background: linear-gradient(135deg, #475569, #64748b);
+  cursor: not-allowed;
+  opacity: 0.5;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
 }
 
 .rebirth-info {
@@ -382,17 +469,18 @@ html, body {
 }
 
 .cheat-button:hover {
-  transform: translateY(-2px);
+  transform: scale(1.02);
   box-shadow: 0 6px 20px rgba(253, 126, 20, 0.4);
 }
 
 /* Right panel */
 .right-Upgrade-panel {
-  background: rgba(15, 23, 42, 0.4);
+  background: linear-gradient(135deg, rgba(30, 41, 59, 0.7) 0%, rgba(51, 65, 85, 0.5) 100%);
   border-radius: 16px;
-  padding: 12px;
-  border: 1px solid rgba(100, 116, 139, 0.3);
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
+  padding: 16px;
+  border: 1px solid rgba(148, 163, 184, 0.25);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3), 0 0 0 1px rgba(148, 163, 184, 0.1) inset;
+  backdrop-filter: blur(12px) saturate(150%);
   min-width: 350px;
   overflow: hidden;
   display: flex;
@@ -401,6 +489,12 @@ html, body {
   width: 420px;
   max-width: 100%;
   box-sizing: border-box;
+  transition: all 0.3s ease;
+}
+
+.right-Upgrade-panel:hover {
+  border-color: rgba(148, 163, 184, 0.35);
+  box-shadow: 0 12px 48px rgba(0, 0, 0, 0.4), 0 0 0 1px rgba(148, 163, 184, 0.2) inset;
 }
 
 
@@ -423,46 +517,73 @@ html, body {
 
 .upgrade-button {
   border: none;
-  border-radius: 12px;
-  padding: 1.5rem;
+  border-radius: 14px;
+  padding: 18px;
   cursor: pointer;
-  transition: all 0.3s ease;
-  font-size: 1rem;
-  font-weight: bold;
-  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+  transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+  font-size: 15px;
+  font-weight: 700;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.25);
   display: flex;
   flex-direction: column;
-  gap: 0.5rem;
+  gap: 8px;
   text-align: center;
   width: 100%;
+  position: relative;
+  overflow: hidden;
+}
+
+.upgrade-button::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+  transition: left 0.5s ease;
+}
+
+.upgrade-button:hover::before {
+  left: 100%;
 }
 
 .upgrade-button.affordable {
-  background: linear-gradient(145deg, #28a745, #20c997);
+  background: linear-gradient(135deg, #059669 0%, #10b981 50%, #34d399 100%);
   color: white;
+  box-shadow: 0 6px 24px rgba(16, 185, 129, 0.4), 0 0 0 1px rgba(16, 185, 129, 0.2);
 }
 
 .upgrade-button.affordable:hover {
-  transform: translateY(-3px);
-  box-shadow: 0 8px 25px rgba(40, 167, 69, 0.3);
-  background: linear-gradient(145deg, #20c997, #28a745);
+  transform: scale(1.02);
+  box-shadow: 0 12px 36px rgba(16, 185, 129, 0.6), 0 0 0 2px rgba(16, 185, 129, 0.4);
+  background: linear-gradient(135deg, #10b981 0%, #34d399 50%, #6ee7b7 100%);
+}
+
+.upgrade-button.affordable:active {
+  transform: translateY(-2px) scale(0.98);
 }
 
 .upgrade-button.expensive {
-  background: linear-gradient(145deg, #dc3545, #c82333);
+  background: linear-gradient(135deg, #dc2626 0%, #ef4444 50%, #f87171 100%);
   color: white;
+  box-shadow: 0 6px 24px rgba(239, 68, 68, 0.3), 0 0 0 1px rgba(239, 68, 68, 0.2);
+  opacity: 0.7;
 }
 
 .upgrade-button.expensive:hover {
-  transform: translateY(-1px);
-  box-shadow: 0 6px 20px rgba(220, 53, 69, 0.3);
+  transform: scale(1.01);
+  box-shadow: 0 8px 28px rgba(239, 68, 68, 0.4), 0 0 0 1px rgba(239, 68, 68, 0.3);
+  opacity: 0.85;
 }
 
 .upgrade-button.maxed {
-  background: linear-gradient(145deg, #6c757d, #5a6268);
-  color: #adb5bd;
+  background: linear-gradient(135deg, #475569 0%, #64748b 100%);
+  color: #94a3b8;
   cursor: not-allowed;
   text-decoration: line-through;
+  opacity: 0.5;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
 }
 
 .upgrade-name {
@@ -526,7 +647,7 @@ html, body {
 }
 
 .rebirth-upgrade-button.affordable:hover {
-  transform: translateY(-3px);
+  transform: scale(1.02);
   box-shadow: 0 8px 25px rgba(142, 68, 173, 0.4);
   background: linear-gradient(145deg, #8e44ad, #9b59b6);
 }
@@ -537,7 +658,7 @@ html, body {
 }
 
 .rebirth-upgrade-button.expensive:hover {
-  transform: translateY(-1px);
+  transform: scale(1.01);
   box-shadow: 0 6px 20px rgba(195, 112, 212, 0.3);
 }
 

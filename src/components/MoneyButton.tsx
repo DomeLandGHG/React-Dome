@@ -28,14 +28,15 @@ interface MoneyButtonProps {
 const MoneyButton = ({ onClick, gameState, onGemDrop }: MoneyButtonProps) => {
   const [floatingMoneys, setFloatingMoneys] = useState<FloatingMoney[]>([]);
   const [floatingGems, setFloatingGems] = useState<FloatingGem[]>([]);
+  const MAX_FLOATING_ELEMENTS = 2; // Reduced to 2 for ultra-fast clicking
   
   // Get active event if any
   const activeEvent = gameState.activeEvent 
     ? EVENT_CONFIG.find(e => e.id === gameState.activeEvent)
     : null;
   
-  // Calculate actual money per click with all bonuses (same as GameStats)
-  const calculateActualMoneyPerClick = () => {
+  // Calculate actual money per click with all bonuses (same as GameStats) - MEMOIZED
+  const totalMoneyPerClick = React.useMemo(() => {
     // Safety check: return base value if gameState is not fully loaded
     if (gameState.achievements === undefined || gameState.rebirth_upgradeAmounts === undefined || gameState.runes === undefined) {
       return gameState.moneyPerClick || 1;
@@ -79,9 +80,16 @@ const MoneyButton = ({ onClick, gameState, onGemDrop }: MoneyButtonProps) => {
 
     // Calculate final value with achievement bonus, gold skills, and event bonus
     return gameState.moneyPerClick * clickMultiplier * runeMultiplier * rebirthPointMultiplier * achievementMoneyMultiplier * goldSkillBonuses.clickPowerMultiplier * eventMultiplier;
-  };
-
-  const totalMoneyPerClick = calculateActualMoneyPerClick();
+  }, [
+    gameState.moneyPerClick,
+    gameState.clicksTotal,
+    gameState.rebirthPoints,
+    gameState.achievements,
+    gameState.rebirth_upgradeAmounts,
+    gameState.runes,
+    gameState.goldSkills,
+    activeEvent
+  ]);
 
   // Track previous gems to detect new gem drops
   const [prevGems, setPrevGems] = useState(gameState.gems);
@@ -125,7 +133,11 @@ const MoneyButton = ({ onClick, gameState, onGemDrop }: MoneyButtonProps) => {
           y: buttonCenterY + (Math.random() - 0.5) * (isMobile ? 20 : 30),
         };
         
-        setFloatingGems(prev => [...prev, newFloatingGem]);
+        setFloatingGems(prev => {
+          // Limit to MAX_FLOATING_ELEMENTS for performance
+          const updated = [...prev, newFloatingGem];
+          return updated.length > MAX_FLOATING_ELEMENTS ? updated.slice(-MAX_FLOATING_ELEMENTS) : updated;
+        });
         
         // Remove after animation
         setTimeout(() => {
@@ -143,10 +155,30 @@ const MoneyButton = ({ onClick, gameState, onGemDrop }: MoneyButtonProps) => {
     // Call the original onClick
     onClick();
     
-    // Check if money effects are disabled
-    if (gameState.disableMoneyEffects) {
-      return; // Skip floating money animation
+    // ULTRA OPTIMIZATION: Completely disable animations at high click rates
+    const now = Date.now();
+    
+    // Track click rate efficiently (rolling window of last second)
+    const clickRate = (window as any).__clickRateMoneyBtn || [];
+    clickRate.push(now);
+    // Remove clicks older than 1 second
+    while (clickRate.length > 0 && clickRate[0] < now - 1000) {
+      clickRate.shift();
     }
+    (window as any).__clickRateMoneyBtn = clickRate;
+    
+    // Calculate current clicks per second
+    const clicksPerSecond = clickRate.length;
+    
+    // Skip ALL animations if:
+    // - Clicking more than 20 times per second (ultra-fast)
+    // - Effects disabled
+    // - Already at max floating elements
+    if (gameState.disableMoneyEffects || clicksPerSecond > 20 || floatingMoneys.length >= MAX_FLOATING_ELEMENTS) {
+      return; // Skip animation completely for maximum performance
+    }
+    
+    (window as any).__lastAnimationTime = now;
     
     // Create floating money animation
     const button = e.currentTarget;
@@ -185,7 +217,11 @@ const MoneyButton = ({ onClick, gameState, onGemDrop }: MoneyButtonProps) => {
       amount: (isCritical ? '⚡CRIT! +' : '+') + formatNumberGerman(displayAmount) + '$'
     };
     
-    setFloatingMoneys(prev => [...prev, newFloatingMoney]);
+    setFloatingMoneys(prev => {
+      // Limit to MAX_FLOATING_ELEMENTS for performance
+      const updated = [...prev, newFloatingMoney];
+      return updated.length > MAX_FLOATING_ELEMENTS ? updated.slice(-MAX_FLOATING_ELEMENTS) : updated;
+    });
     
     // Remove after animation
     setTimeout(() => {
@@ -205,26 +241,34 @@ const MoneyButton = ({ onClick, gameState, onGemDrop }: MoneyButtonProps) => {
         onClick={handleClick}
         type="button"
         style={{
-          background: 'linear-gradient(135deg, #16a34a 0%, #22c55e 50%, #4ade80 100%)',
-          border: '3px solid #15803d',
-          borderRadius: '20px',
-          padding: '20px 40px',
+          background: 'linear-gradient(135deg, #059669 0%, #10b981 25%, #34d399 75%, #6ee7b7 100%)',
+          border: 'none',
+          borderRadius: '24px',
+          padding: '24px 48px',
           cursor: 'pointer',
-          transition: 'all 0.3s ease',
-          boxShadow: '0 8px 25px rgba(34, 197, 94, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.2)',
+          transition: 'all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1)',
+          boxShadow: '0 10px 40px rgba(16, 185, 129, 0.5), 0 0 0 3px rgba(16, 185, 129, 0.3), inset 0 2px 0 rgba(255, 255, 255, 0.3)',
           color: 'white',
-          fontSize: '18px',
-          fontWeight: 'bold',
-          textShadow: '0 2px 4px rgba(0, 0, 0, 0.3)',
-          transform: 'scale(1)'
+          fontSize: '20px',
+          fontWeight: '800',
+          textShadow: '0 2px 8px rgba(0, 0, 0, 0.4), 0 0 20px rgba(255, 255, 255, 0.3)',
+          transform: 'scale(1)',
+          position: 'relative',
+          overflow: 'hidden'
         }}
         onMouseEnter={(e) => {
           e.currentTarget.style.transform = 'scale(1.05)';
-          e.currentTarget.style.boxShadow = '0 12px 30px rgba(34, 197, 94, 0.6), inset 0 1px 0 rgba(255, 255, 255, 0.2)';
+          e.currentTarget.style.boxShadow = '0 20px 60px rgba(16, 185, 129, 0.7), 0 0 0 4px rgba(16, 185, 129, 0.5), inset 0 2px 0 rgba(255, 255, 255, 0.4)';
         }}
         onMouseLeave={(e) => {
           e.currentTarget.style.transform = 'scale(1)';
-          e.currentTarget.style.boxShadow = '0 8px 25px rgba(34, 197, 94, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.2)';
+          e.currentTarget.style.boxShadow = '0 10px 40px rgba(16, 185, 129, 0.5), 0 0 0 3px rgba(16, 185, 129, 0.3), inset 0 2px 0 rgba(255, 255, 255, 0.3)';
+        }}
+        onMouseDown={(e) => {
+          e.currentTarget.style.transform = 'scale(0.95)';
+        }}
+        onMouseUp={(e) => {
+          e.currentTarget.style.transform = 'scale(1.05)';
         }}
       >
         <div className="money-icon" style={{ fontSize: '32px', marginBottom: '8px' }}>💰</div>
@@ -240,14 +284,15 @@ const MoneyButton = ({ onClick, gameState, onGemDrop }: MoneyButtonProps) => {
             position: 'absolute',
             left: floatingMoney.x,
             top: floatingMoney.y,
-            fontSize: '24px',
-            fontWeight: 'bold',
-            color: '#22c55e',
-            textShadow: '0 0 10px rgba(34, 197, 94, 0.8), 0 2px 4px rgba(0, 0, 0, 0.5)',
+            fontSize: '28px',
+            fontWeight: '900',
+            color: '#34d399',
+            textShadow: '0 0 20px rgba(52, 211, 153, 1), 0 0 40px rgba(52, 211, 153, 0.6), 0 4px 8px rgba(0, 0, 0, 0.8)',
             pointerEvents: 'none',
             zIndex: 1000,
             animation: 'floatMoney 2s ease-out forwards',
-            userSelect: 'none'
+            userSelect: 'none',
+            filter: 'drop-shadow(0 0 10px rgba(52, 211, 153, 0.8))'
           }}
         >
           💰 {floatingMoney.amount}
@@ -280,16 +325,24 @@ const MoneyButton = ({ onClick, gameState, onGemDrop }: MoneyButtonProps) => {
       <style>{`
         @keyframes floatMoney {
           0% {
+            opacity: 0;
+            transform: translateY(0px) scale(0.5);
+            filter: brightness(2) drop-shadow(0 0 20px rgba(52, 211, 153, 1));
+          }
+          15% {
             opacity: 1;
-            transform: translateY(0px) scale(0.8);
+            transform: translateY(-20px) scale(1.3);
+            filter: brightness(1.8) drop-shadow(0 0 25px rgba(52, 211, 153, 0.9));
           }
           50% {
             opacity: 1;
-            transform: translateY(-50px) scale(1.2);
+            transform: translateY(-60px) scale(1.1);
+            filter: brightness(1.2) drop-shadow(0 0 15px rgba(52, 211, 153, 0.7));
           }
           100% {
             opacity: 0;
-            transform: translateY(-120px) scale(0.6);
+            transform: translateY(-140px) scale(0.7);
+            filter: brightness(0.8) drop-shadow(0 0 5px rgba(52, 211, 153, 0.3));
           }
         }
         
@@ -325,4 +378,15 @@ const MoneyButton = ({ onClick, gameState, onGemDrop }: MoneyButtonProps) => {
   );
 };
 
-export default MoneyButton;
+export default React.memo(MoneyButton, (prevProps, nextProps) => {
+  // Ultra-aggressive memo - avoid re-renders during rapid clicking
+  // Only re-render if moneyPerClick changes (upgrades) or settings change
+  // Ignore money/gems/clicksTotal changes to prevent constant re-renders
+  return (
+    prevProps.gameState.moneyPerClick === nextProps.gameState.moneyPerClick &&
+    prevProps.gameState.disableMoneyEffects === nextProps.gameState.disableMoneyEffects &&
+    prevProps.gameState.disableDiamondEffects === nextProps.gameState.disableDiamondEffects &&
+    prevProps.gameState.rebirth_upgradeAmounts?.[0] === nextProps.gameState.rebirth_upgradeAmounts?.[0] &&
+    prevProps.gameState.activeEvent === nextProps.gameState.activeEvent
+  );
+});

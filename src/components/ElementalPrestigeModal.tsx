@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { createPortal } from 'react-dom';
 import type { GameState } from '../types';
 import { ELEMENTAL_PRESTIGE_CONFIG, calculatePrestigeRequirement, getBonusDescription } from '../types/ElementalPrestige';
 import { formatNumberGerman } from '../types/German_number';
@@ -44,7 +45,7 @@ const ElementalPrestigeModal = ({ isOpen, onClose, gameState, onPrestige }: Elem
     }
   };
 
-  return (
+  const modalContent = (
     <>
       {/* Backdrop */}
       <div 
@@ -320,6 +321,8 @@ const ElementalPrestigeModal = ({ isOpen, onClose, gameState, onPrestige }: Elem
       </div>
     </>
   );
+
+  return createPortal(modalContent, document.body);
 };
 
 export default ElementalPrestigeModal;

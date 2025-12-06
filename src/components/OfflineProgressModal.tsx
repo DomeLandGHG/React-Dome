@@ -1,3 +1,4 @@
+import { createPortal } from 'react-dom';
 import { formatNumberGerman } from '../types/German_number';
 
 interface OfflineProgressModalProps {
@@ -25,7 +26,7 @@ const OfflineProgressModal = ({ isOpen, onClose, offlineTime, moneyEarned, click
     }
   };
 
-  return (
+  const modalContent = (
     <>
       {/* Backdrop */}
       <div 
@@ -221,6 +222,8 @@ const OfflineProgressModal = ({ isOpen, onClose, offlineTime, moneyEarned, click
       `}</style>
     </>
   );
+
+  return createPortal(modalContent, document.body);
 };
 
 export default OfflineProgressModal;

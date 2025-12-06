@@ -1,4 +1,4 @@
-import { useState, useRef, useCallback } from 'react';
+import React, { useState, useRef, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import type { GameState } from '../types';
 import { formatNumberGerman } from '../types/German_number';
@@ -675,4 +675,17 @@ const GameStats = ({ gameState, onOpenGoldSkillTree }: GameStatsProps) => {
   );
 };
 
-export default GameStats;
+export default React.memo(GameStats, (prevProps, nextProps) => {
+  // Throttle GameStats updates - only re-render every ~100 money units or when upgrades change
+  const moneyDiff = Math.abs(nextProps.gameState.money - prevProps.gameState.money);
+  const shouldUpdateMoney = moneyDiff > Math.max(100, prevProps.gameState.money * 0.01); // 1% change or 100 units
+  
+  return (
+    !shouldUpdateMoney &&
+    prevProps.gameState.gems === nextProps.gameState.gems &&
+    prevProps.gameState.moneyPerClick === nextProps.gameState.moneyPerClick &&
+    prevProps.gameState.moneyPerTick === nextProps.gameState.moneyPerTick &&
+    prevProps.gameState.rebirthPoints === nextProps.gameState.rebirthPoints &&
+    prevProps.gameState.activeEvent === nextProps.gameState.activeEvent
+  );
+});
