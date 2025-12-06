@@ -126,9 +126,28 @@ export const saveGameDataToFirebase = async (gameState: GameState): Promise<bool
     console.log('[Firebase Save] Username:', gameState.username);
     console.log('[Firebase Save] Money:', gameState.money);
     console.log('[Firebase Save] Rebirth Points:', gameState.rebirthPoints);
+    console.log('[Firebase Save] 🎬 Animation Settings:', {
+      disableMoneyEffects: gameState.disableMoneyEffects,
+      disableDiamondEffects: gameState.disableDiamondEffects,
+      disablePackAnimations: gameState.disablePackAnimations,
+      disableCraftAnimations: gameState.disableCraftAnimations
+    });
+    
+    // Ensure all critical fields have valid values (no undefined)
+    const sanitizedGameState = {
+      ...gameState,
+      traderOffers: gameState.traderOffers ?? [],
+      traderLastRefresh: gameState.traderLastRefresh ?? Date.now(),
+      traderNextRefresh: gameState.traderNextRefresh ?? Date.now() + (4 * 60 * 60 * 1000),
+      achievements: gameState.achievements ?? [],
+      runes: gameState.runes ?? INITIAL_GAME_STATE.runes,
+      elementalRunes: gameState.elementalRunes ?? INITIAL_GAME_STATE.elementalRunes,
+      upgradeAmounts: gameState.upgradeAmounts ?? INITIAL_GAME_STATE.upgradeAmounts,
+      rebirth_upgradeAmounts: gameState.rebirth_upgradeAmounts ?? INITIAL_GAME_STATE.rebirth_upgradeAmounts,
+    };
     
     const gameDataRef = dbRef(db, `gameData/${userId}`);
-    await dbSet(gameDataRef, gameState);
+    await dbSet(gameDataRef, sanitizedGameState);
     console.log('[Firebase Save] ✅ Game data saved successfully to path:', `gameData/${userId}`);
     return true;
   } catch (error) {
@@ -148,6 +167,12 @@ export const loadGameDataFromFirebase = async (): Promise<GameState | null> => {
     
     if (snapshot.exists()) {
       const gameData = snapshot.val();
+      console.log('[Firebase Load] 🎬 Raw animation settings from database:', {
+        disableMoneyEffects: gameData.disableMoneyEffects,
+        disableDiamondEffects: gameData.disableDiamondEffects,
+        disablePackAnimations: gameData.disablePackAnimations,
+        disableCraftAnimations: gameData.disableCraftAnimations
+      });
       
       // Merge with INITIAL_GAME_STATE to ensure all properties exist
       const mergedData = {
@@ -171,8 +196,26 @@ export const loadGameDataFromFirebase = async (): Promise<GameState | null> => {
       if (mergedData.upgradeAmounts === undefined || mergedData.upgradeAmounts === null) {
         mergedData.upgradeAmounts = INITIAL_GAME_STATE.upgradeAmounts;
       }
-      
-      return mergedData;
+      if (mergedData.traderOffers === undefined || mergedData.traderOffers === null) {
+        mergedData.traderOffers = INITIAL_GAME_STATE.traderOffers;
+      }
+      if (mergedData.traderLastRefresh === undefined || mergedData.traderLastRefresh === null) {
+        mergedData.traderLastRefresh = INITIAL_GAME_STATE.traderLastRefresh;
+      }
+      if (mergedData.traderNextRefresh === undefined || mergedData.traderNextRefresh === null) {
+        mergedData.traderNextRefresh = INITIAL_GAME_STATE.traderNextRefresh;
+      }
+            console.log('[Firebase Load] ✅ Game data loaded successfully');
+      console.log('[Firebase Load] Username:', mergedData.username);
+      console.log('[Firebase Load] Money:', mergedData.money);
+      console.log('[Firebase Load] Rebirth Points:', mergedData.rebirthPoints);
+      console.log('[Firebase Load] 🎬 Final merged animation settings:', {
+        disableMoneyEffects: mergedData.disableMoneyEffects,
+        disableDiamondEffects: mergedData.disableDiamondEffects,
+        disablePackAnimations: mergedData.disablePackAnimations,
+        disableCraftAnimations: mergedData.disableCraftAnimations
+      });
+            return mergedData;
     }
     
     console.log('[Firebase Load] ⚠️ No game data found');
@@ -356,6 +399,7 @@ export const submitLeaderboardEntry = async (gameState: GameState): Promise<bool
       onlineTime: gameState.stats?.onlineTime || 0,
       totalRebirths: gameState.stats?.totalRebirths || 0,
       totalGems: gameState.stats?.allTimeGemsEarned || 0,
+      totalClicks: gameState.stats?.allTimeClicksTotal || 0,
       timestamp: Date.now(),
       devStats: gameState.stats?.devStats || { moneyAdded: 0, rebirthPointsAdded: 0, gemsAdded: 0, clicksAdded: 0 }
     };
@@ -374,7 +418,7 @@ export const submitLeaderboardEntry = async (gameState: GameState): Promise<bool
 };
 
 // Get top leaderboard entries for a specific category
-export const getTopLeaderboard = async (category: 'allTimeMoney' | 'totalTiers' | 'moneyPerClick' | 'onlineTime', limit: number = 100): Promise<any[]> => {
+export const getTopLeaderboard = async (category: 'allTimeMoney' | 'totalTiers' | 'moneyPerClick' | 'onlineTime' | 'totalClicks' | 'totalGems', limit: number = 100): Promise<any[]> => {
   try {
     const leaderboardRef = dbRef(db, 'leaderboard');
     const bansRef = dbRef(db, 'leaderboardBans');
@@ -448,7 +492,7 @@ export const getTopLeaderboard = async (category: 'allTimeMoney' | 'totalTiers' 
 };
 
 // Get user's rank in a category
-export const getUserRank = async (userId: string, category: 'allTimeMoney' | 'totalTiers' | 'moneyPerClick' | 'onlineTime'): Promise<number> => {
+export const getUserRank = async (userId: string, category: 'allTimeMoney' | 'totalTiers' | 'moneyPerClick' | 'onlineTime' | 'totalClicks' | 'totalGems'): Promise<number> => {
   try {
     const entries = await getTopLeaderboard(category, 10000); // Get all entries
     const userIndex = entries.findIndex(entry => entry.userId === userId);

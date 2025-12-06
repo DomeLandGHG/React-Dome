@@ -1,3 +1,4 @@
+import React from 'react';
 import { checkUsernameAvailability, reserveUsername, generateAccountCode, loginWithCode, getUserId, createNewAccount } from '../leaderboard';
 import { ref as dbRef, get as dbGet, set as dbSet } from 'firebase/database';
 import { db } from '../firebase';
@@ -13,10 +14,25 @@ interface SettingsMenuProps {
   disableCraftAnimations: boolean;
   username: string;
   onUsernameChange: (newUsername: string) => void;
+  onManualSave?: () => Promise<boolean>;
 }
 
-const SettingsMenu = ({ isOpen, onClose, onReset, onOpenAnimationSettings, disableMoneyEffects, disableDiamondEffects, disablePackAnimations, disableCraftAnimations, username, onUsernameChange }: SettingsMenuProps) => {
+const SettingsMenu = ({ isOpen, onClose, onReset, onOpenAnimationSettings, disableMoneyEffects, disableDiamondEffects, disablePackAnimations, disableCraftAnimations, username, onUsernameChange, onManualSave }: SettingsMenuProps) => {
+  const [isSaving, setIsSaving] = React.useState(false);
+
   if (!isOpen) return null;
+
+  const handleManualSave = async () => {
+    if (!onManualSave) return;
+    setIsSaving(true);
+    const success = await onManualSave();
+    if (success) {
+      alert('✅ Game saved successfully!');
+    } else {
+      alert('❌ Save failed! Please try again.');
+    }
+    setTimeout(() => setIsSaving(false), 1000);
+  };
 
   const handleReset = () => {
     if (window.confirm('Are you sure you want to reset all progress? This cannot be undone!')) {
@@ -358,6 +374,40 @@ const SettingsMenu = ({ isOpen, onClose, onReset, onOpenAnimationSettings, disab
               }}
             >
               ✏️ Change Username
+            </button>
+            <button
+              onClick={handleManualSave}
+              disabled={isSaving || !onManualSave}
+              style={{
+                background: isSaving ? 'linear-gradient(135deg, #6b7280, #4b5563)' : 'linear-gradient(135deg, #50c878, #3a9b5c)',
+                color: 'white',
+                border: isSaving ? '2px solid #6b7280' : '2px solid #50c878',
+                padding: '12px 20px',
+                borderRadius: '10px',
+                cursor: isSaving || !onManualSave ? 'not-allowed' : 'pointer',
+                fontSize: '14px',
+                fontWeight: 'bold',
+                transition: 'all 0.3s ease',
+                boxShadow: isSaving ? '0 4px 12px rgba(107, 114, 128, 0.4)' : '0 4px 12px rgba(80, 200, 120, 0.4)',
+                textShadow: '0 1px 2px rgba(0, 0, 0, 0.3)',
+                width: '100%',
+                marginTop: '8px',
+                opacity: isSaving || !onManualSave ? 0.6 : 1
+              }}
+              onMouseEnter={(e) => {
+                if (!isSaving && onManualSave) {
+                  e.currentTarget.style.transform = 'translateY(-2px)';
+                  e.currentTarget.style.boxShadow = '0 6px 16px rgba(80, 200, 120, 0.6)';
+                }
+              }}
+              onMouseLeave={(e) => {
+                if (!isSaving && onManualSave) {
+                  e.currentTarget.style.transform = 'none';
+                  e.currentTarget.style.boxShadow = '0 4px 12px rgba(80, 200, 120, 0.4)';
+                }
+              }}
+            >
+              {isSaving ? '💾 Saving...' : '💾 Save Game Now'}
             </button>
           </div>
 

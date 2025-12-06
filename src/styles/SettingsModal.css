@@ -135,7 +135,35 @@
   padding: 16px 24px;
   border-top: 2px solid #4a4a6a;
   display: flex;
-  justify-content: flex-end;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.settings-save-button {
+  background: linear-gradient(135deg, #50c878 0%, #3a9b5c 100%);
+  border: none;
+  border-radius: 10px;
+  padding: 12px 24px;
+  color: white;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+  box-shadow: 0 4px 15px rgba(80, 200, 120, 0.3);
+}
+
+.settings-save-button:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(80, 200, 120, 0.4);
+}
+
+.settings-save-button:active:not(:disabled) {
+  transform: translateY(0);
+}
+
+.settings-save-button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }
 
 .settings-done-button {

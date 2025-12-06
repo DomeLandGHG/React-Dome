@@ -1,7 +1,10 @@
+import { useState } from 'react';
 import type { GameState } from '../types';
 import { formatNumberGerman } from '../types/German_number';
 import { RUNES_1 } from '../types/Runes';
 import { calculateElementalBonuses } from '../types/ElementalPrestige';
+import { calculateGoldSkillBonuses } from '../types/GoldSkillTree';
+import { RebirthConfirmModal } from './RebirthConfirmModal';
 
 interface ActionButtonsProps {
   money: number;
@@ -13,6 +16,7 @@ interface ActionButtonsProps {
 }
 
 const ActionButtons = ({ money, onRebirth, gameState /* onCheat, moneyPerClick */}: ActionButtonsProps) => {
+  const [showRebirthConfirm, setShowRebirthConfirm] = useState(false);
   const canRebirth = money >= 1000;
   const baseRebirthPoints = Math.floor(money / 1000);
   
@@ -20,6 +24,19 @@ const ActionButtons = ({ money, onRebirth, gameState /* onCheat, moneyPerClick *
   if (gameState.achievements === undefined || gameState.runes === undefined) {
     return null;
   }
+  
+  const handleRebirthClick = () => {
+    setShowRebirthConfirm(true);
+  };
+  
+  const handleRebirthConfirm = () => {
+    setShowRebirthConfirm(false);
+    onRebirth();
+  };
+  
+  const handleRebirthCancel = () => {
+    setShowRebirthConfirm(false);
+  };
   
   // Calculate achievement RP bonus
   const totalAchievementTiers = gameState.achievements.reduce((sum, a) => sum + (a.tier || 0), 0);
@@ -45,14 +62,25 @@ const ActionButtons = ({ money, onRebirth, gameState /* onCheat, moneyPerClick *
   const elementalBonuses = calculateElementalBonuses(gameState.elementalPrestige || null);
   const elementalRpBonus = elementalBonuses.rpGainBonus - 1; // Convert multiplier to bonus percentage
   
-  const totalRebirthPoints = Math.floor(baseRebirthPoints * runeRpMultiplier * achievementRpMultiplier * elementalBonuses.rpGainBonus);
+  // Calculate Gold Skill bonuses
+  const goldSkillBonuses = calculateGoldSkillBonuses(gameState.goldSkills || []);
+  const goldSkillRpBonus = goldSkillBonuses.rpGainMultiplier - 1; // Convert multiplier to bonus percentage
+  
+  const totalRebirthPoints = Math.floor(baseRebirthPoints * runeRpMultiplier * achievementRpMultiplier * elementalBonuses.rpGainBonus * goldSkillBonuses.rpGainMultiplier);
 
   return (
     <div className="action-buttons">
+      <RebirthConfirmModal
+        isOpen={showRebirthConfirm}
+        onConfirm={handleRebirthConfirm}
+        onCancel={handleRebirthCancel}
+        rebirthPoints={totalRebirthPoints}
+        currentMoney={money}
+      />
       {canRebirth && (
         <button 
           className="rebirth-button"
-          onClick={onRebirth}
+          onClick={handleRebirthClick}
           type="button"
           style={{
             background: 'linear-gradient(135deg, #7c3aed 0%, #9333ea 50%, #a855f7 100%)',
@@ -81,13 +109,15 @@ const ActionButtons = ({ money, onRebirth, gameState /* onCheat, moneyPerClick *
           <div style={{ fontSize: '18px', marginBottom: '4px' }}>🔄 REBIRTH</div>
           <div className="rebirth-info" style={{ fontSize: '14px', color: '#e9d5ff' }}>
             Get {formatNumberGerman(totalRebirthPoints)} Rebirth Points
-            {(runeRpBonus > 0 || achievementRpBonus > 0 || elementalRpBonus > 0) && (
+            {(runeRpBonus > 0 || achievementRpBonus > 0 || elementalRpBonus > 0 || goldSkillRpBonus > 0) && (
               <span style={{ fontSize: '0.9em', color: '#c4b5fd', display: 'block' }}>
                 {runeRpBonus > 0 && `+${formatNumberGerman(runeRpBonus * 100)}% from runes`}
-                {runeRpBonus > 0 && (achievementRpBonus > 0 || elementalRpBonus > 0) && ', '}
+                {runeRpBonus > 0 && (achievementRpBonus > 0 || elementalRpBonus > 0 || goldSkillRpBonus > 0) && ', '}
                 {achievementRpBonus > 0 && `+${formatNumberGerman(achievementRpBonus * 100)}% from achievements`}
-                {achievementRpBonus > 0 && elementalRpBonus > 0 && ', '}
+                {achievementRpBonus > 0 && (elementalRpBonus > 0 || goldSkillRpBonus > 0) && ', '}
                 {elementalRpBonus > 0 && `+${formatNumberGerman(elementalRpBonus * 100)}% from prestige`}
+                {elementalRpBonus > 0 && goldSkillRpBonus > 0 && ', '}
+                {goldSkillRpBonus > 0 && `+${formatNumberGerman(goldSkillRpBonus * 100)}% from Divine Rebirth`}
               </span>
             )}
           </div>

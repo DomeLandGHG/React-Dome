@@ -6,13 +6,15 @@ import { RUNES_1 } from '../types/Runes';
 import { REBIRTHUPGRADES } from '../types/Rebirth_Upgrade';
 import { ELEMENTAL_PRESTIGE_CONFIG } from '../types/ElementalPrestige';
 import { EVENT_CONFIG } from '../types/ElementalEvent';
+import { calculateGoldSkillBonuses } from '../types/GoldSkillTree';
 
 
 interface GameStatsProps {
   gameState: GameState;
+  onOpenGoldSkillTree?: () => void;
 }
 
-const GameStats = ({ gameState }: GameStatsProps) => {
+const GameStats = ({ gameState, onOpenGoldSkillTree }: GameStatsProps) => {
   const [hoveredStat, setHoveredStat] = useState<'click' | 'tick' | null>(null);
   const [tooltipPosition, setTooltipPosition] = useState({ x: 0, y: 0 });
   const [tooltipBelow, setTooltipBelow] = useState(true); // Standardmäßig unten
@@ -170,9 +172,12 @@ const GameStats = ({ gameState }: GameStatsProps) => {
     const eventAutoSpeedMultiplier = activeEvent?.effects.autoSpeedMultiplier || 1;
     const eventUpgradeDiscount = activeEvent?.effects.upgradeDiscount || 0;
 
-    // Calculate final values with achievement bonuses, elemental prestige, and event bonuses
-    const perClickTotal = gameState.moneyPerClick * clickMultiplier * runeMultiplier * rebirthPointMultiplier * achievementMoneyMultiplier * clickPowerBonus * eventClickPowerMultiplier;
-    const perTickTotal = gameState.moneyPerTick * clickMultiplier * runeMultiplier * rebirthPointMultiplier * achievementMoneyMultiplier * autoIncomeBonus * eventAutoIncomeMultiplier;
+    // Gold Skill bonuses
+    const goldSkillBonuses = calculateGoldSkillBonuses(gameState.goldSkills || []);
+
+    // Calculate final values with achievement bonuses, elemental prestige, gold skills, and event bonuses
+    const perClickTotal = gameState.moneyPerClick * clickMultiplier * runeMultiplier * rebirthPointMultiplier * achievementMoneyMultiplier * clickPowerBonus * goldSkillBonuses.clickPowerMultiplier * eventClickPowerMultiplier;
+    const perTickTotal = gameState.moneyPerTick * clickMultiplier * runeMultiplier * rebirthPointMultiplier * achievementMoneyMultiplier * autoIncomeBonus * goldSkillBonuses.clickPowerMultiplier * eventAutoIncomeMultiplier;
 
     return { 
       perClickTotal, 
@@ -200,6 +205,7 @@ const GameStats = ({ gameState }: GameStatsProps) => {
       eventAutoIncomeMultiplier,
       eventAutoSpeedMultiplier,
       eventUpgradeDiscount,
+      goldSkillBonuses,
       activeEvent
     };
   };
@@ -214,7 +220,8 @@ const GameStats = ({ gameState }: GameStatsProps) => {
     if (!showGems) return 0;
     const baseGemChance = 0.005; // 0.5% base chance
     const bonusGemChance = values.totalGemBonus + values.achievementGemBonus;
-    return (baseGemChance + bonusGemChance) * values.eventGemDropMultiplier; // Apply Tempest event bonus
+    const goldSkillBonuses = calculateGoldSkillBonuses(gameState.goldSkills || []);
+    return (baseGemChance + bonusGemChance) * goldSkillBonuses.gemGainMultiplier * values.eventGemDropMultiplier; // Apply Gold Skills and Tempest event bonus
   };
   
   const gemChance = calculateGemChance();
@@ -298,6 +305,31 @@ const GameStats = ({ gameState }: GameStatsProps) => {
           }}>
             <span className="stat-label" style={{ color: '#cbd5e1', fontSize: '14px', fontWeight: '500' }}>Rebirth Points:</span>
             <span className="stat-value" style={{ color: '#c084fc', fontWeight: 'bold', fontSize: '16px' }}>{formatNumberGerman(Math.floor(gameState.rebirthPoints))}</span>
+          </div>
+        )}
+        {gameState.goldRP > 0 && (
+          <div className="stat-item" style={{
+            background: 'linear-gradient(135deg, rgba(255, 215, 0, 0.2) 0%, rgba(255, 165, 0, 0.2) 100%)',
+            border: '2px solid #ffd700',
+            borderRadius: '8px',
+            padding: '12px',
+            boxShadow: '0 0 20px rgba(255, 215, 0, 0.4)',
+            cursor: 'pointer',
+            transition: 'all 0.2s ease'
+          }}
+          onClick={onOpenGoldSkillTree}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.transform = 'scale(1.05)';
+            e.currentTarget.style.boxShadow = '0 0 30px rgba(255, 215, 0, 0.6)';
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.transform = 'scale(1)';
+            e.currentTarget.style.boxShadow = '0 0 20px rgba(255, 215, 0, 0.4)';
+          }}
+          >
+            <span className="stat-label" style={{ color: '#ffd700', fontSize: '14px', fontWeight: '500', textShadow: '0 0 10px rgba(255, 215, 0, 0.6)' }}>🌟 Gold RP:</span>
+            <span className="stat-value" style={{ color: '#ffd700', fontWeight: 'bold', fontSize: '16px', textShadow: '0 0 10px rgba(255, 215, 0, 0.6)' }}>{gameState.goldRP}</span>
+            <div style={{ fontSize: '10px', color: '#fbbf24', marginTop: '4px', fontStyle: 'italic' }}>Click to open Skill Tree</div>
           </div>
         )}
         {showGems && (
@@ -472,6 +504,23 @@ const GameStats = ({ gameState }: GameStatsProps) => {
                   }}>
                     <span>💧 Elemental Prestige (Water):</span>
                     <span style={{ color: '#60a5fa', fontWeight: 'bold' }}>×{formatNumberGerman(values.clickPowerBonus, 2)}</span>
+                  </div>
+                )}
+                
+                {values.goldSkillBonuses && values.goldSkillBonuses.clickPowerMultiplier > 1 && (
+                  <div style={{
+                    color: '#e2e8f0',
+                    fontSize: '12px',
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                    padding: '6px 8px',
+                    background: 'rgba(255, 215, 0, 0.1)',
+                    borderRadius: '6px',
+                    border: '1px solid rgba(255, 215, 0, 0.3)'
+                  }}>
+                    <span>🌟 Gold Skills (Divine):</span>
+                    <span style={{ color: '#ffd700', fontWeight: 'bold' }}>×{formatNumberGerman(values.goldSkillBonuses.clickPowerMultiplier, 2)}</span>
                   </div>
                 )}
                 

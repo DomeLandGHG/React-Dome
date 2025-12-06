@@ -48,6 +48,7 @@ const DevModal = ({ isOpen, onClose, gameState, setGameState, setOfflineProgress
     { cmd: 'addMoney(amount)', desc: 'Add money to your balance' },
     { cmd: 'addRP(amount)', desc: 'Add Rebirth Points' },
     { cmd: 'addGems(amount)', desc: 'Add gems' },
+    { cmd: 'addGoldRP(amount)', desc: 'Add Gold Rebirth Points' },
     { cmd: 'addClicks(amount)', desc: 'Add clicks to total' },
     { cmd: 'setMoneyPerClick(amount)', desc: 'Set money per click' },
     { cmd: 'setMoneyPerTick(amount)', desc: 'Set money per tick' },
@@ -123,6 +124,15 @@ const DevModal = ({ isOpen, onClose, gameState, setGameState, setOfflineProgress
         if (isNaN(amount)) throw new Error('Invalid amount');
         setGameState(prev => ({ ...prev, gems: prev.gems + amount }));
         setCommandHistory(prev => [...prev, `✅ Added ${amount} gems`]);
+        return;
+      }
+
+      const addGoldRPMatch = trimmedCmd.match(/^addGoldRP\(([^)]+)\)$/);
+      if (addGoldRPMatch) {
+        const amount = parseInt(addGoldRPMatch[1]);
+        if (isNaN(amount)) throw new Error('Invalid amount');
+        setGameState(prev => ({ ...prev, goldRP: (prev.goldRP || 0) + amount }));
+        setCommandHistory(prev => [...prev, `✅ Added ${amount} Gold Rebirth Points`]);
         return;
       }
 
@@ -1060,6 +1070,7 @@ const DevModal = ({ isOpen, onClose, gameState, setGameState, setOfflineProgress
             <button onClick={() => handleDevButton('addMoney(amount)', 'Add Money')} style={buttonStyle}>💰 Add Money</button>
             <button onClick={() => handleDevButton('addRP(amount)', 'Add Rebirth Points')} style={buttonStyle}>🔄 Add RP</button>
             <button onClick={() => handleDevButton('addGems(amount)', 'Add Gems')} style={buttonStyle}>💎 Add Gems</button>
+            <button onClick={() => handleDevButton('addGoldRP(amount)', 'Add Gold RP')} style={{...buttonStyle, background: 'linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%)', borderColor: '#d97706'}}>⭐ Add Gold RP</button>
             <button onClick={() => handleDevButton('addClicks(amount)', 'Add Clicks')} style={buttonStyle}>👆 Add Clicks</button>
             <button onClick={() => handleDevButton('setMoneyPerClick(amount)', 'Set Money Per Click')} style={buttonStyle}>💵 Set $/Click</button>
             <button onClick={() => handleDevButton('setMoneyPerTick(amount)', 'Set Money Per Tick')} style={buttonStyle}>⏱️ Set $/Tick</button>
