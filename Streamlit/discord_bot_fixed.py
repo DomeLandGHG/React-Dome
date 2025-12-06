@@ -655,13 +655,18 @@ async def on_command_error(ctx, error):
 # Run Bot
 if __name__ == '__main__':
     print("🤖 Starting Discord Bot...")
-    print("📝 Make sure to set your bot token in config!")
-    
-    # Replace with your bot token
-    TOKEN = 'MTQ0NjYzMzYwMzQ1ODE0MjQwOA.GvKEsV.xxVQ5_GrMsYFrhkLjdh9J0HKIibPeS2MWnWp1c'
-    
+    print("📝 Make sure to set your bot token in environment variable DISCORD_BOT_TOKEN")
+
+    # Read token from environment variable (recommended)
+    TOKEN = os.environ.get('DISCORD_BOT_TOKEN')
+
+    if not TOKEN:
+        print("❌ DISCORD_BOT_TOKEN environment variable not set. Set it and restart the bot.")
+        print("Example (Windows PowerShell): $Env:DISCORD_BOT_TOKEN='your_token_here' ; python discord_bot_fixed.py")
+        exit(1)
+
     try:
         bot.run(TOKEN)
     except Exception as e:
         print(f"❌ Failed to start bot: {e}")
-        print("Make sure you've set a valid bot token!")
+        print("Make sure the token is valid and the bot has the correct intents and permissions.")
