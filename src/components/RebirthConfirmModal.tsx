@@ -1,3 +1,4 @@
+import { createPortal } from 'react-dom';
 import { formatNumberGerman } from '../types/German_number';
 
 interface RebirthConfirmModalProps {
@@ -17,7 +18,7 @@ export const RebirthConfirmModal = ({
 }: RebirthConfirmModalProps) => {
   if (!isOpen) return null;
 
-  return (
+  const modalContent = (
     <>
       {/* Backdrop */}
       <div 
@@ -236,4 +237,7 @@ export const RebirthConfirmModal = ({
       `}</style>
     </>
   );
+
+  // Render modal directly to document.body using portal to ensure it's on top
+  return createPortal(modalContent, document.body);
 };

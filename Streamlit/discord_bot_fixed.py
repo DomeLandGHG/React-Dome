@@ -4,6 +4,8 @@ import firebase_admin
 from firebase_admin import credentials, db
 import asyncio
 from datetime import datetime
+import os
+from dotenv import load_dotenv
 
 # Discord Bot Setup
 intents = discord.Intents.default()
@@ -655,18 +657,20 @@ async def on_command_error(ctx, error):
 # Run Bot
 if __name__ == '__main__':
     print("🤖 Starting Discord Bot...")
-    print("📝 Make sure to set your bot token in environment variable DISCORD_BOT_TOKEN")
+    print("📝 Make sure to set your bot token in config!")
+    # Load environment variables from .env (optional)
+    load_dotenv()
 
-    # Read token from environment variable (recommended)
-    TOKEN = os.environ.get('DISCORD_BOT_TOKEN')
+    # Try common env var names
+    TOKEN = os.getenv('DISCORD_TOKEN')
 
     if not TOKEN:
-        print("❌ DISCORD_BOT_TOKEN environment variable not set. Set it and restart the bot.")
-        print("Example (Windows PowerShell): $Env:DISCORD_BOT_TOKEN='your_token_here' ; python discord_bot_fixed.py")
-        exit(1)
+        print('❌ No Discord token found. Set DISCORD_TOKEN in a .env file or environment variables.')
+        print('   Create a .env file with: DISCORD_TOKEN=your_token_here')
+        raise SystemExit(1)
 
     try:
         bot.run(TOKEN)
     except Exception as e:
         print(f"❌ Failed to start bot: {e}")
-        print("Make sure the token is valid and the bot has the correct intents and permissions.")
+        print("Make sure you've set a valid bot token!")

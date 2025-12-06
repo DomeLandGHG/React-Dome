@@ -81,10 +81,10 @@ export const ACHIEVEMENTS: Achievement[] = [
     tier: 1,
     requirement: {
       type: 'upgrades',
-      value: 1
+      value: 77
     },
     maxTier: 100,
-    tierMultiplier: 2
+    tierMultiplier: 1.05
   },
   {
     id: 5,
@@ -118,22 +118,8 @@ export const ACHIEVEMENTS: Achievement[] = [
   },
   {
     id: 7,
-    name: 'Active Player',
-    description: 'Play for',
-    icon: '⏰',
-    unlocked: false,
-    tier: 1,
-    requirement: {
-      type: 'onlinetime',
-      value: 600 // 10 minutes in seconds
-    },
-    maxTier: 50,
-    tierMultiplier: 600 // Each tier = +10 minutes
-  },
-  {
-    id: 8,
     name: 'Ascension Master',
-    description: 'Perform',
+    description: 'Reach',
     icon: '✨',
     unlocked: false,
     tier: 1,

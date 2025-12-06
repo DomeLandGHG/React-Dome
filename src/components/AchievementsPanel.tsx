@@ -22,9 +22,11 @@ const toRomanNumeral = (num: number): string => {
 
 interface AchievementsPanelProps {
   gameState: GameState;
+  checkAchievements?: (currentState: GameState) => Array<{ id: number; tier: number }>;
+  setGameState?: React.Dispatch<React.SetStateAction<GameState>>;
 }
 
-const AchievementsPanel: React.FC<AchievementsPanelProps> = ({ gameState }) => {
+const AchievementsPanel: React.FC<AchievementsPanelProps> = ({ gameState, checkAchievements, setGameState }) => {
   // Calculate total bonuses from achievements
   const achievementCount = gameState.achievements.reduce((sum, a) => sum + (a.tier || 0), 0); // Total tiers unlocked
   const moneyBonus = achievementCount * 1; // 1% per achievement tier
@@ -302,6 +304,67 @@ const AchievementsPanel: React.FC<AchievementsPanelProps> = ({ gameState }) => {
         </div>
       </div>
 
+      {/* Manual Achievement Reload Button */}
+      {checkAchievements && (
+        <div
+          style={{
+            background: 'rgba(0, 0, 0, 0.3)',
+            borderRadius: '12px',
+            padding: '16px',
+            marginBottom: '16px',
+            border: '1px solid rgba(251, 191, 36, 0.3)',
+            position: 'relative'
+          }}
+        >
+          <button
+            onClick={() => {
+              if (checkAchievements && setGameState) {
+                const updatedAchievements = checkAchievements(gameState);
+                setGameState(prev => ({
+                  ...prev,
+                  achievements: updatedAchievements
+                }));
+              }
+            }}
+            style={{
+              width: '100%',
+              padding: '12px 16px',
+              background: 'linear-gradient(135deg, #f59e0b 0%, #d97706 50%, #92400e 100%)',
+              border: '2px solid #fbbf24',
+              borderRadius: '8px',
+              color: 'white',
+              fontSize: '14px',
+              fontWeight: 'bold',
+              cursor: 'pointer',
+              transition: 'all 0.3s ease',
+              boxShadow: '0 4px 12px rgba(245, 158, 11, 0.4)',
+              textShadow: '0 0 8px rgba(0,0,0,0.3)'
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.transform = 'translateY(-2px)';
+              e.currentTarget.style.boxShadow = '0 6px 16px rgba(245, 158, 11, 0.6)';
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.transform = 'none';
+              e.currentTarget.style.boxShadow = '0 4px 12px rgba(245, 158, 11, 0.4)';
+            }}
+          >
+            🔄 Reload Achievements
+          </button>
+          <div
+            style={{
+              fontSize: '12px',
+              color: '#fcd34d',
+              textAlign: 'center',
+              marginTop: '8px',
+              opacity: 0.8
+            }}
+          >
+            Manually recalculate all achievement progress
+          </div>
+        </div>
+      )}
+
       {/* Achievements List */}
       <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', position: 'relative' }}>
         {ACHIEVEMENTS
@@ -333,7 +396,12 @@ const AchievementsPanel: React.FC<AchievementsPanelProps> = ({ gameState }) => {
           if (achievement.maxTier && achievement.tierMultiplier && achievement.requirement) {
             const nextTier = currentTier + 1;
             if (nextTier <= achievement.maxTier) {
-              nextTierValue = achievement.requirement.value * Math.pow(achievement.tierMultiplier, nextTier - 1);
+              // Special case for Ascension Master: linear progression
+              if (achievement.requirement.type === 'ascensions') {
+                nextTierValue = nextTier;
+              } else {
+                nextTierValue = achievement.requirement.value * Math.pow(achievement.tierMultiplier, nextTier - 1);
+              }
               const { type } = achievement.requirement;
               let currentValue = 0;
               
@@ -367,6 +435,12 @@ const AchievementsPanel: React.FC<AchievementsPanelProps> = ({ gameState }) => {
                 case 'runespurchased':
                   currentValue = (gameState.stats?.baseRunePacksPurchased || 0) + (gameState.stats?.elementalRunePacksPurchased || 0);
                   progressText = `${formatNumberGerman(currentValue)} / ${formatNumberGerman(nextTierValue)} packs`;
+                  break;
+                case 'ascensions':
+                  currentValue = gameState.elementalPrestige 
+                    ? Object.values(gameState.elementalPrestige).reduce((a, b) => a + b, 0)
+                    : 0;
+                  progressText = `${formatNumberGerman(currentValue)} / ${formatNumberGerman(nextTierValue)} ascensions`;
                   break;
               }
             }
@@ -440,13 +514,24 @@ const AchievementsPanel: React.FC<AchievementsPanelProps> = ({ gameState }) => {
               case 'runespurchased':
                 suffix = ' packs';
                 break;
+              case 'onlinetime':
+                suffix = ' minutes';
+                break;
+              case 'ascensions':
+                suffix = ' ascensions';
+                break;
             }
             
             if (currentTier > 0) {
               // Zeige den Namen des aktuellen Tiers
               displayName = `${achievement.name} ${toRomanNumeral(currentTier)}`;
-              // Zeige das Ziel des NÄCHSTEN Tiers (currentTier, nicht currentTier - 1)
-              displayDescription = `${achievement.description} ${formatNumberGerman(achievement.requirement.value * Math.pow(achievement.tierMultiplier, currentTier))}${suffix}`;
+              // Zeige das Ziel des NÄCHSTEN Tiers
+              if (achievement.requirement.type === 'ascensions') {
+                // Special case: Ascension Master requires linear progression (1, 2, 3, ...)
+                displayDescription = `${achievement.description} ${formatNumberGerman(currentTier + 1)}${suffix}`;
+              } else {
+                displayDescription = `${achievement.description} ${formatNumberGerman(achievement.requirement.value * Math.pow(achievement.tierMultiplier, currentTier))}${suffix}`;
+              }
             } else {
               displayName = `${achievement.name} I`;
               displayDescription = `${achievement.description} ${formatNumberGerman(achievement.requirement.value)}${suffix}`;

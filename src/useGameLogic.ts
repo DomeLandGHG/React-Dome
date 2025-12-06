@@ -5,7 +5,7 @@ export interface PackResult {
   index: number;
   elementType?: string;
 }
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import type { GameState } from './types';
 import { INITIAL_GAME_STATE } from './types';
 import { submitLeaderboardEntry, saveGameDataToFirebase, loadGameDataFromFirebase } from './leaderboard';
@@ -291,7 +291,7 @@ export const useGameLogic = () => {
         // Check if we can unlock the next tier
         const nextTier = currentTier + 1;
         if (nextTier <= achievement.maxTier) {
-          const requiredValue = baseValue * Math.pow(achievement.tierMultiplier, nextTier - 1);
+          let requiredValue = baseValue * Math.pow(achievement.tierMultiplier, nextTier - 1);
           let currentValue = 0;
           
           switch (type) {
@@ -325,9 +325,11 @@ export const useGameLogic = () => {
               currentValue = currentState.stats?.offlineTime || 0;
               break;
             case 'ascensions':
+              // Special case: Ascension Master requires linear progression (1, 2, 3, ...)
               currentValue = currentState.elementalPrestige 
                 ? Object.values(currentState.elementalPrestige).reduce((a, b) => a + b, 0)
                 : 0;
+              requiredValue = nextTier; // Each tier requires exactly that many ascensions
               break;
           }
           
@@ -660,30 +662,52 @@ export const useGameLogic = () => {
     return () => clearInterval(interval);
   }, [gameState.nextEventTime, gameState.activeEvent, gameState.eventEndTime, gameState.elementalRunes]);
 
-  // Prevent rapid clicks from causing infinite loops
+  // Ultra-fast click batching with dynamic frame rate targeting
+  const clickBatchRef = useRef<number>(0);
+  const rafIdRef = useRef<number | null>(null);
+  const lastFrameTimeRef = useRef<number>(Date.now());
+  const frameCountRef = useRef<number>(0);
+  const avgFrameTimeRef = useRef<number>(16.67); // Target 60 FPS
+  
   const clickMoney = useCallback(() => {
-    const now = Date.now();
-    const lastClick = (window as any).__lastClickTime || 0;
+    // Simply increment the batch counter - no throttling at all
+    clickBatchRef.current++;
     
-    // Throttle clicks to max 60 per second (16.67ms minimum interval)
-    if (now - lastClick < 16) {
-      return; // Skip this click
+    // If already scheduled, the existing RAF will process all accumulated clicks
+    if (rafIdRef.current !== null) {
+      return;
     }
     
-    (window as any).__lastClickTime = now;
-    
-    setGameState(prev => {
-      // Safety check: return unchanged state if not fully loaded
-      if (prev.achievements === undefined || prev.rebirth_upgradeAmounts === undefined || prev.runes === undefined) {
-        return prev;
-      }
+    // Schedule batch processing on next animation frame
+    rafIdRef.current = requestAnimationFrame(() => {
+      const now = Date.now();
+      const frameDelta = now - lastFrameTimeRef.current;
+      lastFrameTimeRef.current = now;
       
-      // Achievement bonuses
-      const hasGemUnlock = prev.rebirth_upgradeAmounts[2] > 0;
-      const totalAchievementTiers = prev.achievements.reduce((sum, a) => sum + (a.tier || 0), 0);
-      const achievementBonuses = calculateAchievementBonuses(totalAchievementTiers, hasGemUnlock);
+      // Track average frame time for adaptive optimization
+      avgFrameTimeRef.current = avgFrameTimeRef.current * 0.9 + frameDelta * 0.1;
+      frameCountRef.current++;
       
-      const newClicksTotal = prev.clicksTotal + 1;
+      const clicksToProcess = clickBatchRef.current;
+      clickBatchRef.current = 0;
+      rafIdRef.current = null;
+      
+      // Skip expensive operations if FPS is dropping (frame time > 20ms = under 50 FPS)
+      const isLowFPS = avgFrameTimeRef.current > 20;
+      
+      // Process all batched clicks in one state update
+      setGameState(prev => {
+        // Safety check: return unchanged state if not fully loaded
+        if (prev.achievements === undefined || prev.rebirth_upgradeAmounts === undefined || prev.runes === undefined) {
+          return prev;
+        }
+        
+        // Achievement bonuses
+        const hasGemUnlock = prev.rebirth_upgradeAmounts[2] > 0;
+        const totalAchievementTiers = prev.achievements.reduce((sum, a) => sum + (a.tier || 0), 0);
+        const achievementBonuses = calculateAchievementBonuses(totalAchievementTiers, hasGemUnlock);
+        
+        const newClicksTotal = prev.clicksTotal + clicksToProcess;
       let multiplier = 1;
       if (prev.rebirth_upgradeAmounts[0] > 0) {
         // Berechne den Exponent: 0.01 + (upgradeAmount - 1) * 0.01
@@ -710,32 +734,38 @@ export const useGameLogic = () => {
       
       let newGems = prev.gems;
       let gemsEarned = 0;
-      // Gem Drop Chance wenn das dritte Rebirth-Upgrade gekauft wurde
+      
+      // Process gem drops for batched clicks - ultra-optimized for high click rates
       if (prev.rebirth_upgradeAmounts[2] > 0) {
-        // Gold Skill bonuses for gems
         const goldSkillBonuses = calculateGoldSkillBonuses(prev.goldSkills || []);
-        
         const baseGemChance = REBIRTHUPGRADES[2].effect; // 0.005 = 0.5%
         const totalGemChance = (baseGemChance + totalGemBonus + achievementBonuses.gemBonusChance) * goldSkillBonuses.gemGainMultiplier * eventGemDropMultiplier;
         
-        // Wenn Chance über 100%, garantiert mindestens 1 Gem + Chance für mehr
-        if (totalGemChance >= 1.0) {
-          const guaranteedGems = Math.floor(totalGemChance);
-          const remainingChance = totalGemChance - guaranteedGems;
-          gemsEarned = guaranteedGems;
-          if (Math.random() < remainingChance) {
-            gemsEarned += 1;
-          }
+        // Ultra-optimized: Use expected value for batches > 10 clicks (reduced from 20)
+        if (clicksToProcess > 10) {
+          // Use pure expected value for maximum performance
+          gemsEarned = Math.floor(clicksToProcess * totalGemChance);
         } else {
-          // Normale Chance unter 100%
-          if (Math.random() < totalGemChance) {
-            gemsEarned = 1;
+          // For small batches: precise calculation
+          for (let i = 0; i < clicksToProcess; i++) {
+            if (totalGemChance >= 1.0) {
+              const guaranteedGems = Math.floor(totalGemChance);
+              const remainingChance = totalGemChance - guaranteedGems;
+              gemsEarned += guaranteedGems;
+              if (Math.random() < remainingChance) {
+                gemsEarned += 1;
+              }
+            } else {
+              if (Math.random() < totalGemChance) {
+                gemsEarned += 1;
+              }
+            }
           }
         }
         
         // Apply event multiplier and Diamond Rain bonus
-        gemsEarned = Math.floor(gemsEarned * eventGemMultiplier); // Fire Storm: 2× Gems
-        gemsEarned *= goldSkillBonuses.bonusGemMultiplier; // Diamond Rain: Multiplies gems by N
+        gemsEarned = Math.floor(gemsEarned * eventGemMultiplier);
+        gemsEarned *= goldSkillBonuses.bonusGemMultiplier;
         
         newGems += gemsEarned;
       }
@@ -756,44 +786,53 @@ export const useGameLogic = () => {
       // Gold Skill bonuses
       const goldSkillBonuses = calculateGoldSkillBonuses(prev.goldSkills || []);
       
-      // Critical Strike check
+      // Critical Strike check - only check once per batch for performance
       const isCritical = goldSkillBonuses.criticalStrikeChance > 0 && Math.random() < goldSkillBonuses.criticalStrikeChance;
       const critMultiplier = isCritical ? 10 : 1;
-      // if (isCritical) {
-      //   console.log(`⚡ CRITICAL STRIKE! 10x money (chance: ${(goldSkillBonuses.criticalStrikeChance * 100).toFixed(1)}%)`);
-      // }
       
       const eventClickPowerMultiplier = activeEvent?.effects.clickPowerMultiplier || 1;
-      const moneyEarned = prev.moneyPerClick * multiplier * runeMoneyMultiplier * rebirthPointMultiplier * achievementBonuses.moneyMultiplier * goldSkillBonuses.clickPowerMultiplier * elementalBonuses.clickPowerBonus * eventClickPowerMultiplier * critMultiplier;
+      
+      // Multiply by clicksToProcess to get total money for all batched clicks
+      const moneyEarned = prev.moneyPerClick * multiplier * runeMoneyMultiplier * rebirthPointMultiplier * achievementBonuses.moneyMultiplier * goldSkillBonuses.clickPowerMultiplier * elementalBonuses.clickPowerBonus * eventClickPowerMultiplier * critMultiplier * clicksToProcess;
       
       const newState = {
         ...prev,
         money: prev.money + moneyEarned,
         gems: newGems,
-        clicksInRebirth: prev.clicksInRebirth + 1,
+        clicksInRebirth: prev.clicksInRebirth + clicksToProcess,
         clicksTotal: newClicksTotal,
         stats: {
           ...prev.stats,
           allTimeMoneyEarned: prev.stats.allTimeMoneyEarned + moneyEarned,
           moneyFromClicks: prev.stats.moneyFromClicks + moneyEarned,
           allTimeGemsEarned: prev.stats.allTimeGemsEarned + gemsEarned,
-          allTimeClicksTotal: prev.stats.allTimeClicksTotal + 1,
-          clicksFromManual: prev.stats.clicksFromManual + 1,
+          allTimeClicksTotal: prev.stats.allTimeClicksTotal + clicksToProcess,
+          clicksFromManual: prev.stats.clicksFromManual + clicksToProcess,
         },
       };
       
-      // Check for new achievements
-      const updatedAchievements = checkAchievements(newState);
+      // ULTRA OPTIMIZATION: Reduce achievement check frequency dramatically
+      // Only check every 1000 clicks OR every 60 seconds
+      // Skip entirely if FPS is low or processing massive batches
+      const shouldCheckAchievements = 
+        !isLowFPS && 
+        clicksToProcess < 100 && // Skip if processing massive batches (200+ clicks/sec scenarios)
+        (newClicksTotal % 1000 === 0 || Date.now() - ((window as any).__lastAchievementCheck || 0) > 60000);
       
-      // Only create new object if achievements actually changed
-      if (updatedAchievements === newState.achievements) {
-        return newState;
+      if (shouldCheckAchievements) {
+        (window as any).__lastAchievementCheck = Date.now();
+        const updatedAchievements = checkAchievements(newState);
+        
+        if (updatedAchievements !== newState.achievements) {
+          return {
+            ...newState,
+            achievements: updatedAchievements
+          };
+        }
       }
       
-      return {
-        ...newState,
-        achievements: updatedAchievements
-      };
+      return newState;
+      });
     });
   }, [calculateAchievementBonuses, checkAchievements]);
 
@@ -2039,5 +2078,6 @@ export const useGameLogic = () => {
     craftSecretRune,
     manualSave,
     unlockGoldSkill,
+    checkAchievements,
   };
 };

@@ -19,6 +19,7 @@ import OfflineProgressModal from './components/OfflineProgressModal';
 import DevModal from './components/DevModal';
 import { SettingsModal } from './components/SettingsModal';
 import { EventNotification } from './components/EventNotification';
+import { PerformanceMonitor } from './components/PerformanceMonitor';
 import ElementalTraderModal from './components/ElementalTraderModal';
 import ElementalPrestigeModal from './components/ElementalPrestigeModal';
 import { GoldSkillTreeModal } from './components/GoldSkillTreeModal';
@@ -35,7 +36,7 @@ import { getUserId } from './leaderboard';
 import './App.css';
 
 function App() {
-  const { gameState, setGameState, isLoading, offlineProgress, setOfflineProgress, claimOfflineProgress, clickMoney, buyUpgrade, buyMaxUpgrades, buyRebirthUpgrade, buyMaxRebirthUpgrades, performRebirth, resetGame, cheatMoney, devAddMoney, devAddMoneyDirect, devAddRebirthPoint, devAddGem, devAddClick, devAddRune, devAddElementalRune, openRunePack, mergeRunes, mergeAllRunes, switchRuneType, toggleElementalStats, toggleMoneyEffects, toggleDiamondEffects, toggleDevStats, devSimulateOfflineTime, craftSecretRune, manualSave, unlockGoldSkill } = useGameLogic();
+  const { gameState, setGameState, isLoading, offlineProgress, setOfflineProgress, claimOfflineProgress, clickMoney, buyUpgrade, buyMaxUpgrades, buyRebirthUpgrade, buyMaxRebirthUpgrades, performRebirth, resetGame, cheatMoney, devAddMoney, devAddMoneyDirect, devAddRebirthPoint, devAddGem, devAddClick, devAddRune, devAddElementalRune, openRunePack, mergeRunes, mergeAllRunes, switchRuneType, toggleElementalStats, toggleMoneyEffects, toggleDiamondEffects, toggleDevStats, devSimulateOfflineTime, craftSecretRune, manualSave, unlockGoldSkill, checkAchievements } = useGameLogic();
   const [activePanel, setActivePanel] = useState<'upgrades' | 'rebirth' | 'achievements'>('upgrades');
   const [secondPanelView, setSecondPanelView] = useState<'achievements' | 'statistics' | 'leaderboard'>('achievements');
   const [mobileActiveTab, setMobileActiveTab] = useState<'stats' | 'upgrades' | 'rebirth' | 'gems' | 'achievements' | 'statistics' | 'leaderboard' | 'settings' | 'dev' | 'trader' | 'prestige'>('stats');
@@ -617,6 +618,9 @@ function App() {
     <div className="app" style={appStyle}>
       {/* Multi-Instance Warning */}
       <MultiInstanceWarning userId={getUserId()} />
+      
+      {/* Performance Monitor - Toggle with Ctrl+Shift+P */}
+      <PerformanceMonitor />
       
       {/* Flash overlay for rebirth effect */}
       {isFlashing && (
@@ -2087,7 +2091,11 @@ function App() {
             boxSizing: 'border-box'
           }}>
             {secondPanelView === 'achievements' ? (
-              <AchievementsPanel gameState={gameState} />
+              <AchievementsPanel 
+                gameState={gameState} 
+                checkAchievements={checkAchievements}
+                setGameState={setGameState}
+              />
             ) : secondPanelView === 'statistics' ? (
               <StatisticsPanel gameState={gameState} onToggleDevStats={toggleDevStats} />
             ) : (
@@ -2299,6 +2307,8 @@ function App() {
             {mobileActiveTab === 'achievements' && isRebirthUnlocked && (
               <AchievementsPanel
                 gameState={gameState}
+                checkAchievements={checkAchievements}
+                setGameState={setGameState}
               />
             )}
 
@@ -2791,7 +2801,7 @@ function App() {
       </main>
 
       <footer className="app-footer">
-        <p>React Money Clicker v0.1.4 | Your progress is automatically saved!</p>
+        <p>React Money Clicker v0.2.0 | Your progress is automatically saved!</p>
       </footer>
       
       {/* Pack Opening Animation */}

@@ -33,7 +33,6 @@ const LeaderboardPanel = ({ gameState }: LeaderboardPanelProps) => {
     { id: 'totalTiers' as LeaderboardCategory, label: '🏆 Total Tiers', icon: '🏆' },
     { id: 'moneyPerClick' as LeaderboardCategory, label: '👆 Money Per Click', icon: '👆' },
     { id: 'onlineTime' as LeaderboardCategory, label: '⏰ Online Time', icon: '⏰' },
-    { id: 'totalClicks' as LeaderboardCategory, label: '🖱️ Total Clicks', icon: '🖱️' },
     { id: 'totalGems' as LeaderboardCategory, label: '💎 Total Gems', icon: '💎' },
   ];
 

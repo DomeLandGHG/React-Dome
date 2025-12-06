@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { createPortal } from 'react-dom';
 import type { GameState } from '../types';
 import type { TraderOffer } from '../types/ElementalTrader';
 import { RUNES_1, RUNES_2 } from '../types/Runes';
@@ -71,7 +72,7 @@ const ElementalTraderModal = ({ isOpen, onClose, offers, gameState, onAcceptOffe
     }
   };
 
-  return (
+  const modalContent = (
     <>
       {/* Backdrop */}
       <div 
@@ -353,6 +354,8 @@ const ElementalTraderModal = ({ isOpen, onClose, offers, gameState, onAcceptOffe
       </div>
     </>
   );
+
+  return createPortal(modalContent, document.body);
 };
 
 export default ElementalTraderModal;
